@@ -3,21 +3,23 @@
 	import {
 		Accessibility,
 		Activity,
-		ArrowLeft,
 		BookOpen,
 		ChartLine,
 		ClipboardList,
 		Code,
+		Settings,
 		Smartphone,
 		Sparkles,
 		Tag,
 		Target,
 		TrendingDown,
-		Users
+		TrendingUp,
+		Users,
+		ArrowLeft
 	} from 'lucide-svelte';
 
 	// Documentation visibility state
-	let showDocumentation = true;
+	let showDocumentation = false;
 
 	// Example data for multiple product lines
 	const productData = [
@@ -225,7 +227,10 @@
 
 	// Simple function that just returns code without highlighting for now
 	function highlight(code: string): string {
-		return code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+		return code
+			.replace(/&/g, '&amp;')
+			.replace(/</g, '&lt;')
+			.replace(/>/g, '&gt;');
 	}
 </script>
 
@@ -249,11 +254,11 @@
 					Line Charts
 				</h1>
 				<p class="header-description">
-					Professional line chart component for Svelte 5. Display trends and changes over time with
-					support for multiple data series, negative values, and comprehensive accessibility
-					features.
+					Professional line chart component for Svelte 5. Display trends and changes 
+					over time with support for multiple data series, negative values, and 
+					comprehensive accessibility features.
 				</p>
-
+				
 				<div class="header-features">
 					<span class="feature-tag">Multi-line Support</span>
 					<span class="feature-tag">Negative Values</span>
@@ -261,9 +266,12 @@
 					<span class="feature-tag">Accessibility</span>
 				</div>
 			</div>
-
+			
 			<div class="header-actions">
-				<button class="btn btn-secondary" onclick={() => (showDocumentation = !showDocumentation)}>
+				<button 
+					class="btn btn-secondary" 
+					onclick={() => (showDocumentation = !showDocumentation)}
+				>
 					<BookOpen size={16} />
 					{showDocumentation ? 'Hide' : 'Show'} Documentation
 				</button>
@@ -310,24 +318,6 @@
 									<td>Key to use for y-axis values</td>
 								</tr>
 								<tr>
-									<td><code>title</code></td>
-									<td><code>string</code></td>
-									<td><code>'Multi Line Chart'</code></td>
-									<td>Chart title</td>
-								</tr>
-								<tr>
-									<td><code>showLegend</code></td>
-									<td><code>boolean</code></td>
-									<td><code>true</code></td>
-									<td>Whether to show the legend</td>
-								</tr>
-								<tr>
-									<td><code>height</code></td>
-									<td><code>number</code></td>
-									<td><code>400</code></td>
-									<td>Chart height in pixels</td>
-								</tr>
-								<tr>
 									<td><code>showValues</code></td>
 									<td><code>boolean</code></td>
 									<td><code>false</code></td>
@@ -351,18 +341,6 @@
 									<td><code>true</code></td>
 									<td>Auto double tick count for negative values</td>
 								</tr>
-								<tr>
-									<td><code>dateFormat</code></td>
-									<td><code>string</code></td>
-									<td><code>'MMM dd'</code></td>
-									<td>Date format for display (using date-fns format)</td>
-								</tr>
-								<tr>
-									<td><code>inputDateFormat</code></td>
-									<td><code>string | null</code></td>
-									<td><code>null</code></td>
-									<td>Expected input date format for parsing</td>
-								</tr>
 							</tbody>
 						</table>
 					</div>
@@ -375,54 +353,12 @@
 						<div class="code-header">Component Usage</div>
 						<div class="code-content">
 							<code>
-								<span class="ltgt">&lt;</span><span class="">MultiLineChart</span><br />
-								&nbsp;&nbsp;<span class="prop">lines</span>=<span class="code-tag"
-									>&#123;data&#125;</span
-								><br />
-								&nbsp;&nbsp;<span class="prop">xKey</span>=<span class="value">"month"</span><br />
-								&nbsp;&nbsp;<span class="prop">yKey</span>=<span class="value">"sales"</span><br />
-								&nbsp;&nbsp;<span class="prop">title</span>=<span class="value"
-									>"Product Performance"</span
-								><br />
-								&nbsp;&nbsp;<span class="prop">showLegend</span>=<span class="code-tag"
-									>&#123;true&#125;</span
-								><br />
-								<span class="ltgt">/&gt;</span>
-							</code>
-						</div>
-					</div>
-				</div>
-
-				<!-- Negative Values Support -->
-				<div class="doc-section">
-					<h2><TrendingDown size={20} /> Negative Values Support</h2>
-					<div class="highlight-box">
-						<h4><Target size={18} /> Automatic Features</h4>
-						<p>
-							When negative values are detected, the component automatically adds a zero reference
-							line and can double the tick count for better granularity around the zero line.
-						</p>
-					</div>
-
-					<div class="code-preview">
-						<div class="code-header">Negative Values Example</div>
-						<div class="code-content">
-							<code>
-								<span class="ltgt">&lt;</span><span class="">MultiLineChart</span><br />
-								&nbsp;&nbsp;<span class="prop">lines</span>=<span class="code-tag"
-									>&#123;profitLossData&#125;</span
-								><br />
-								&nbsp;&nbsp;<span class="prop">xKey</span>=<span class="value">"month"</span><br />
-								&nbsp;&nbsp;<span class="prop">yKey</span>=<span class="value">"profit"</span><br />
-								&nbsp;&nbsp;<span class="prop">title</span>=<span class="value"
-									>"Profit/Loss Analysis"</span
-								><br />
-								&nbsp;&nbsp;<span class="prop">yTickCount</span>=<span class="code-tag"
-									>&#123;5&#125;</span
-								><br />
-								&nbsp;&nbsp;<span class="prop">doubleTicksForNegatives</span>=<span class="code-tag"
-									>&#123;true&#125;</span
-								><br />
+								<span class="ltgt">&lt;</span><span class="">MultiLineChart</span><br/>
+								&nbsp;&nbsp;<span class="prop">lines</span>=<span class="code-tag">&#123;data&#125;</span><br/>
+								&nbsp;&nbsp;<span class="prop">xKey</span>=<span class="value">"month"</span><br/>
+								&nbsp;&nbsp;<span class="prop">yKey</span>=<span class="value">"sales"</span><br/>
+								&nbsp;&nbsp;<span class="prop">title</span>=<span class="value">"Product Performance"</span><br/>
+								&nbsp;&nbsp;<span class="prop">showLegend</span>=<span class="code-tag">&#123;true&#125;</span><br/>
 								<span class="ltgt">/&gt;</span>
 							</code>
 						</div>
@@ -432,46 +368,39 @@
 				<!-- Key Features -->
 				<div class="doc-section">
 					<h2><Sparkles size={20} /> Key Features</h2>
-					<div class="feature-grid">
-						<div class="feature-card">
-							<h4><ChartLine size={18} /> Multiple Lines</h4>
-							<p>
-								Display up to 5 lines simultaneously with automatic color assignment and interactive
-								legend.
-							</p>
+					<div class="features-list">
+						<div class="feature-item">
+							<ChartLine size={18} />
+							<div>
+								<h4>Multiple Lines</h4>
+								<p>Display up to 5 lines simultaneously with automatic color assignment</p>
+							</div>
 						</div>
-						<div class="feature-card">
-							<h4><TrendingDown size={18} /> Negative Values Support</h4>
-							<p>
-								Automatic handling of negative data with zero reference line and enhanced scaling.
-							</p>
+						<div class="feature-item">
+							<TrendingDown size={18} />
+							<div>
+								<h4>Negative Values</h4>
+								<p>Automatic handling with zero reference line and enhanced scaling</p>
+							</div>
 						</div>
-						<div class="feature-card">
-							<h4><Target size={18} /> Auto-Doubled Ticks</h4>
-							<p>
-								Automatically increases tick density when negative values are detected for better
-								granularity.
-							</p>
+						<div class="feature-item">
+							<Target size={18} />
+							<div>
+								<h4>Auto Ticks</h4>
+								<p>Automatically doubles tick density for negative values</p>
+							</div>
 						</div>
-						<div class="feature-card">
-							<h4><Smartphone size={18} /> Responsive Design</h4>
-							<p>Automatically adjusts to container size with smooth animations and transitions.</p>
-						</div>
-						<div class="feature-card">
-							<h4><Tag size={18} /> Value Labels</h4>
-							<p>Optional display of values above each data point for precise reading.</p>
-						</div>
-						<div class="feature-card">
-							<h4><Accessibility size={18} /> Accessibility</h4>
-							<p>
-								Full keyboard navigation, comprehensive ARIA support, screen reader compatibility,
-								and alternative data table access.
-							</p>
+						<div class="feature-item">
+							<Accessibility size={18} />
+							<div>
+								<h4>Accessibility</h4>
+								<p>Full keyboard navigation and screen reader support</p>
+							</div>
 						</div>
 					</div>
 				</div>
 
-				<!-- Advanced Examples */
+				<!-- Advanced Examples -->
 				<div class="doc-section">
 					<h2><Settings size={20} /> Advanced Configuration</h2>
 					<div class="config-grid">
@@ -503,119 +432,6 @@
 								</div>
 							</div>
 						</div>
-						<div class="config-item">
-							<h4>Disable Tooltips</h4>
-							<div class="code-preview small">
-								<div class="code-content">
-									<code>
-										<span class="ltgt">&lt;</span><span class="">MultiLineChart</span><br/>
-										&nbsp;&nbsp;<span class="prop">lines</span>=<span class="code-tag">&#123;lines&#125;</span><br/>
-										&nbsp;&nbsp;<span class="prop">hasTooltip</span>=<span class="code-tag">&#123;false&#125;</span><br/>
-										<span class="ltgt">/&gt;</span>
-									</code>
-								</div>
-							</div>
-						</div>
-						<div class="config-item">
-							<h4>Custom Date Format</h4>
-							<div class="code-preview small">
-								<div class="code-content">
-									<code>
-										<span class="ltgt">&lt;</span><span class="">MultiLineChart</span><br/>
-										&nbsp;&nbsp;<span class="prop">lines</span>=<span class="code-tag">&#123;lines&#125;</span><br/>
-										&nbsp;&nbsp;<span class="prop">dateFormat</span>=<span class="value">"MMM dd, yyyy"</span><br/>
-										&nbsp;&nbsp;<span class="prop">inputDateFormat</span>=<span class="value">"dd/MM/yyyy"</span><br/>
-										<span class="ltgt">/&gt;</span>
-									</code>
-								</div>
-							</div>
-						</div>
-					</div>
-				</div>
-
-				<!-- LineData Interface -->
-				<div class="doc-section">
-					<h2><Code size={20} /> LineData Interface</h2>
-					<div class="code-preview">
-						<div class="code-header">TypeScript Interface</div>
-						<div class="code-content">
-							<code>
-								<span class="prop">interface</span> <span class="code-tag">LineData</span>
-								<span class="ltgt">&#123;</span><br />
-								&nbsp;&nbsp;<span class="prop">id</span>:
-								<span class="value">string</span
-								>;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment"
-									>// Unique identifier</span
-								><br />
-								&nbsp;&nbsp;<span class="prop">label</span>:
-								<span class="value">string</span>;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span
-									class="comment">// Display name</span
-								><br />
-								&nbsp;&nbsp;<span class="prop">color</span>:
-								<span class="value">string</span>;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span
-									class="comment">// Hex color code</span
-								><br />
-								&nbsp;&nbsp;<span class="prop">data</span>:
-								<span class="code-tag">Array&lt;Record&lt;string, any&gt;&gt;</span>;
-								<span class="comment">// Data points</span><br />
-								<span class="ltgt">&#125;</span>
-							</code>
-						</div>
-					</div>
-				</div>
-
-				<!-- Accessibility Features -->
-				<div class="doc-section">
-					<h2><Accessibility size={20} /> Accessibility Features</h2>
-					<p>
-						This chart component is designed with accessibility as a core feature, providing
-						multiple ways to interact with and understand the data:
-					</p>
-
-					<div class="feature-grid">
-						<div class="feature-card">
-							<h4><Activity size={18} /> Keyboard Navigation</h4>
-							<p>
-								<strong>Tab:</strong> Navigate between legend items<br />
-								<strong>Enter/Space:</strong> Toggle line highlighting<br />
-								<strong>Escape:</strong> Clear all highlights
-							</p>
-						</div>
-
-						<div class="feature-card">
-							<h4><Users size={18} /> Screen Reader Support</h4>
-							<p>
-								• Comprehensive ARIA labels and descriptions<br />
-								• Live region announcements for interactions<br />
-								• Chart summary and data point information
-							</p>
-						</div>
-
-						<div class="feature-card">
-							<h4><ChartLine size={18} /> Alternative Data Access</h4>
-							<p>
-								• Optional accessible data table view<br />
-								• Proper table headers and structure<br />
-								• Toggle between chart and table views
-							</p>
-						</div>
-
-						<div class="feature-card">
-							<h4><Activity size={18} /> Visual Accessibility</h4>
-							<p>
-								• High contrast colors and tooltips<br />
-								• Clear focus indicators<br />
-								• Responsive design for all screen sizes
-							</p>
-						</div>
-					</div>
-
-					<div class="highlight-box">
-						<h4><Activity size={18} /> WCAG Compliance</h4>
-						<p>
-							This component meets WCAG 2.1 AA standards for accessibility, providing perceivable,
-							operable, understandable, and robust chart interactions for all users.
-						</p>
 					</div>
 				</div>
 			</div>
@@ -627,26 +443,26 @@
 <section class="examples">
 	<div class="container">
 		<h2>Live Examples</h2>
-
+		
 		<!-- Single Line Chart -->
 		<div class="example-card">
 			<div class="example-header">
 				<h3>Single Line Chart</h3>
 				<p>Basic implementation with date parsing and custom tick count</p>
 			</div>
-
+			
 			<div class="example-content">
 				<MultiLineChart
 					lines={[dateBasedData[2]]}
 					xKey="date"
 					yKey="value"
-					title={`${[dateBasedData[2].label]} Count Over Time`}
-					showLegend={true}
+					title=""
+					showLegend={false}
 					height={300}
 					yTickCount={4}
 				/>
 			</div>
-
+			
 			<div class="example-features">
 				<span class="feature-tag">Date Parsing</span>
 				<span class="feature-tag">Custom Ticks</span>
@@ -659,7 +475,7 @@
 				<h3>Multi Line Chart</h3>
 				<p>Multiple data series with interactive metric switching</p>
 			</div>
-
+			
 			<div class="example-controls">
 				<label for="metric-select">Metric:</label>
 				<select id="metric-select" bind:value={selectedMetric} class="select">
@@ -668,20 +484,20 @@
 					{/each}
 				</select>
 			</div>
-
+			
 			<div class="example-content">
 				<MultiLineChart
 					lines={productData}
 					xKey="month"
 					yKey={selectedMetric}
-					title={`Product Performance - ${metrics.find((m) => m.value === selectedMetric)?.label}`}
+					title=""
 					showLegend={true}
 					showValues={true}
 					hasTooltip={false}
 					height={350}
 				/>
 			</div>
-
+			
 			<div class="example-features">
 				<span class="feature-tag">Multi-line</span>
 				<span class="feature-tag">Value Labels</span>
@@ -695,7 +511,7 @@
 				<h3>Profit/Loss Chart</h3>
 				<p>Handling negative values with auto-doubled ticks and zero reference</p>
 			</div>
-
+			
 			<div class="example-controls">
 				<label for="profit-metric-select">Metric:</label>
 				<select id="profit-metric-select" bind:value={selectedProfitMetric} class="select">
@@ -704,13 +520,13 @@
 					{/each}
 				</select>
 			</div>
-
+			
 			<div class="example-content">
 				<MultiLineChart
 					lines={profitLossData}
 					xKey="month"
 					yKey={selectedProfitMetric}
-					title={`Product Performance - ${profitMetrics.find((m) => m.value === selectedProfitMetric)?.label}`}
+					title=""
 					showLegend={true}
 					showValues={true}
 					height={350}
@@ -718,56 +534,11 @@
 					doubleTicksForNegatives={true}
 				/>
 			</div>
-
+			
 			<div class="example-features">
 				<span class="feature-tag negative">Negative Values</span>
 				<span class="feature-tag">Zero Reference</span>
 				<span class="feature-tag">Auto Ticks</span>
-			</div>
-		</div>
-
-		<!-- Comparison: Standard vs Auto-Doubled Ticks -->
-		<div class="example-card">
-			<div class="example-header">
-				<h3>Comparison: Standard vs Auto-Doubled Ticks</h3>
-				<p>Demonstrating the difference between standard and auto-doubled tick configurations</p>
-			</div>
-
-			<div class="example-content">
-				<div class="comparison-grid">
-					<div class="comparison-item">
-						<h4>Standard Ticks (5 total)</h4>
-						<MultiLineChart
-							lines={profitLossData}
-							xKey="month"
-							yKey="profit"
-							title=""
-							showLegend={false}
-							height={280}
-							yTickCount={5}
-							doubleTicksForNegatives={false}
-						/>
-					</div>
-					<div class="comparison-item">
-						<h4>Auto-Doubled Ticks (10 total)</h4>
-						<MultiLineChart
-							lines={profitLossData}
-							xKey="month"
-							yKey="profit"
-							title=""
-							showLegend={false}
-							height={280}
-							yTickCount={5}
-							doubleTicksForNegatives={true}
-						/>
-					</div>
-				</div>
-			</div>
-
-			<div class="example-features">
-				<span class="feature-tag">Comparison</span>
-				<span class="feature-tag">Auto Ticks</span>
-				<span class="feature-tag">Granularity</span>
 			</div>
 		</div>
 	</div>
@@ -787,17 +558,16 @@
 		--color-salmon: oklch(0.704 0.191 22.216);
 		--color-violet: oklch(79.002% 0.12088 296.501);
 		--color-green: oklch(0.871 0.15 154.449);
-
-		--font-system:
-			-apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+		
+		--font-system: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif;
 		--font-mono: 'SF Mono', Monaco, 'Cascadia Code', monospace;
-
+		
 		--spacing-xs: 0.5rem;
 		--spacing-sm: 1rem;
 		--spacing-md: 2rem;
 		--spacing-lg: 4rem;
 		--spacing-xl: 6rem;
-
+		
 		--transition: all 0.2s ease;
 	}
 
@@ -1135,33 +905,314 @@
 		gap: var(--spacing-xs);
 	}
 
-	/* Comparison Grid */
-	.comparison-grid {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: var(--spacing-md);
-	}
-
-	.comparison-item h4 {
-		text-align: center;
-		margin-bottom: var(--spacing-sm);
-		font-size: 0.875rem;
-		font-weight: 500;
-		color: var(--color-gray-dark);
-	}
-
-	.comment {
-		color: var(--color-gray-text);
-		font-style: italic;
-	}
-
+	/* Responsive */
 	@media (max-width: 768px) {
-		.comparison-grid {
-			grid-template-columns: 1fr;
+		.header-content {
+			flex-direction: column;
 		}
 
 		.config-grid {
 			grid-template-columns: 1fr;
+		}
+
+		.example-controls {
+			flex-wrap: wrap;
+		}
+	}
+
+	.show-docs-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.75rem 1.5rem;
+		background: #3b82f6;
+		color: white;
+		border: none;
+		cursor: pointer;
+		font-weight: 500;
+		transition: background-color 0.2s ease;
+	}
+
+	.show-docs-btn:hover {
+		background: #2563eb;
+	}
+
+	.doc-header {
+		text-align: center;
+		margin-bottom: 3rem;
+		padding: 2rem;
+		background: #f7fafc;
+		border: 1px solid #e2e8f0;
+		position: relative;
+	}
+
+	.doc-header h1 {
+		font-size: 2.5rem;
+		margin-bottom: 0.75rem;
+		color: #1a202c;
+		font-weight: 700;
+		letter-spacing: -0.025em;
+	}
+
+	.doc-header p {
+		font-size: 1.25rem;
+		color: #4a5568;
+		font-weight: 400;
+		margin-bottom: 1.5rem;
+	}
+
+	.badge-container {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 0.5rem;
+		margin-bottom: 1.5rem;
+	}
+
+	.badge {
+		display: inline-block;
+		background: #4a5568;
+		color: white;
+		padding: 0.25rem 0.75rem;
+	
+		font-size: 0.75rem;
+		font-weight: 500;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+	}
+
+	.badge.new {
+		background: #8e4ea1;
+	}
+
+	.toggle-docs {
+		position: absolute;
+		top: 1rem;
+		right: 1rem;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.5rem 1rem;
+		background: #e2e8f0;
+		color: #4a5568;
+		border: none;
+	
+		cursor: pointer;
+		font-size: 0.875rem;
+		transition: background-color 0.2s ease;
+	}
+
+	.toggle-docs:hover {
+		background: #cbd5e0;
+	}
+
+	.doc-section {
+		background: white;
+		margin-bottom: 2rem;
+		padding: 2rem;
+		border: 1px solid #e2e8f0;
+		
+	}
+
+	.doc-section h2 {
+		color: #1a202c;
+		margin-bottom: 1.5rem;
+		font-size: 1.75rem;
+		font-weight: 600;
+		border-bottom: 1px solid #e2e8f0;
+		padding-bottom: 0.75rem;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.feature-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+		gap: 1.5rem;
+		margin: 1.5rem 0;
+	}
+
+	.feature-card {
+		background: #f7fafc;
+		padding: 1.5rem;
+
+		border: 1px solid #e2e8f0;
+		transition: border-color 0.2s ease;
+	}
+
+	.feature-card:hover {
+		border-color: #cbd5e0;
+	}
+
+	.feature-card h4 {
+		color: #1a202c;
+		margin-bottom: 0.75rem;
+		font-size: 1.125rem;
+		font-weight: 600;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.feature-card p {
+		color: #4a5568;
+		font-size: 0.95rem;
+		line-height: 1.6;
+	}
+
+	.table-container {
+		overflow-x: auto;
+		
+		border: 1px solid #e2e8f0;
+	}
+
+	.props-table {
+		width: 100%;
+		border-collapse: collapse;
+		margin: 0;
+		background: white;
+		font-size: 0.95rem;
+	}
+
+	.props-table th,
+	.props-table td {
+		padding: 0.75rem;
+		text-align: left;
+		border-bottom: 1px solid #e2e8f0;
+	}
+
+	.props-table th {
+		background: #f7fafc;
+		font-weight: 600;
+		color: #2d3748;
+	}
+
+	.props-table tr:last-child td {
+		border-bottom: none;
+	}
+
+	.props-table code {
+		background: #edf2f7;
+		padding: 0.25rem 0.5rem;
+	
+		font-family:
+			'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+		font-size: 0.875rem;
+		color: #2d3748;
+		border: 1px solid #e2e8f0;
+	}
+
+	.code-block {
+		background: #131517;
+		color: #e6e6e6; /* Better base color for readability */
+		padding: 1.5rem;
+		
+		margin: 1rem 0;
+		overflow-x: auto;
+		font-family:
+			'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+		font-size: 0.875rem;
+		line-height: 1.6;
+		border: 1px solid #e2e8f0;
+	}
+
+	.code-block pre {
+		margin: 0;
+		padding: 0;
+		background: transparent;
+		border: none;
+		overflow: visible;
+	}
+
+	.code-block code {
+		background: transparent;
+		color: inherit;
+		padding: 0;
+		border: none;
+		font-size: inherit;
+		font-family: inherit;
+	}
+
+	/* Remove all the broken syntax highlighting rules */
+
+	.highlight-box {
+		background: #f0fff4;
+		border: 1px solid #9ae6b4;
+
+		padding: 1.25rem;
+		margin: 1.5rem 0;
+	}
+
+	.highlight-box h4 {
+		color: #22543d;
+		margin-bottom: 0.5rem;
+		font-weight: 600;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.highlight-box p {
+		color: #2f855a;
+		margin: 0;
+	}
+
+	.example-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+		gap: 1.5rem;
+		margin: 2rem 0;
+	}
+
+	.example-card {
+		background: #f7fafc;
+		padding: 1.5rem;
+		border: 1px solid #e2e8f0;
+	}
+
+	.example-card h4 {
+		color: #1a202c;
+		margin-bottom: 1rem;
+		font-weight: 600;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.example-card .code-block {
+		margin: 0.5rem 0 0 0;
+		padding: 1rem;
+	}
+
+	@media (max-width: 768px) {
+		.documentation-container {
+			padding: 1rem;
+		}
+
+		.doc-header {
+			padding: 1.5rem;
+		}
+
+		.doc-header h1 {
+			font-size: 2rem;
+		}
+
+		.doc-section {
+			padding: 1.5rem;
+		}
+
+		.feature-grid {
+			grid-template-columns: 1fr;
+		}
+
+		.example-grid {
+			grid-template-columns: 1fr;
+		}
+
+		.toggle-docs {
+			position: static;
+			margin-top: 1rem;
 		}
 	}
 </style>
