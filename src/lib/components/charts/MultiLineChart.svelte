@@ -21,7 +21,7 @@
 		lineLabel: string;
 		color: string;
 	}
-// TODO: add props showValues to display values on top pf each point and hasTooltip to use tooltips or not
+	// TODO: add props showValues to display values on top pf each point and hasTooltip to use tooltips or not
 	// Props with explicit typing using Svelte 5 runes
 	let {
 		lines = [],
@@ -31,7 +31,9 @@
 		showLegend = true,
 		height = 400,
 		dateFormat = 'MMM dd',
-		inputDateFormat = null
+		inputDateFormat = null,
+		showValues = false,
+		hasTooltip = true
 	} = $props<{
 		lines?: LineData[];
 		xKey?: string;
@@ -41,6 +43,8 @@
 		height?: number;
 		dateFormat?: string;
 		inputDateFormat?: string | null;
+		showValues?: boolean;
+		hasTooltip?: boolean;
 	}>();
 
 	// Internal state
@@ -360,6 +364,10 @@
 			const dots = document.createElementNS('http://www.w3.org/2000/svg', 'g');
 			dots.setAttribute('class', `data-points-${lineData.id}`);
 
+			// Add value labels group if showValues is true
+			const valueLabels = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+			valueLabels.setAttribute('class', `value-labels-${lineData.id}`);
+
 			allXValues.forEach((xValue, xIndex) => {
 				const dataPoint = lineData.data.find(
 					(d: Record<string, any>) => String(d[xKey]) === xValue
@@ -392,43 +400,87 @@
 						);
 					}
 
-					// Add interaction
-					circle.addEventListener('mouseenter', () => {
-						const xValue = String(dataPoint[xKey]);
-						const parsedDate = parseDate(xValue);
-						const displayLabel = parsedDate ? formatDateForDisplay(xValue) : xValue;
+					// Add interaction only if hasTooltip is true
+					if (hasTooltip) {
+						circle.addEventListener('mouseenter', () => {
+							const xValue = String(dataPoint[xKey]);
+							const parsedDate = parseDate(xValue);
+							const displayLabel = parsedDate ? formatDateForDisplay(xValue) : xValue;
 
-						tooltipData = {
-							x,
-							y,
-							value: dataPoint[yKey],
-							label: displayLabel,
-							lineLabel: lineData.label,
-							color
-						};
-						tooltipVisible = true;
-						hoveredLine = lineData.id;
+							tooltipData = {
+								x,
+								y,
+								value: dataPoint[yKey],
+								label: displayLabel,
+								lineLabel: lineData.label,
+								color
+							};
+							tooltipVisible = true;
+							hoveredLine = lineData.id;
 
-						// Simple hover effect
-						circle.setAttribute('r', '6');
-						circle.setAttribute('fill', color);
-					});
+							// Simple hover effect
+							circle.setAttribute('r', '6');
+							circle.setAttribute('fill', color);
+						});
 
-					circle.addEventListener('mouseleave', () => {
-						tooltipVisible = false;
-						hoveredLine = null;
+						circle.addEventListener('mouseleave', () => {
+							tooltipVisible = false;
+							hoveredLine = null;
 
-						// Restore circle style
-						circle.setAttribute('r', '4');
-						circle.setAttribute('fill', '#ffffff');
-					});
+							// Restore circle style
+							circle.setAttribute('r', '4');
+							circle.setAttribute('fill', '#ffffff');
+						});
+					}
 
 					dots.appendChild(circle);
+
+					// Add value labels if showValues is true
+					if (showValues) {
+						const valueLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+						valueLabel.setAttribute('x', String(x));
+						valueLabel.setAttribute('y', String(y - 10));
+						valueLabel.setAttribute('text-anchor', 'middle');
+						valueLabel.setAttribute('fill', color);
+						valueLabel.setAttribute('font-size', '11px');
+						valueLabel.setAttribute('font-weight', '600');
+						valueLabel.setAttribute('opacity', isOtherHovered ? '0.3' : '1');
+						valueLabel.setAttribute('class', 'value-label');
+
+						// Format the value
+						const value = Number(dataPoint[yKey]);
+						if (value >= 1000000) {
+							valueLabel.textContent = `${(value / 1000000).toFixed(1)}M`;
+						} else if (value >= 1000) {
+							valueLabel.textContent = `${(value / 1000).toFixed(1)}k`;
+						} else {
+							valueLabel.textContent = value.toString();
+						}
+
+						// Add smooth transitions for value labels
+						valueLabel.style.transition = 'opacity 0.3s ease';
+
+						// Initial fade-in animation only on first load
+						if (!linesDrawn) {
+							valueLabel.style.opacity = '0';
+							setTimeout(
+								() => {
+									valueLabel.style.opacity = isOtherHovered ? '0.3' : '1';
+								},
+								lineIndex * 200 + xIndex * 50 + 100
+							);
+						}
+
+						valueLabels.appendChild(valueLabel);
+					}
 				}
 			});
 
 			mainG.appendChild(line);
 			mainG.appendChild(dots);
+			if (showValues) {
+				mainG.appendChild(valueLabels);
+			}
 		});
 
 		// Add chart title
@@ -500,6 +552,7 @@
 		if (hoveredLine !== null && mounted && chart) {
 			const allLines = chart.querySelectorAll('path[class*="line-"]');
 			const allDots = chart.querySelectorAll('.data-point');
+			const allValueLabels = chart.querySelectorAll('.value-label');
 
 			allLines.forEach((line: Element) => {
 				const pathElement = line as SVGPathElement;
@@ -527,10 +580,28 @@
 					circleElement.setAttribute('opacity', '1');
 				}
 			});
+
+			// Update value labels opacity if showValues is true
+			if (showValues) {
+				allValueLabels.forEach((label: Element) => {
+					const labelElement = label as SVGTextElement;
+					const parentElement = labelElement.parentElement as SVGElement | null;
+					const isHoveredLineLabel = parentElement
+						?.getAttribute('class')
+						?.includes(`value-labels-${hoveredLine}`);
+
+					if (!isHoveredLineLabel) {
+						labelElement.setAttribute('opacity', '0.3');
+					} else {
+						labelElement.setAttribute('opacity', '1');
+					}
+				});
+			}
 		} else if (hoveredLine === null && mounted && chart) {
 			// Restore all elements
 			const allLines = chart.querySelectorAll('path[class*="line-"]');
 			const allDots = chart.querySelectorAll('.data-point');
+			const allValueLabels = chart.querySelectorAll('.value-label');
 
 			allLines.forEach((line: Element) => {
 				const pathElement = line as SVGPathElement;
@@ -542,6 +613,13 @@
 				const circleElement = dot as SVGCircleElement;
 				circleElement.setAttribute('opacity', '1');
 			});
+
+			if (showValues) {
+				allValueLabels.forEach((label: Element) => {
+					const labelElement = label as SVGTextElement;
+					labelElement.setAttribute('opacity', '1');
+				});
+			}
 		}
 	});
 </script>
@@ -578,7 +656,7 @@
 		</div>
 	{/if}
 
-	{#if tooltipVisible && tooltipData}
+	{#if tooltipVisible && tooltipData && hasTooltip}
 		<div
 			class="tooltip"
 			style="left: {tooltipData.x}px; top: {tooltipData.y - 24}px;"
@@ -615,6 +693,11 @@
 			opacity 0.3s ease,
 			transform 0.2s ease;
 		transform-origin: center;
+	}
+
+	:global(.value-label) {
+		transition: opacity 0.3s ease;
+		pointer-events: none;
 	}
 
 	.legend {

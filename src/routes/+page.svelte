@@ -198,7 +198,9 @@
 		yKey={selectedMetric}
 		title={`Product Performance - ${metrics.find((m) => m.value === selectedMetric)?.label}`}
 		showLegend={true}
-		height={450}
+		showValues={true}
+		hasTooltip={false}
+
 	/>
 
 	<div class="description">
