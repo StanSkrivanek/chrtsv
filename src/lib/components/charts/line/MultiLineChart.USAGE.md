@@ -19,7 +19,7 @@ A flexible multi-line chart component built with Svelte 5 that can display up to
 
 ## Usage
 
-```svelte
+```html
 <script>
 	import { MultiLineChart } from '$lib';
 
@@ -91,7 +91,7 @@ interface LineData {
 
 The component automatically handles negative values with enhanced features:
 
-```svelte
+```html
 <script>
 	const profitLossData = [
 		{
@@ -140,7 +140,7 @@ The component automatically handles negative values with enhanced features:
 
 Show values directly on the chart:
 
-```svelte
+```html
 <MultiLineChart
 	lines={salesData}
 	xKey="month"
@@ -155,7 +155,7 @@ Show values directly on the chart:
 
 Control tooltip behavior:
 
-```svelte
+```html
 <!-- Enable tooltips (default) -->
 <MultiLineChart lines={data} hasTooltip={true} />
 
@@ -167,7 +167,7 @@ Control tooltip behavior:
 
 Control Y-axis tick density:
 
-```svelte
+```html
 <!-- Sparse ticks for simple data -->
 <MultiLineChart lines={data} yTickCount={3} />
 
@@ -180,7 +180,7 @@ Control Y-axis tick density:
 
 ## Example with Different Metrics
 
-```svelte
+```html
 <script>
 	let selectedMetric = 'revenue';
 
@@ -219,7 +219,7 @@ Control Y-axis tick density:
 
 ### Using Server Dates with Custom Format
 
-```svelte
+```html
 <script>
 	import { MultiLineChart } from '$lib';
 
@@ -250,7 +250,7 @@ Control Y-axis tick density:
 
 ### Using Custom Input Date Format
 
-```svelte
+```html
 <script>
 	// Server returns dates in format "15/01/2024"
 	const customFormatData = [
@@ -294,7 +294,7 @@ You can use any format supported by date-fns:
 
 Here's a comprehensive example showcasing all major features:
 
-```svelte
+```html
 <script>
 	import { MultiLineChart } from '$lib';
 

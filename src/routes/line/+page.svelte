@@ -984,7 +984,7 @@ const lines = [
 	}
 
 	.badge.new {
-		background: #38a169;
+		background: #8e4ea1;
 	}
 
 	.toggle-docs {
