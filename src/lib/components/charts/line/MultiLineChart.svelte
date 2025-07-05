@@ -1094,11 +1094,10 @@
 	}
 
 	.data-table-toggle {
-		background: #3b82f6;
+		background: oklch(65.065% 0.02343 259.237);
 		color: white;
 		border: none;
 		padding: 8px 16px;
-		border-radius: 6px;
 		cursor: pointer;
 		font-size: 14px;
 		font-weight: 500;
@@ -1107,12 +1106,12 @@
 	}
 
 	.data-table-toggle:hover {
-		background: #2563eb;
-		transform: translateY(-1px);
+		background: oklch(15.615% 0.0257 25.476);
+		/* transform: translateY(-1px); */
 	}
 
 	.data-table-toggle:focus {
-		box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+		box-shadow: 0 0 0 2px oklab(62.31% -0.03321 -0.18515 / 0.5);
 	}
 
 	.data-table-container {
