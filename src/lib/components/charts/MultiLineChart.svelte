@@ -492,7 +492,7 @@
 	{/if}
 
 	{#if tooltipVisible && tooltipData}
-		<div class="tooltip" style="left: {tooltipData.x}px; top: {tooltipData.y - 60}px;">
+		<div class="tooltip" style="left: {tooltipData.x}px; top: {tooltipData.y - 24}px;">
 			<div class="tooltip-content">
 				<div class="tooltip-header" style="color: {tooltipData.color}">
 					{tooltipData.lineLabel}
@@ -580,7 +580,7 @@
 		border-radius: 6px;
 		font-size: 12px;
 		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-		min-width: 120px;
+		min-width: 100px;
 	}
 
 	.tooltip-header {

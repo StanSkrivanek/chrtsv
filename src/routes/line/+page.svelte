@@ -1,5 +1,5 @@
 <script lang="ts">
-	import LineChart from '$lib/components/charts/LineChart.svelte';
+	import LineChart from '$lib/components/charts/MultiLineChart.svelte';
 
 	// Example data for multiple product lines
 	const productData = [
@@ -56,7 +56,7 @@
 <div class="example-container">
 	<h1>Single Line Chart Example</h1>
 	<LineChart
-	lines={[productData[0]]}
+	lines={[productData[1]]}
 	xKey="month"
 	yKey="sales"
 	title={`Product Performance - ${metrics.find((m) => m.value === selectedMetric)?.label}`}
