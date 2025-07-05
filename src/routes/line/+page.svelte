@@ -1,5 +1,5 @@
 <script lang="ts">
-	import LineChart from '$lib/components/charts/MultiLineChart.example.svelte';
+	import LineChart from '$lib/components/charts/LineChart.svelte';
 
 	// Example data for multiple product lines
 	const productData = [
@@ -54,25 +54,36 @@
 </script>
 
 <div class="example-container">
-	<h1>Multi Line Chart Example</h1>
-
-	<div class="controls">
-		<label for="metric-select">Select Metric:</label>
-		<select id="metric-select" bind:value={selectedMetric}>
-			{#each metrics as metric}
-				<option value={metric.value}>{metric.label}</option>
-			{/each}
-		</select>
-	</div>
-
+	<h1>Single Line Chart Example</h1>
 	<LineChart
+	lines={[productData[0]]}
+	xKey="month"
+	yKey="sales"
+	title={`Product Performance - ${metrics.find((m) => m.value === selectedMetric)?.label}`}
+	showLegend={true}
+	height={450}
+	/>
+</div>
+<div class="example-container">
+	<h1>Multi Line Chart Example</h1>
+	<div>
+		<div class="controls">
+			<label for="metric-select">Select Metric:</label>
+			<select id="metric-select" bind:value={selectedMetric}>
+				{#each metrics as metric}
+					<option value={metric.value}>{metric.label}</option>
+				{/each}
+			</select>
+		</div>
+		<LineChart
 		lines={productData}
 		xKey="month"
 		yKey={selectedMetric}
 		title={`Product Performance - ${metrics.find((m) => m.value === selectedMetric)?.label}`}
 		showLegend={true}
 		height={450}
-	/>
+		/>
+	</div>
 
 	<div class="description">
 		<h2>Features Demonstrated:</h2>
