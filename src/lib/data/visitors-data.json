@@ -1,0 +1,1461 @@
+{
+	"metadata": {
+		"title": "Website Visitors Analytics Dataset",
+		"description": "3 months of daily visitor data with multiple metrics for line chart testing",
+		"period": "2024-10-01 to 2024-12-31",
+		"timezone": "UTC",
+		"metrics": ["visitors", "pageviews", "sessions", "bounce_rate", "conversion_rate"],
+		"aggregation_levels": ["daily", "weekly", "monthly", "yearly"]
+	},
+	"daily_data": [
+		{
+			"date": "2024-10-01",
+			"visitors": 1245,
+			"pageviews": 3891,
+			"sessions": 1567,
+			"bounce_rate": 42.3,
+			"conversion_rate": 3.2,
+			"device_breakdown": {
+				"desktop": 678,
+				"mobile": 445,
+				"tablet": 122
+			}
+		},
+		{
+			"date": "2024-10-02",
+			"visitors": 5389,
+			"pageviews": 4234,
+			"sessions": 1723,
+			"bounce_rate": 39.8,
+			"conversion_rate": 3.7,
+			"device_breakdown": {
+				"desktop": 756,
+				"mobile": 489,
+				"tablet": 144
+			}
+		},
+		{
+			"date": "2024-10-03",
+			"visitors": 1567,
+			"pageviews": 4891,
+			"sessions": 1934,
+			"bounce_rate": 37.2,
+			"conversion_rate": 4.1,
+			"device_breakdown": {
+				"desktop": 845,
+				"mobile": 567,
+				"tablet": 155
+			}
+		},
+		{
+			"date": "2024-10-04",
+			"visitors": 3823,
+			"pageviews": 5234,
+			"sessions": 2145,
+			"bounce_rate": 35.6,
+			"conversion_rate": 4.5,
+			"device_breakdown": {
+				"desktop": 934,
+				"mobile": 678,
+				"tablet": 211
+			}
+		},
+		{
+			"date": "2024-10-05",
+			"visitors": 1600,
+			"pageviews": 4567,
+			"sessions": 1789,
+			"bounce_rate": 41.2,
+			"conversion_rate": 3.9,
+			"device_breakdown": {
+				"desktop": 789,
+				"mobile": 523,
+				"tablet": 144
+			}
+		},
+		{
+			"date": "2024-10-06",
+			"visitors": 2734,
+			"pageviews": 3789,
+			"sessions": 1456,
+			"bounce_rate": 44.7,
+			"conversion_rate": 3.1,
+			"device_breakdown": {
+				"desktop": 656,
+				"mobile": 445,
+				"tablet": 133
+			}
+		},
+		{
+			"date": "2024-10-07",
+			"visitors": 2878,
+			"pageviews": 5123,
+			"sessions": 2034,
+			"bounce_rate": 38.9,
+			"conversion_rate": 4.3,
+			"device_breakdown": {
+				"desktop": 867,
+				"mobile": 634,
+				"tablet": 177
+			}
+		},
+		{
+			"date": "2024-10-08",
+			"visitors": 3090,
+			"pageviews": 5678,
+			"sessions": 2234,
+			"bounce_rate": 34.2,
+			"conversion_rate": 4.8,
+			"device_breakdown": {
+				"desktop": 1023,
+				"mobile": 689,
+				"tablet": 178
+			}
+		},
+		{
+			"date": "2024-10-09",
+			"visitors": 5034,
+			"pageviews": 6234,
+			"sessions": 2567,
+			"bounce_rate": 31.8,
+			"conversion_rate": 5.2,
+			"device_breakdown": {
+				"desktop": 1156,
+				"mobile": 756,
+				"tablet": 222
+			}
+		},
+		{
+			"date": "2024-10-10",
+			"visitors": 2567,
+			"pageviews": 7890,
+			"sessions": 3123,
+			"bounce_rate": 28.4,
+			"conversion_rate": 5.9,
+			"device_breakdown": {
+				"desktop": 1389,
+				"mobile": 934,
+				"tablet": 244
+			}
+		},
+		{
+			"date": "2024-10-11",
+			"visitors": 2890,
+			"pageviews": 8567,
+			"sessions": 3456,
+			"bounce_rate": 26.7,
+			"conversion_rate": 6.3,
+			"device_breakdown": {
+				"desktop": 1567,
+				"mobile": 1023,
+				"tablet": 300
+			}
+		},
+		{
+			"date": "2024-10-12",
+			"visitors": 2456,
+			"pageviews": 7234,
+			"sessions": 2890,
+			"bounce_rate": 32.1,
+			"conversion_rate": 5.1,
+			"device_breakdown": {
+				"desktop": 1323,
+				"mobile": 889,
+				"tablet": 244
+			}
+		},
+		{
+			"date": "2024-10-13",
+			"visitors": 2123,
+			"pageviews": 6456,
+			"sessions": 2567,
+			"bounce_rate": 35.9,
+			"conversion_rate": 4.6,
+			"device_breakdown": {
+				"desktop": 1145,
+				"mobile": 756,
+				"tablet": 222
+			}
+		},
+		{
+			"date": "2024-10-14",
+			"visitors": 3289,
+			"pageviews": 5234,
+			"sessions": 2134,
+			"bounce_rate": 39.4,
+			"conversion_rate": 4.0,
+			"device_breakdown": {
+				"desktop": 967,
+				"mobile": 634,
+				"tablet": 188
+			}
+		},
+		{
+			"date": "2024-10-15",
+			"visitors": 2234,
+			"pageviews": 6789,
+			"sessions": 2678,
+			"bounce_rate": 33.7,
+			"conversion_rate": 5.4,
+			"device_breakdown": {
+				"desktop": 1201,
+				"mobile": 823,
+				"tablet": 210
+			}
+		},
+		{
+			"date": "2024-10-16",
+			"visitors": 2567,
+			"pageviews": 7456,
+			"sessions": 3023,
+			"bounce_rate": 30.2,
+			"conversion_rate": 5.8,
+			"device_breakdown": {
+				"desktop": 1389,
+				"mobile": 912,
+				"tablet": 266
+			}
+		},
+		{
+			"date": "2024-10-17",
+			"visitors": 2890,
+			"pageviews": 8234,
+			"sessions": 3456,
+			"bounce_rate": 27.9,
+			"conversion_rate": 6.2,
+			"device_breakdown": {
+				"desktop": 1567,
+				"mobile": 1023,
+				"tablet": 300
+			}
+		},
+		{
+			"date": "2024-10-18",
+			"visitors": 3123,
+			"pageviews": 9567,
+			"sessions": 3789,
+			"bounce_rate": 25.1,
+			"conversion_rate": 6.8,
+			"device_breakdown": {
+				"desktop": 1689,
+				"mobile": 1156,
+				"tablet": 278
+			}
+		},
+		{
+			"date": "2024-10-19",
+			"visitors": 2789,
+			"pageviews": 8123,
+			"sessions": 3234,
+			"bounce_rate": 29.6,
+			"conversion_rate": 5.9,
+			"device_breakdown": {
+				"desktop": 1501,
+				"mobile": 967,
+				"tablet": 321
+			}
+		},
+		{
+			"date": "2024-10-20",
+			"visitors": 2456,
+			"pageviews": 7456,
+			"sessions": 2890,
+			"bounce_rate": 32.4,
+			"conversion_rate": 5.3,
+			"device_breakdown": {
+				"desktop": 1323,
+				"mobile": 889,
+				"tablet": 244
+			}
+		},
+		{
+			"date": "2024-10-21",
+			"visitors": 2123,
+			"pageviews": 6234,
+			"sessions": 2567,
+			"bounce_rate": 35.8,
+			"conversion_rate": 4.7,
+			"device_breakdown": {
+				"desktop": 1145,
+				"mobile": 756,
+				"tablet": 222
+			}
+		},
+		{
+			"date": "2024-10-22",
+			"visitors": 2678,
+			"pageviews": 7890,
+			"sessions": 3123,
+			"bounce_rate": 31.2,
+			"conversion_rate": 5.6,
+			"device_breakdown": {
+				"desktop": 1445,
+				"mobile": 934,
+				"tablet": 299
+			}
+		},
+		{
+			"date": "2024-10-23",
+			"visitors": 3234,
+			"pageviews": 9123,
+			"sessions": 3789,
+			"bounce_rate": 26.8,
+			"conversion_rate": 6.4,
+			"device_breakdown": {
+				"desktop": 1745,
+				"mobile": 1156,
+				"tablet": 333
+			}
+		},
+		{
+			"date": "2024-10-24",
+			"visitors": 3567,
+			"pageviews": 10234,
+			"sessions": 4123,
+			"bounce_rate": 24.3,
+			"conversion_rate": 7.1,
+			"device_breakdown": {
+				"desktop": 1923,
+				"mobile": 1289,
+				"tablet": 355
+			}
+		},
+		{
+			"date": "2024-10-25",
+			"visitors": 3890,
+			"pageviews": 11567,
+			"sessions": 4567,
+			"bounce_rate": 22.1,
+			"conversion_rate": 7.8,
+			"device_breakdown": {
+				"desktop": 2101,
+				"mobile": 1423,
+				"tablet": 366
+			}
+		},
+		{
+			"date": "2024-10-26",
+			"visitors": 3456,
+			"pageviews": 10123,
+			"sessions": 4023,
+			"bounce_rate": 25.7,
+			"conversion_rate": 6.9,
+			"device_breakdown": {
+				"desktop": 1867,
+				"mobile": 1234,
+				"tablet": 355
+			}
+		},
+		{
+			"date": "2024-10-27",
+			"visitors": 3123,
+			"pageviews": 9234,
+			"sessions": 3678,
+			"bounce_rate": 28.4,
+			"conversion_rate": 6.2,
+			"device_breakdown": {
+				"desktop": 1689,
+				"mobile": 1123,
+				"tablet": 311
+			}
+		},
+		{
+			"date": "2024-10-28",
+			"visitors": 2890,
+			"pageviews": 8567,
+			"sessions": 3456,
+			"bounce_rate": 30.9,
+			"conversion_rate": 5.7,
+			"device_breakdown": {
+				"desktop": 1567,
+				"mobile": 1023,
+				"tablet": 300
+			}
+		},
+		{
+			"date": "2024-10-29",
+			"visitors": 3234,
+			"pageviews": 9567,
+			"sessions": 3789,
+			"bounce_rate": 27.6,
+			"conversion_rate": 6.5,
+			"device_breakdown": {
+				"desktop": 1745,
+				"mobile": 1156,
+				"tablet": 333
+			}
+		},
+		{
+			"date": "2024-10-30",
+			"visitors": 3567,
+			"pageviews": 10890,
+			"sessions": 4234,
+			"bounce_rate": 25.2,
+			"conversion_rate": 7.0,
+			"device_breakdown": {
+				"desktop": 1923,
+				"mobile": 1289,
+				"tablet": 355
+			}
+		},
+		{
+			"date": "2024-10-31",
+			"visitors": 4123,
+			"pageviews": 12567,
+			"sessions": 4890,
+			"bounce_rate": 21.8,
+			"conversion_rate": 8.2,
+			"device_breakdown": {
+				"desktop": 2223,
+				"mobile": 1567,
+				"tablet": 333
+			}
+		},
+		{
+			"date": "2024-11-01",
+			"visitors": 4567,
+			"pageviews": 13890,
+			"sessions": 5234,
+			"bounce_rate": 19.4,
+			"conversion_rate": 8.9,
+			"device_breakdown": {
+				"desktop": 2467,
+				"mobile": 1723,
+				"tablet": 377
+			}
+		},
+		{
+			"date": "2024-11-02",
+			"visitors": 4234,
+			"pageviews": 12456,
+			"sessions": 4890,
+			"bounce_rate": 22.1,
+			"conversion_rate": 8.1,
+			"device_breakdown": {
+				"desktop": 2289,
+				"mobile": 1567,
+				"tablet": 378
+			}
+		},
+		{
+			"date": "2024-11-03",
+			"visitors": 3890,
+			"pageviews": 11234,
+			"sessions": 4456,
+			"bounce_rate": 24.8,
+			"conversion_rate": 7.3,
+			"device_breakdown": {
+				"desktop": 2101,
+				"mobile": 1423,
+				"tablet": 366
+			}
+		},
+		{
+			"date": "2024-11-04",
+			"visitors": 3567,
+			"pageviews": 10567,
+			"sessions": 4123,
+			"bounce_rate": 27.3,
+			"conversion_rate": 6.8,
+			"device_breakdown": {
+				"desktop": 1923,
+				"mobile": 1289,
+				"tablet": 355
+			}
+		},
+		{
+			"date": "2024-11-05",
+			"visitors": 4123,
+			"pageviews": 12234,
+			"sessions": 4789,
+			"bounce_rate": 23.6,
+			"conversion_rate": 7.9,
+			"device_breakdown": {
+				"desktop": 2223,
+				"mobile": 1567,
+				"tablet": 333
+			}
+		},
+		{
+			"date": "2024-11-06",
+			"visitors": 4567,
+			"pageviews": 13456,
+			"sessions": 5123,
+			"bounce_rate": 21.2,
+			"conversion_rate": 8.6,
+			"device_breakdown": {
+				"desktop": 2467,
+				"mobile": 1723,
+				"tablet": 377
+			}
+		},
+		{
+			"date": "2024-11-07",
+			"visitors": 4890,
+			"pageviews": 14567,
+			"sessions": 5456,
+			"bounce_rate": 18.9,
+			"conversion_rate": 9.2,
+			"device_breakdown": {
+				"desktop": 2634,
+				"mobile": 1834,
+				"tablet": 422
+			}
+		},
+		{
+			"date": "2024-11-08",
+			"visitors": 5234,
+			"pageviews": 15890,
+			"sessions": 5890,
+			"bounce_rate": 16.7,
+			"conversion_rate": 9.8,
+			"device_breakdown": {
+				"desktop": 2823,
+				"mobile": 1967,
+				"tablet": 444
+			}
+		},
+		{
+			"date": "2024-11-09",
+			"visitors": 4789,
+			"pageviews": 14234,
+			"sessions": 5456,
+			"bounce_rate": 19.8,
+			"conversion_rate": 8.9,
+			"device_breakdown": {
+				"desktop": 2584,
+				"mobile": 1801,
+				"tablet": 404
+			}
+		},
+		{
+			"date": "2024-11-10",
+			"visitors": 4456,
+			"pageviews": 13123,
+			"sessions": 5123,
+			"bounce_rate": 22.4,
+			"conversion_rate": 8.2,
+			"device_breakdown": {
+				"desktop": 2401,
+				"mobile": 1678,
+				"tablet": 377
+			}
+		},
+		{
+			"date": "2024-11-11",
+			"visitors": 4123,
+			"pageviews": 12567,
+			"sessions": 4890,
+			"bounce_rate": 24.1,
+			"conversion_rate": 7.7,
+			"device_breakdown": {
+				"desktop": 2223,
+				"mobile": 1567,
+				"tablet": 333
+			}
+		},
+		{
+			"date": "2024-11-12",
+			"visitors": 4567,
+			"pageviews": 13890,
+			"sessions": 5234,
+			"bounce_rate": 21.6,
+			"conversion_rate": 8.4,
+			"device_breakdown": {
+				"desktop": 2467,
+				"mobile": 1723,
+				"tablet": 377
+			}
+		},
+		{
+			"date": "2024-11-13",
+			"visitors": 4890,
+			"pageviews": 14567,
+			"sessions": 5456,
+			"bounce_rate": 19.3,
+			"conversion_rate": 8.9,
+			"device_breakdown": {
+				"desktop": 2634,
+				"mobile": 1834,
+				"tablet": 422
+			}
+		},
+		{
+			"date": "2024-11-14",
+			"visitors": 5123,
+			"pageviews": 15234,
+			"sessions": 5678,
+			"bounce_rate": 17.8,
+			"conversion_rate": 9.4,
+			"device_breakdown": {
+				"desktop": 2767,
+				"mobile": 1923,
+				"tablet": 433
+			}
+		},
+		{
+			"date": "2024-11-15",
+			"visitors": 5456,
+			"pageviews": 16567,
+			"sessions": 6123,
+			"bounce_rate": 15.2,
+			"conversion_rate": 10.1,
+			"device_breakdown": {
+				"desktop": 2945,
+				"mobile": 2045,
+				"tablet": 466
+			}
+		},
+		{
+			"date": "2024-11-16",
+			"visitors": 5789,
+			"pageviews": 17890,
+			"sessions": 6456,
+			"bounce_rate": 13.7,
+			"conversion_rate": 10.7,
+			"device_breakdown": {
+				"desktop": 3123,
+				"mobile": 2178,
+				"tablet": 488
+			}
+		},
+		{
+			"date": "2024-11-17",
+			"visitors": 5234,
+			"pageviews": 15890,
+			"sessions": 5890,
+			"bounce_rate": 16.9,
+			"conversion_rate": 9.6,
+			"device_breakdown": {
+				"desktop": 2823,
+				"mobile": 1967,
+				"tablet": 444
+			}
+		},
+		{
+			"date": "2024-11-18",
+			"visitors": 4890,
+			"pageviews": 14567,
+			"sessions": 5456,
+			"bounce_rate": 19.1,
+			"conversion_rate": 8.8,
+			"device_breakdown": {
+				"desktop": 2634,
+				"mobile": 1834,
+				"tablet": 422
+			}
+		},
+		{
+			"date": "2024-11-19",
+			"visitors": 4567,
+			"pageviews": 13234,
+			"sessions": 5123,
+			"bounce_rate": 21.8,
+			"conversion_rate": 8.1,
+			"device_breakdown": {
+				"desktop": 2467,
+				"mobile": 1723,
+				"tablet": 377
+			}
+		},
+		{
+			"date": "2024-11-20",
+			"visitors": 5123,
+			"pageviews": 15456,
+			"sessions": 5789,
+			"bounce_rate": 17.4,
+			"conversion_rate": 9.3,
+			"device_breakdown": {
+				"desktop": 2767,
+				"mobile": 1923,
+				"tablet": 433
+			}
+		},
+		{
+			"date": "2024-11-21",
+			"visitors": 5456,
+			"pageviews": 16234,
+			"sessions": 6123,
+			"bounce_rate": 15.8,
+			"conversion_rate": 9.9,
+			"device_breakdown": {
+				"desktop": 2945,
+				"mobile": 2045,
+				"tablet": 466
+			}
+		},
+		{
+			"date": "2024-11-22",
+			"visitors": 5890,
+			"pageviews": 17567,
+			"sessions": 6567,
+			"bounce_rate": 13.2,
+			"conversion_rate": 10.6,
+			"device_breakdown": {
+				"desktop": 3179,
+				"mobile": 2234,
+				"tablet": 477
+			}
+		},
+		{
+			"date": "2024-11-23",
+			"visitors": 6234,
+			"pageviews": 18890,
+			"sessions": 6890,
+			"bounce_rate": 11.8,
+			"conversion_rate": 11.2,
+			"device_breakdown": {
+				"desktop": 3367,
+				"mobile": 2345,
+				"tablet": 522
+			}
+		},
+		{
+			"date": "2024-11-24",
+			"visitors": 5789,
+			"pageviews": 17234,
+			"sessions": 6456,
+			"bounce_rate": 14.3,
+			"conversion_rate": 10.4,
+			"device_breakdown": {
+				"desktop": 3123,
+				"mobile": 2178,
+				"tablet": 488
+			}
+		},
+		{
+			"date": "2024-11-25",
+			"visitors": 5456,
+			"pageviews": 16567,
+			"sessions": 6123,
+			"bounce_rate": 16.1,
+			"conversion_rate": 9.7,
+			"device_breakdown": {
+				"desktop": 2945,
+				"mobile": 2045,
+				"tablet": 466
+			}
+		},
+		{
+			"date": "2024-11-26",
+			"visitors": 5123,
+			"pageviews": 15234,
+			"sessions": 5678,
+			"bounce_rate": 18.5,
+			"conversion_rate": 9.0,
+			"device_breakdown": {
+				"desktop": 2767,
+				"mobile": 1923,
+				"tablet": 433
+			}
+		},
+		{
+			"date": "2024-11-27",
+			"visitors": 5567,
+			"pageviews": 16890,
+			"sessions": 6234,
+			"bounce_rate": 15.7,
+			"conversion_rate": 9.8,
+			"device_breakdown": {
+				"desktop": 3006,
+				"mobile": 2089,
+				"tablet": 472
+			}
+		},
+		{
+			"date": "2024-11-28",
+			"visitors": 5890,
+			"pageviews": 17567,
+			"sessions": 6567,
+			"bounce_rate": 13.9,
+			"conversion_rate": 10.3,
+			"device_breakdown": {
+				"desktop": 3179,
+				"mobile": 2234,
+				"tablet": 477
+			}
+		},
+		{
+			"date": "2024-11-29",
+			"visitors": 6123,
+			"pageviews": 18234,
+			"sessions": 6789,
+			"bounce_rate": 12.6,
+			"conversion_rate": 10.9,
+			"device_breakdown": {
+				"desktop": 3306,
+				"mobile": 2301,
+				"tablet": 516
+			}
+		},
+		{
+			"date": "2024-11-30",
+			"visitors": 6456,
+			"pageviews": 19567,
+			"sessions": 7234,
+			"bounce_rate": 10.4,
+			"conversion_rate": 11.7,
+			"device_breakdown": {
+				"desktop": 3486,
+				"mobile": 2423,
+				"tablet": 547
+			}
+		},
+		{
+			"date": "2024-12-01",
+			"visitors": 6890,
+			"pageviews": 20890,
+			"sessions": 7567,
+			"bounce_rate": 9.1,
+			"conversion_rate": 12.3,
+			"device_breakdown": {
+				"desktop": 3720,
+				"mobile": 2589,
+				"tablet": 581
+			}
+		},
+		{
+			"date": "2024-12-02",
+			"visitors": 6567,
+			"pageviews": 19234,
+			"sessions": 7123,
+			"bounce_rate": 11.2,
+			"conversion_rate": 11.8,
+			"device_breakdown": {
+				"desktop": 3546,
+				"mobile": 2467,
+				"tablet": 554
+			}
+		},
+		{
+			"date": "2024-12-03",
+			"visitors": 6234,
+			"pageviews": 18567,
+			"sessions": 6890,
+			"bounce_rate": 12.8,
+			"conversion_rate": 11.1,
+			"device_breakdown": {
+				"desktop": 3367,
+				"mobile": 2345,
+				"tablet": 522
+			}
+		},
+		{
+			"date": "2024-12-04",
+			"visitors": 5890,
+			"pageviews": 17890,
+			"sessions": 6456,
+			"bounce_rate": 14.7,
+			"conversion_rate": 10.5,
+			"device_breakdown": {
+				"desktop": 3179,
+				"mobile": 2234,
+				"tablet": 477
+			}
+		},
+		{
+			"date": "2024-12-05",
+			"visitors": 6456,
+			"pageviews": 19123,
+			"sessions": 7234,
+			"bounce_rate": 11.9,
+			"conversion_rate": 11.6,
+			"device_breakdown": {
+				"desktop": 3486,
+				"mobile": 2423,
+				"tablet": 547
+			}
+		},
+		{
+			"date": "2024-12-06",
+			"visitors": 6789,
+			"pageviews": 20456,
+			"sessions": 7567,
+			"bounce_rate": 9.8,
+			"conversion_rate": 12.1,
+			"device_breakdown": {
+				"desktop": 3665,
+				"mobile": 2556,
+				"tablet": 568
+			}
+		},
+		{
+			"date": "2024-12-07",
+			"visitors": 7123,
+			"pageviews": 21890,
+			"sessions": 7890,
+			"bounce_rate": 8.2,
+			"conversion_rate": 12.8,
+			"device_breakdown": {
+				"desktop": 3846,
+				"mobile": 2678,
+				"tablet": 599
+			}
+		},
+		{
+			"date": "2024-12-08",
+			"visitors": 7456,
+			"pageviews": 23234,
+			"sessions": 8234,
+			"bounce_rate": 6.9,
+			"conversion_rate": 13.4,
+			"device_breakdown": {
+				"desktop": 4026,
+				"mobile": 2801,
+				"tablet": 629
+			}
+		},
+		{
+			"date": "2024-12-09",
+			"visitors": 7123,
+			"pageviews": 21567,
+			"sessions": 7890,
+			"bounce_rate": 8.7,
+			"conversion_rate": 12.6,
+			"device_breakdown": {
+				"desktop": 3846,
+				"mobile": 2678,
+				"tablet": 599
+			}
+		},
+		{
+			"date": "2024-12-10",
+			"visitors": 6789,
+			"pageviews": 20234,
+			"sessions": 7567,
+			"bounce_rate": 10.3,
+			"conversion_rate": 11.9,
+			"device_breakdown": {
+				"desktop": 3665,
+				"mobile": 2556,
+				"tablet": 568
+			}
+		},
+		{
+			"date": "2024-12-11",
+			"visitors": 6456,
+			"pageviews": 19567,
+			"sessions": 7234,
+			"bounce_rate": 11.8,
+			"conversion_rate": 11.3,
+			"device_breakdown": {
+				"desktop": 3486,
+				"mobile": 2423,
+				"tablet": 547
+			}
+		},
+		{
+			"date": "2024-12-12",
+			"visitors": 7234,
+			"pageviews": 22123,
+			"sessions": 8023,
+			"bounce_rate": 7.6,
+			"conversion_rate": 13.0,
+			"device_breakdown": {
+				"desktop": 3906,
+				"mobile": 2712,
+				"tablet": 616
+			}
+		},
+		{
+			"date": "2024-12-13",
+			"visitors": 7567,
+			"pageviews": 23456,
+			"sessions": 8345,
+			"bounce_rate": 6.4,
+			"conversion_rate": 13.6,
+			"device_breakdown": {
+				"desktop": 4086,
+				"mobile": 2834,
+				"tablet": 647
+			}
+		},
+		{
+			"date": "2024-12-14",
+			"visitors": 7890,
+			"pageviews": 24567,
+			"sessions": 8678,
+			"bounce_rate": 5.1,
+			"conversion_rate": 14.2,
+			"device_breakdown": {
+				"desktop": 4261,
+				"mobile": 2967,
+				"tablet": 662
+			}
+		},
+		{
+			"date": "2024-12-15",
+			"visitors": 8234,
+			"pageviews": 25890,
+			"sessions": 9123,
+			"bounce_rate": 4.3,
+			"conversion_rate": 14.8,
+			"device_breakdown": {
+				"desktop": 4446,
+				"mobile": 3089,
+				"tablet": 699
+			}
+		},
+		{
+			"date": "2024-12-16",
+			"visitors": 7890,
+			"pageviews": 23234,
+			"sessions": 8678,
+			"bounce_rate": 5.8,
+			"conversion_rate": 13.9,
+			"device_breakdown": {
+				"desktop": 4261,
+				"mobile": 2967,
+				"tablet": 662
+			}
+		},
+		{
+			"date": "2024-12-17",
+			"visitors": 5067,
+			"pageviews": 22567,
+			"sessions": 8345,
+			"bounce_rate": 6.7,
+			"conversion_rate": 13.3,
+			"device_breakdown": {
+				"desktop": 4086,
+				"mobile": 2834,
+				"tablet": 647
+			}
+		},
+		{
+			"date": "2024-12-18",
+			"visitors": 7234,
+			"pageviews": 21890,
+			"sessions": 8023,
+			"bounce_rate": 7.9,
+			"conversion_rate": 12.7,
+			"device_breakdown": {
+				"desktop": 3906,
+				"mobile": 2712,
+				"tablet": 616
+			}
+		},
+		{
+			"date": "2024-12-19",
+			"visitors": 8123,
+			"pageviews": 24890,
+			"sessions": 8956,
+			"bounce_rate": 4.7,
+			"conversion_rate": 14.5,
+			"device_breakdown": {
+				"desktop": 4386,
+				"mobile": 3045,
+				"tablet": 692
+			}
+		},
+		{
+			"date": "2024-12-20",
+			"visitors": 8567,
+			"pageviews": 26234,
+			"sessions": 9456,
+			"bounce_rate": 3.9,
+			"conversion_rate": 15.2,
+			"device_breakdown": {
+				"desktop": 4626,
+				"mobile": 3212,
+				"tablet": 729
+			}
+		},
+		{
+			"date": "2024-12-21",
+			"visitors": 8890,
+			"pageviews": 27567,
+			"sessions": 9789,
+			"bounce_rate": 3.2,
+			"conversion_rate": 15.8,
+			"device_breakdown": {
+				"desktop": 4801,
+				"mobile": 3334,
+				"tablet": 755
+			}
+		},
+		{
+			"date": "2024-12-22",
+			"visitors": 9234,
+			"pageviews": 28890,
+			"sessions": 10123,
+			"bounce_rate": 2.8,
+			"conversion_rate": 16.4,
+			"device_breakdown": {
+				"desktop": 4986,
+				"mobile": 3467,
+				"tablet": 781
+			}
+		},
+		{
+			"date": "2024-12-23",
+			"visitors": 8890,
+			"pageviews": 26567,
+			"sessions": 9789,
+			"bounce_rate": 3.6,
+			"conversion_rate": 15.6,
+			"device_breakdown": {
+				"desktop": 4801,
+				"mobile": 3334,
+				"tablet": 755
+			}
+		},
+		{
+			"date": "2024-12-24",
+			"visitors": 8567,
+			"pageviews": 25234,
+			"sessions": 9456,
+			"bounce_rate": 4.2,
+			"conversion_rate": 14.9,
+			"device_breakdown": {
+				"desktop": 4626,
+				"mobile": 3212,
+				"tablet": 729
+			}
+		},
+		{
+			"date": "2024-12-25",
+			"visitors": 8123,
+			"pageviews": 23890,
+			"sessions": 8956,
+			"bounce_rate": 5.1,
+			"conversion_rate": 14.1,
+			"device_breakdown": {
+				"desktop": 4386,
+				"mobile": 3045,
+				"tablet": 692
+			}
+		},
+		{
+			"date": "2024-12-26",
+			"visitors": 8890,
+			"pageviews": 27234,
+			"sessions": 9789,
+			"bounce_rate": 3.4,
+			"conversion_rate": 15.7,
+			"device_breakdown": {
+				"desktop": 4801,
+				"mobile": 3334,
+				"tablet": 755
+			}
+		},
+		{
+			"date": "2024-12-27",
+			"visitors": 9234,
+			"pageviews": 28567,
+			"sessions": 10123,
+			"bounce_rate": 2.9,
+			"conversion_rate": 16.3,
+			"device_breakdown": {
+				"desktop": 4986,
+				"mobile": 3467,
+				"tablet": 781
+			}
+		},
+		{
+			"date": "2024-12-28",
+			"visitors": 9567,
+			"pageviews": 29890,
+			"sessions": 10456,
+			"bounce_rate": 2.4,
+			"conversion_rate": 16.9,
+			"device_breakdown": {
+				"desktop": 5166,
+				"mobile": 3589,
+				"tablet": 812
+			}
+		},
+		{
+			"date": "2024-12-29",
+			"visitors": 9890,
+			"pageviews": 31234,
+			"sessions": 10890,
+			"bounce_rate": 2.1,
+			"conversion_rate": 17.5,
+			"device_breakdown": {
+				"desktop": 5340,
+				"mobile": 3712,
+				"tablet": 838
+			}
+		},
+		{
+			"date": "2024-12-30",
+			"visitors": 9567,
+			"pageviews": 29567,
+			"sessions": 10456,
+			"bounce_rate": 2.6,
+			"conversion_rate": 16.7,
+			"device_breakdown": {
+				"desktop": 5166,
+				"mobile": 3589,
+				"tablet": 812
+			}
+		},
+		{
+			"date": "2024-12-31",
+			"visitors": 9234,
+			"pageviews": 28234,
+			"sessions": 10123,
+			"bounce_rate": 3.1,
+			"conversion_rate": 16.1,
+			"device_breakdown": {
+				"desktop": 4986,
+				"mobile": 3467,
+				"tablet": 781
+			}
+		}
+	],
+	"weekly_aggregated": [
+		{
+			"week": "2024-W40",
+			"start_date": "2024-09-30",
+			"end_date": "2024-10-06",
+			"visitors": 10392,
+			"pageviews": 32303,
+			"sessions": 12639,
+			"bounce_rate": 39.8,
+			"conversion_rate": 3.8
+		},
+		{
+			"week": "2024-W41",
+			"start_date": "2024-10-07",
+			"end_date": "2024-10-13",
+			"visitors": 16657,
+			"pageviews": 50407,
+			"sessions": 19734,
+			"bounce_rate": 32.4,
+			"conversion_rate": 5.3
+		},
+		{
+			"week": "2024-W42",
+			"start_date": "2024-10-14",
+			"end_date": "2024-10-20",
+			"visitors": 18259,
+			"pageviews": 55489,
+			"sessions": 21513,
+			"bounce_rate": 30.1,
+			"conversion_rate": 5.7
+		},
+		{
+			"week": "2024-W43",
+			"start_date": "2024-10-21",
+			"end_date": "2024-10-27",
+			"visitors": 22484,
+			"pageviews": 68111,
+			"sessions": 26535,
+			"bounce_rate": 27.2,
+			"conversion_rate": 6.4
+		},
+		{
+			"week": "2024-W44",
+			"start_date": "2024-10-28",
+			"end_date": "2024-11-03",
+			"visitors": 26490,
+			"pageviews": 79848,
+			"sessions": 30833,
+			"bounce_rate": 24.6,
+			"conversion_rate": 7.3
+		},
+		{
+			"week": "2024-W45",
+			"start_date": "2024-11-04",
+			"end_date": "2024-11-10",
+			"visitors": 32459,
+			"pageviews": 98103,
+			"sessions": 37761,
+			"bounce_rate": 20.9,
+			"conversion_rate": 8.6
+		},
+		{
+			"week": "2024-W46",
+			"start_date": "2024-11-11",
+			"end_date": "2024-11-17",
+			"visitors": 34378,
+			"pageviews": 103868,
+			"sessions": 39924,
+			"bounce_rate": 19.2,
+			"conversion_rate": 9.0
+		},
+		{
+			"week": "2024-W47",
+			"start_date": "2024-11-18",
+			"end_date": "2024-11-24",
+			"visitors": 37150,
+			"pageviews": 112344,
+			"sessions": 43098,
+			"bounce_rate": 17.1,
+			"conversion_rate": 9.7
+		},
+		{
+			"week": "2024-W48",
+			"start_date": "2024-11-25",
+			"end_date": "2024-12-01",
+			"visitors": 40015,
+			"pageviews": 121352,
+			"sessions": 46482,
+			"bounce_rate": 14.8,
+			"conversion_rate": 10.5
+		},
+		{
+			"week": "2024-W49",
+			"start_date": "2024-12-02",
+			"end_date": "2024-12-08",
+			"visitors": 46149,
+			"pageviews": 140369,
+			"sessions": 53581,
+			"bounce_rate": 10.6,
+			"conversion_rate": 12.2
+		},
+		{
+			"week": "2024-W50",
+			"start_date": "2024-12-09",
+			"end_date": "2024-12-15",
+			"visitors": 50658,
+			"pageviews": 154093,
+			"sessions": 58842,
+			"bounce_rate": 8.4,
+			"conversion_rate": 13.1
+		},
+		{
+			"week": "2024-W51",
+			"start_date": "2024-12-16",
+			"end_date": "2024-12-22",
+			"visitors": 56505,
+			"pageviews": 172252,
+			"sessions": 65579,
+			"bounce_rate": 5.3,
+			"conversion_rate": 14.7
+		},
+		{
+			"week": "2024-W52",
+			"start_date": "2024-12-23",
+			"end_date": "2024-12-29",
+			"visitors": 63070,
+			"pageviews": 193569,
+			"sessions": 73216,
+			"bounce_rate": 3.5,
+			"conversion_rate": 15.9
+		},
+		{
+			"week": "2025-W01",
+			"start_date": "2024-12-30",
+			"end_date": "2024-12-31",
+			"visitors": 18801,
+			"pageviews": 57801,
+			"sessions": 20579,
+			"bounce_rate": 2.9,
+			"conversion_rate": 16.4
+		}
+	],
+	"monthly_aggregated": [
+		{
+			"month": "2024-10",
+			"visitors": 73782,
+			"pageviews": 226158,
+			"sessions": 86560,
+			"bounce_rate": 31.2,
+			"conversion_rate": 5.5,
+			"growth_rate": 12.4
+		},
+		{
+			"month": "2024-11",
+			"visitors": 129982,
+			"pageviews": 394567,
+			"sessions": 151265,
+			"bounce_rate": 17.8,
+			"conversion_rate": 9.3,
+			"growth_rate": 76.2
+		},
+		{
+			"month": "2024-12",
+			"visitors": 235183,
+			"pageviews": 717083,
+			"sessions": 273197,
+			"bounce_rate": 6.7,
+			"conversion_rate": 14.6,
+			"growth_rate": 80.9
+		}
+	],
+	"yearly_aggregated": [
+		{
+			"year": "2024",
+			"visitors": 438947,
+			"pageviews": 1337808,
+			"sessions": 511022,
+			"bounce_rate": 18.6,
+			"conversion_rate": 9.8,
+			"growth_rate": 156.3
+		}
+	],
+	"traffic_sources": {
+		"organic": 45.2,
+		"direct": 28.7,
+		"social": 12.4,
+		"paid": 8.9,
+		"referral": 4.8
+	},
+	"top_pages": [
+		{
+			"page": "/",
+			"visitors": 89456,
+			"pageviews": 145234
+		},
+		{
+			"page": "/products",
+			"visitors": 67234,
+			"pageviews": 123567
+		},
+		{
+			"page": "/blog",
+			"visitors": 45678,
+			"pageviews": 89234
+		},
+		{
+			"page": "/about",
+			"visitors": 34567,
+			"pageviews": 56789
+		},
+		{
+			"page": "/contact",
+			"visitors": 23456,
+			"pageviews": 34567
+		}
+	],
+	"geographic_data": [
+		{
+			"country": "United States",
+			"visitors": 156789,
+			"percentage": 35.7
+		},
+		{
+			"country": "United Kingdom",
+			"visitors": 78456,
+			"percentage": 17.9
+		},
+		{
+			"country": "Canada",
+			"visitors": 56234,
+			"percentage": 12.8
+		},
+		{
+			"country": "Germany",
+			"visitors": 43567,
+			"percentage": 9.9
+		},
+		{
+			"country": "France",
+			"visitors": 34567,
+			"percentage": 7.9
+		},
+		{
+			"country": "Australia",
+			"visitors": 23456,
+			"percentage": 5.3
+		},
+		{
+			"country": "Other",
+			"visitors": 45878,
+			"percentage": 10.5
+		}
+	]
+}

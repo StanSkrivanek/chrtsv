@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Responsive BarComparison Test</title>
+		<style>
+			body {
+				font-family: Arial, sans-serif;
+				margin: 20px;
+				background: #f5f5f5;
+			}
+			.test-container {
+				background: white;
+				padding: 20px;
+				margin: 20px 0;
+				border-radius: 8px;
+				box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+			}
+			.container-small {
+				width: 400px;
+				height: 200px;
+				border: 2px solid #e74c3c;
+				margin: 10px 0;
+			}
+			.container-medium {
+				width: 800px;
+				height: 300px;
+				border: 2px solid #3498db;
+				margin: 10px 0;
+			}
+			.container-large {
+				width: 1200px;
+				height: 400px;
+				border: 2px solid #2ecc71;
+				margin: 10px 0;
+			}
+			.container-percentage {
+				width: 90%;
+				height: 350px;
+				border: 2px solid #9b59b6;
+				margin: 10px 0;
+			}
+		</style>
+	</head>
+	<body>
+		<h1>Responsive BarComparison Chart Tests</h1>
+
+		<div class="test-container">
+			<h2>Test 1: Small Container (400px × 200px)</h2>
+			<div class="container-small">
+				<!-- Chart should fit exactly in this red border -->
+				<div
+					style="
+						width: 100%;
+						height: 100%;
+						background: #f8f9fa;
+						display: flex;
+						align-items: center;
+						justify-content: center;
+					"
+				>
+					Chart should fill this space (400px × 200px)
+				</div>
+			</div>
+		</div>
+
+		<div class="test-container">
+			<h2>Test 2: Medium Container (800px × 300px)</h2>
+			<div class="container-medium">
+				<!-- Chart should fit exactly in this blue border -->
+				<div
+					style="
+						width: 100%;
+						height: 100%;
+						background: #f8f9fa;
+						display: flex;
+						align-items: center;
+						justify-content: center;
+					"
+				>
+					Chart should fill this space (800px × 300px)
+				</div>
+			</div>
+		</div>
+
+		<div class="test-container">
+			<h2>Test 3: Large Container (1200px × 400px)</h2>
+			<div class="container-large">
+				<!-- Chart should fit exactly in this green border -->
+				<div
+					style="
+						width: 100%;
+						height: 100%;
+						background: #f8f9fa;
+						display: flex;
+						align-items: center;
+						justify-content: center;
+					"
+				>
+					Chart should fill this space (1200px × 400px)
+				</div>
+			</div>
+		</div>
+
+		<div class="test-container">
+			<h2>Test 4: Percentage Container (90% × 350px)</h2>
+			<div class="container-percentage">
+				<!-- Chart should fit exactly in this purple border -->
+				<div
+					style="
+						width: 100%;
+						height: 100%;
+						background: #f8f9fa;
+						display: flex;
+						align-items: center;
+						justify-content: center;
+					"
+				>
+					Chart should fill this space (90% × 350px)
+				</div>
+			</div>
+		</div>
+
+		<div class="test-container">
+			<h2>Instructions</h2>
+			<ol>
+				<li>
+					Replace the placeholder divs with:
+					<code>&lt;BarComparison width="100%" height="100%" /&gt;</code>
+				</li>
+				<li>The chart should perfectly fit within each colored border</li>
+				<li>All bars, labels, and legends should be proportionally sized</li>
+				<li>Try resizing the browser window to test responsive behavior</li>
+			</ol>
+		</div>
+
+		<script>
+			// Test script to verify container dimensions
+			document.addEventListener('DOMContentLoaded', function () {
+				const containers = document.querySelectorAll('[class*="container-"]');
+				containers.forEach((container) => {
+					const rect = container.getBoundingClientRect();
+					console.log(`${container.className}: ${rect.width}px × ${rect.height}px`);
+				});
+			});
+		</script>
+	</body>
+</html>
