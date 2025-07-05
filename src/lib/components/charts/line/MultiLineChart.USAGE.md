@@ -15,7 +15,7 @@ A flexible multi-line chart component built with Svelte 5 that can display up to
 - **Flexible Tick Count**: Configure Y-axis tick density
 - **Date Parsing**: Built-in support for various date formats using date-fns
 - **Smooth Animations**: Hover effects and line highlighting
-- **Accessibility**: Full keyboard navigation and ARIA support
+- **Accessibility**: Keyboard navigation for legend items and basic ARIA support
 
 ## Usage
 
@@ -396,11 +396,25 @@ The component includes built-in styling but can be customized using CSS custom p
 
 ## Accessibility
 
-- Full keyboard navigation support
-- ARIA roles and labels
-- Screen reader friendly
-- High contrast tooltips
-- Focus indicators
+- **Full keyboard navigation**: Chart focus with Tab, legend navigation with Tab/Shift+Tab
+- **Screen reader support**: ARIA labels, live regions, and comprehensive descriptions
+- **Data table alternative**: Optional accessible data table representation
+- **Focus management**: Clear focus indicators and logical tab order
+- **Announcements**: Live region announcements for state changes
+- **High contrast**: High contrast tooltips and UI elements
+
+**Keyboard shortcuts:**
+
+- `Tab`: Navigate to legend items
+- `Enter/Space`: Toggle line highlighting
+- `Escape`: Clear all highlights and return to normal view
+
+**Screen reader features:**
+
+- Chart description with data summary
+- Live announcements for interactions
+- Alternative data table with proper headers
+- ARIA labels for all interactive elements
 
 ## Best Practices
 
@@ -432,9 +446,13 @@ The component includes built-in styling but can be customized using CSS custom p
 
 ### Accessibility
 
-1. **High Contrast**: Ensure sufficient color contrast for all lines
-2. **Descriptive Labels**: Use clear, descriptive labels for legend items
-3. **Alternative Text**: Consider providing data tables as alternative access
+1. **Full Keyboard Support**: All interactive elements are keyboard accessible
+2. **Screen Reader Friendly**: Comprehensive ARIA labels and descriptions
+3. **Data Table Alternative**: Toggle accessible data table view
+4. **High Contrast**: Sufficient color contrast for all visual elements
+5. **Focus Management**: Clear focus indicators and logical navigation
+6. **Live Announcements**: Screen reader announcements for state changes
+7. **Alternative Access**: Multiple ways to access chart data
 
 ## Browser Support
 

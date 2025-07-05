@@ -11,11 +11,11 @@
 		Info,
 		Laptop,
 		Layers,
-		LineChart,
+		ChartLine,
 		Minus,
 		Monitor,
 		MousePointer,
-		PieChart,
+		ChartPie,
 		Plus,
 		Settings,
 		ShoppingCart,
@@ -31,10 +31,10 @@
 	} from 'lucide-svelte';
 
 	const chartIcons = [
-		{ name: 'BarChart3', component: BarChart3, description: 'Multi-bar chart' },
-		{ name: 'BarChart2', component: BarChart2, description: 'Simple bar chart' },
-		{ name: 'LineChart', component: LineChart, description: 'Line chart' },
-		{ name: 'PieChart', component: PieChart, description: 'Pie chart' },
+		// { name: 'BarChart3', component: BarChart3, description: 'Multi-bar chart' },
+		// { name: 'BarChart2', component: BarChart2, description: 'Simple bar chart' },
+		{ name: 'ChartLine', component: ChartLine, description: 'Line chart' },
+		{ name: 'ChartPie', component: ChartPie, description: 'Pie chart' },
 		{ name: 'TrendingUp', component: TrendingUp, description: 'Positive trend' },
 		{ name: 'TrendingDown', component: TrendingDown, description: 'Negative trend' },
 		{ name: 'Activity', component: Activity, description: 'Activity/pulse' }

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import LineChart from '$lib/components/charts/MultiLineChart.svelte';
+	import LineChart from '$lib/components/charts/line/MultiLineChart.svelte';
 
 	// Example data for multiple product lines
 	const productData = [

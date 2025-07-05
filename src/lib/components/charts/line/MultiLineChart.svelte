@@ -60,6 +60,48 @@
 	let tooltipData = $state<TooltipData | null>(null);
 	let hoveredLine = $state<string | null>(null);
 	let linesDrawn = $state(false);
+	let focusedDataPoint = $state<{ lineId: string; dataIndex: number } | null>(null);
+	let announcements = $state<string>('');
+	let showDataTable = $state(false);
+
+	// Accessibility helpers
+	function announceToScreenReader(message: string) {
+		announcements = message;
+		// Clear after a delay to prevent stale announcements
+		setTimeout(() => {
+			announcements = '';
+		}, 1000);
+	}
+
+	function generateChartDescription(): string {
+		if (!lines || lines.length === 0) return 'Empty chart';
+
+		const lineCount = lines.length;
+		const dataPointCount = lines[0]?.data?.length || 0;
+		const hasNegativeValues = lines.some((line: LineData) =>
+			line.data.some((point: Record<string, any>) => Number(point[yKey]) < 0)
+		);
+
+		return `Line chart with ${lineCount} data series and ${dataPointCount} data points${hasNegativeValues ? ', including negative values' : ''}. Use Tab to navigate legend items, Enter or Space to highlight lines, and Escape to clear highlights.`;
+	}
+
+	function getDataTableSummary(): string {
+		if (!lines || lines.length === 0) return '';
+
+		const totalPoints = lines.reduce((sum: number, line: LineData) => sum + line.data.length, 0);
+		const minValue = Math.min(
+			...lines.flatMap((line: LineData) =>
+				line.data.map((point: Record<string, any>) => Number(point[yKey]))
+			)
+		);
+		const maxValue = Math.max(
+			...lines.flatMap((line: LineData) =>
+				line.data.map((point: Record<string, any>) => Number(point[yKey]))
+			)
+		);
+
+		return `Data table summary: ${lines.length} series, ${totalPoints} total data points, values range from ${minValue} to ${maxValue}`;
+	}
 
 	// Chart dimensions
 	const margin = { top: 20, right: 20, bottom: 40, left: 60 };
@@ -547,6 +589,8 @@
 		titleElem.setAttribute('fill', '#1e293b');
 		titleElem.setAttribute('font-size', '16px');
 		titleElem.setAttribute('font-weight', 'bold');
+		titleElem.setAttribute('id', 'chart-title-svg');
+		titleElem.setAttribute('aria-hidden', 'true'); // Hidden since we have a separate title for screen readers
 		titleElem.textContent = title;
 
 		// Add everything to the chart
@@ -681,34 +725,103 @@
 </script>
 
 <div class="multi-line-chart-container">
-	<svg bind:this={chart} class="multi-line-chart" width="100%" {height}></svg>
+	<!-- Screen reader announcements -->
+	<div class="sr-only" aria-live="polite" aria-atomic="true">
+		{announcements}
+	</div>
+
+	<!-- Chart description for screen readers -->
+	<div id="chart-description" class="sr-only">
+		{generateChartDescription()}
+	</div>
+
+	<!-- Main chart -->
+	<div class="chart-container">
+		<svg
+			bind:this={chart}
+			class="multi-line-chart"
+			width="100%"
+			{height}
+			role="img"
+			aria-label="Line chart: {title}"
+			aria-describedby="chart-description"
+		></svg>
+
+		<!-- Hidden interactive element for keyboard navigation -->
+		<button
+			class="chart-keyboard-handler sr-only"
+			aria-label="Chart keyboard controls. Press Escape to clear highlights."
+			onkeydown={(e) => {
+				if (e.key === 'Escape') {
+					hoveredLine = null;
+					focusedDataPoint = null;
+					announceToScreenReader('Chart cleared, all lines visible');
+				}
+			}}
+		>
+			Chart Controls
+		</button>
+	</div>
+
+	<!-- Hidden chart title for screen readers -->
+	<h2 id="chart-title" class="sr-only">{title}</h2>
 
 	{#if showLegend && lines.length > 0}
-		<div class="legend" transition:fade={{ duration: 300, delay: 200 }}>
+		<div
+			class="legend"
+			role="group"
+			aria-label="Chart legend - data series controls"
+			transition:fade={{ duration: 300, delay: 200 }}
+		>
 			{#each lines as lineData, index}
+				{@const color = lineData.color || defaultColors[index % defaultColors.length]}
+				{@const isHighlighted = hoveredLine === lineData.id}
+				{@const isDimmed = hoveredLine !== null && hoveredLine !== lineData.id}
+
 				<div
 					class="legend-item"
-					class:hovered={hoveredLine === lineData.id}
-					class:dimmed={hoveredLine !== null && hoveredLine !== lineData.id}
+					class:hovered={isHighlighted}
+					class:dimmed={isDimmed}
 					role="button"
 					tabindex="0"
-					onmouseenter={() => (hoveredLine = lineData.id)}
-					onmouseleave={() => (hoveredLine = null)}
+					aria-label="Toggle highlight for {lineData.label} series"
+					aria-pressed={isHighlighted}
+					aria-describedby="legend-instructions"
+					onmouseenter={() => {
+						hoveredLine = lineData.id;
+						announceToScreenReader(`Highlighting ${lineData.label} series`);
+					}}
+					onmouseleave={() => {
+						hoveredLine = null;
+						announceToScreenReader('All series visible');
+					}}
 					onkeydown={(e) => {
 						if (e.key === 'Enter' || e.key === ' ') {
-							hoveredLine = hoveredLine === lineData.id ? null : lineData.id;
+							e.preventDefault();
+							const newState = hoveredLine === lineData.id ? null : lineData.id;
+							hoveredLine = newState;
+							announceToScreenReader(
+								newState ? `Highlighting ${lineData.label} series` : 'All series visible'
+							);
+						} else if (e.key === 'Escape') {
+							hoveredLine = null;
+							announceToScreenReader('All series visible');
 						}
+					}}
+					onfocus={() => {
+						// Optional: could announce on focus
 					}}
 					transition:scale={{ duration: 200, delay: index * 50, easing: cubicInOut }}
 				>
-					<div
-						class="legend-color"
-						style="background-color: {lineData.color ||
-							defaultColors[index % defaultColors.length]}"
-					></div>
+					<div class="legend-color" style="background-color: {color}" aria-hidden="true"></div>
 					<span class="legend-label">{lineData.label}</span>
 				</div>
 			{/each}
+		</div>
+
+		<!-- Instructions for screen readers -->
+		<div id="legend-instructions" class="sr-only">
+			Press Enter or Space to highlight a data series, Escape to show all series
 		</div>
 	{/if}
 
@@ -716,6 +829,8 @@
 		<div
 			class="tooltip"
 			style="left: {tooltipData.x}px; top: {tooltipData.y - 24}px;"
+			role="tooltip"
+			aria-live="polite"
 			transition:fly={{ y: -10, duration: 200, easing: cubicInOut }}
 		>
 			<div class="tooltip-content">
@@ -729,18 +844,117 @@
 			</div>
 		</div>
 	{/if}
+
+	<!-- Data table toggle -->
+	<div class="chart-controls">
+		<button
+			class="data-table-toggle"
+			onclick={() => {
+				showDataTable = !showDataTable;
+				announceToScreenReader(showDataTable ? 'Data table opened' : 'Data table closed');
+			}}
+			aria-expanded={showDataTable}
+			aria-controls="data-table"
+		>
+			{showDataTable ? 'Hide' : 'Show'} Data Table
+		</button>
+	</div>
+
+	<!-- Accessible data table -->
+	{#if showDataTable}
+		<div
+			id="data-table"
+			class="data-table-container"
+			aria-label="Chart data in table format"
+			transition:fade={{ duration: 300 }}
+		>
+			<div class="data-table-summary sr-only">
+				{getDataTableSummary()}
+			</div>
+
+			<table class="data-table">
+				<caption class="sr-only">
+					{title} - Detailed data table with {lines.length} data series
+				</caption>
+				<thead>
+					<tr>
+						<th scope="col">{xKey}</th>
+						{#each lines as lineData}
+							<th scope="col">{lineData.label}</th>
+						{/each}
+					</tr>
+				</thead>
+				<tbody>
+					{#if lines.length > 0}
+						{#each lines[0].data as _, rowIndex}
+							<tr>
+								<th scope="row">{lines[0].data[rowIndex][xKey]}</th>
+								{#each lines as lineData}
+									<td>
+										{lineData.data[rowIndex] ? lineData.data[rowIndex][yKey] : 'N/A'}
+									</td>
+								{/each}
+							</tr>
+						{/each}
+					{/if}
+				</tbody>
+			</table>
+		</div>
+	{/if}
 </div>
 
 <style>
+	/* Screen reader only content */
+	.sr-only {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		margin: -1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
+		border: 0;
+	}
+
 	.multi-line-chart-container {
 		width: 100%;
 		position: relative;
 		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 	}
 
+	.chart-container {
+		position: relative;
+		width: 100%;
+	}
+
+	.chart-keyboard-handler {
+		position: absolute;
+		top: 0;
+		left: 0;
+		background: none;
+		border: none;
+		padding: 0;
+		margin: 0;
+		font-size: 0;
+		line-height: 0;
+	}
+
+	.chart-keyboard-handler:focus {
+		outline: 2px solid #3b82f6;
+		outline-offset: 2px;
+		background: rgba(59, 130, 246, 0.1);
+		border-radius: 4px;
+		padding: 4px;
+		font-size: 12px;
+		line-height: 1.2;
+		color: #3b82f6;
+	}
+
 	.multi-line-chart {
 		width: 100%;
 		min-height: 300px;
+		outline: none;
 	}
 
 	/* Smooth transitions for SVG elements */
@@ -772,16 +986,23 @@
 		align-items: center;
 		gap: 8px;
 		cursor: pointer;
-		padding: 4px 8px;
+		padding: 8px 12px;
 		border-radius: 4px;
 		transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 		transform-origin: center;
+		border: 2px solid transparent;
+		outline: none;
 	}
 
 	.legend-item:hover {
 		background: #e2e8f0;
 		transform: translateY(-2px);
 		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+	}
+
+	.legend-item:focus {
+		border-color: #3b82f6;
+		box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
 	}
 
 	.legend-item.hovered {
@@ -863,5 +1084,97 @@
 	.tooltip-value {
 		font-weight: 700;
 		font-size: 13px;
+	}
+
+	/* Data table styles */
+	.chart-controls {
+		margin-top: 16px;
+		display: flex;
+		justify-content: flex-end;
+	}
+
+	.data-table-toggle {
+		background: #3b82f6;
+		color: white;
+		border: none;
+		padding: 8px 16px;
+		border-radius: 6px;
+		cursor: pointer;
+		font-size: 14px;
+		font-weight: 500;
+		transition: all 0.2s ease;
+		outline: none;
+	}
+
+	.data-table-toggle:hover {
+		background: #2563eb;
+		transform: translateY(-1px);
+	}
+
+	.data-table-toggle:focus {
+		box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+	}
+
+	.data-table-container {
+		margin-top: 16px;
+		padding: 16px;
+		background: #f8fafc;
+		border-radius: 8px;
+		border: 1px solid #e2e8f0;
+		max-height: 400px;
+		overflow-y: auto;
+	}
+
+	.data-table {
+		width: 100%;
+		border-collapse: collapse;
+		font-size: 14px;
+	}
+
+	.data-table th,
+	.data-table td {
+		padding: 8px 12px;
+		text-align: left;
+		border-bottom: 1px solid #e2e8f0;
+	}
+
+	.data-table th {
+		background: #f1f5f9;
+		font-weight: 600;
+		color: #1e293b;
+		position: sticky;
+		top: 0;
+		z-index: 1;
+	}
+
+	.data-table th[scope='row'] {
+		background: #f8fafc;
+		font-weight: 600;
+		color: #374151;
+	}
+
+	.data-table tbody tr:hover {
+		background: #f1f5f9;
+	}
+
+	/* Responsive adjustments */
+	@media (max-width: 768px) {
+		.legend {
+			flex-direction: column;
+			gap: 8px;
+		}
+
+		.legend-item {
+			padding: 6px 10px;
+		}
+
+		.data-table-container {
+			font-size: 12px;
+		}
+
+		.data-table th,
+		.data-table td {
+			padding: 6px 8px;
+		}
 	}
 </style>

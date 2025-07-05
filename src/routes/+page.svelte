@@ -1,11 +1,9 @@
 <script lang="ts">
-	import MultiLineChart from '$lib/components/charts/MultiLineChart.svelte';
+	import MultiLineChart from '$lib/components/charts/line/MultiLineChart.svelte';
 	import {
 		Activity,
-		BarChart2,
-		BarChart3,
-		LineChart,
-		PieChart,
+		ChartLine,
+
 		TrendingDown,
 		TrendingUp,
 		Users
@@ -217,7 +215,7 @@
 </script>
 
 <div class="example-container">
-	<h1><LineChart size={28} class="icon" /> Single Line Chart</h1>
+	<h1><ChartLine size={28} class="icon" /> Single Line Chart</h1>
 
 	<MultiLineChart
 		lines={[dateBasedData[2]]}
@@ -232,11 +230,11 @@
 	<div class="description">
 		<h2><Activity size={20} class="icon-small" /> Features Demonstrated:</h2>
 		<ul>
-			<li><LineChart size={16} class="feature-icon" /> Single data series (Desktop Sales)</li>
+			<li><ChartLine size={16} class="feature-icon" /> Single data series (Desktop Sales)</li>
 			<li><Users size={16} class="feature-icon" /> Interactive legend with hover effects</li>
 			<li><Activity size={16} class="feature-icon" /> <b>Uses `date-fns` for date parsing</b></li>
 			<li>
-				<BarChart2 size={16} class="feature-icon" /> <strong>Custom Y-axis ticks</strong> - Using 4 ticks
+				<ChartLine size={16} class="feature-icon" /> <strong>Custom Y-axis ticks</strong> - Using 4 ticks
 				instead of default 5
 			</li>
 			<li><Activity size={16} class="feature-icon" /> Responsive design</li>
@@ -249,10 +247,10 @@
 </div>
 
 <div class="example-container">
-	<h1><BarChart3 size={28} class="icon" /> Multi Line Chart Example</h1>
+	<h1><ChartLine size={28} class="icon" /> Multi Line Chart Example</h1>
 
 	<div class="controls">
-		<label for="metric-select"><BarChart2 size={16} class="icon-inline" /> Select Metric:</label>
+		<label for="metric-select"><ChartLine size={16} class="icon-inline" /> Select Metric:</label>
 		<select id="metric-select" bind:value={selectedMetric}>
 			{#each metrics as metric}
 				<option value={metric.value}>{metric.label}</option>
@@ -274,10 +272,10 @@
 		<h2><Activity size={20} class="icon-small" /> Features Demonstrated:</h2>
 		<ul>
 			<li>
-				<BarChart3 size={16} class="feature-icon" /> Multiple data series (Desktop, Mobile, Tablet)
+				<ChartLine size={16} class="feature-icon" /> Multiple data series (Desktop, Mobile, Tablet)
 			</li>
 			<li><Users size={16} class="feature-icon" /> Interactive legend with hover effects</li>
-			<li><BarChart2 size={16} class="feature-icon" /> Dynamic metric switching</li>
+			<li><ChartLine size={16} class="feature-icon" /> Dynamic metric switching</li>
 			<li><Activity size={16} class="feature-icon" /> Responsive design</li>
 			<li><Activity size={16} class="feature-icon" /> Tooltip on data point hover</li>
 			<li>
@@ -330,11 +328,11 @@
 				Automatically doubles tick count (5→10) for negative data
 			</li>
 			<li>
-				<BarChart3 size={16} class="feature-icon" /> Multiple data series with both positive and negative
+				<ChartLine size={16} class="feature-icon" /> Multiple data series with both positive and negative
 				values
 			</li>
 			<li>
-				<BarChart2 size={16} class="feature-icon" /> Dynamic metric switching between profit and margin
+				<ChartLine size={16} class="feature-icon" /> Dynamic metric switching between profit and margin
 			</li>
 			<li><Activity size={16} class="feature-icon" /> Responsive design with proper grid lines</li>
 			<li>Tooltips showing negative values correctly</li>
@@ -343,7 +341,7 @@
 </div>
 
 <div class="example-container">
-	<h1><PieChart size={28} class="icon" /> Comparison: Standard vs Auto-Doubled Ticks</h1>
+	<h1><ChartLine size={28} class="icon" /> Comparison: Standard vs Auto-Doubled Ticks</h1>
 
 	<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
 		<div>
