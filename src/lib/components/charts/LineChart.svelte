@@ -1,758 +1,607 @@
 <script lang="ts">
+	// Import only what we need
+	import { format, isValid, parse, parseISO } from 'date-fns';
 	import { onMount } from 'svelte';
-	import { Spring } from 'svelte/motion';
 
-	// Type definitions - Same as BarComparison for consistency
-	type ApiDataPoint = {
-		month: string;
-		product_id: string;
-		product_name: string;
-		sales: number;
-		revenue: number;
-		units_sold: number;
-	};
-
-	type ProcessedMonthData = {
-		month: string;
-		products: { [productId: string]: number };
-	};
-
-	type ProductInfo = {
+	// Type definitions
+	interface LineData {
 		id: string;
-		name: string;
+		label: string;
+		data: Array<Record<string, any>>;
 		color: string;
-	};
+	}
 
+	interface TooltipData {
+		x: number;
+		y: number;
+		value: any;
+		label: string;
+		lineLabel: string;
+		color: string;
+	}
+
+	// Props with explicit typing using Svelte 5 runes
 	let {
-		// Real-world API data example - same as BarComparison
-		apiData = [
-			// January data
-			{
-				month: 'Jan',
-				product_id: 'prod_001',
-				product_name: 'iPhone 15',
-				sales: 186000,
-				revenue: 186000,
-				units_sold: 186
-			},
-			{
-				month: 'Jan',
-				product_id: 'prod_002',
-				product_name: 'Samsung Galaxy S24',
-				sales: 305000,
-				revenue: 305000,
-				units_sold: 305
-			},
-			{
-				month: 'Jan',
-				product_id: 'prod_003',
-				product_name: 'Google Pixel 8',
-				sales: 237000,
-				revenue: 237000,
-				units_sold: 237
-			},
-			// February data
-			{
-				month: 'Feb',
-				product_id: 'prod_001',
-				product_name: 'iPhone 15',
-				sales: 305000,
-				revenue: 305000,
-				units_sold: 305
-			},
-			{
-				month: 'Feb',
-				product_id: 'prod_002',
-				product_name: 'Samsung Galaxy S24',
-				sales: 237000,
-				revenue: 237000,
-				units_sold: 237
-			},
-			{
-				month: 'Feb',
-				product_id: 'prod_003',
-				product_name: 'Google Pixel 8',
-				sales: 186000,
-				revenue: 186000,
-				units_sold: 186
-			},
-			// March data
-			{
-				month: 'Mar',
-				product_id: 'prod_001',
-				product_name: 'iPhone 15',
-				sales: 237000,
-				revenue: 237000,
-				units_sold: 237
-			},
-			{
-				month: 'Mar',
-				product_id: 'prod_002',
-				product_name: 'Samsung Galaxy S24',
-				sales: 186000,
-				revenue: 186000,
-				units_sold: 186
-			},
-			{
-				month: 'Mar',
-				product_id: 'prod_003',
-				product_name: 'Google Pixel 8',
-				sales: 305000,
-				revenue: 305000,
-				units_sold: 305
-			},
-			// April data
-			{
-				month: 'Apr',
-				product_id: 'prod_001',
-				product_name: 'iPhone 15',
-				sales: 173000,
-				revenue: 173000,
-				units_sold: 173
-			},
-			{
-				month: 'Apr',
-				product_id: 'prod_002',
-				product_name: 'Samsung Galaxy S24',
-				sales: 214000,
-				revenue: 214000,
-				units_sold: 214
-			},
-			{
-				month: 'Apr',
-				product_id: 'prod_003',
-				product_name: 'Google Pixel 8',
-				sales: 209000,
-				revenue: 209000,
-				units_sold: 209
-			},
-			// May data
-			{
-				month: 'May',
-				product_id: 'prod_001',
-				product_name: 'iPhone 15',
-				sales: 209000,
-				revenue: 209000,
-				units_sold: 209
-			},
-			{
-				month: 'May',
-				product_id: 'prod_002',
-				product_name: 'Samsung Galaxy S24',
-				sales: 173000,
-				revenue: 173000,
-				units_sold: 173
-			},
-			{
-				month: 'May',
-				product_id: 'prod_003',
-				product_name: 'Google Pixel 8',
-				sales: 214000,
-				revenue: 214000,
-				units_sold: 214
-			},
-			// June data
-			{
-				month: 'Jun',
-				product_id: 'prod_001',
-				product_name: 'iPhone 15',
-				sales: 214000,
-				revenue: 214000,
-				units_sold: 214
-			},
-			{
-				month: 'Jun',
-				product_id: 'prod_002',
-				product_name: 'Samsung Galaxy S24',
-				sales: 209000,
-				revenue: 209000,
-				units_sold: 209
-			},
-			{
-				month: 'Jun',
-				product_id: 'prod_003',
-				product_name: 'Google Pixel 8',
-				sales: 173000,
-				revenue: 173000,
-				units_sold: 173
-			}
-		] as ApiDataPoint[],
-		// What metric to display
-		metric = 'units_sold' as keyof Pick<ApiDataPoint, 'sales' | 'revenue' | 'units_sold'>,
-		// Color mapping for products
-		productColors = {
-			prod_001: '#3b82f6', // Blue
-			prod_002: '#ef4444', // Red
-			prod_003: '#10b981', // Green
-			prod_004: '#f59e0b', // Yellow
-			prod_005: '#8b5cf6' // Purple
-		} as { [key: string]: string },
-		width = 800 as number | string,
-		height = 400 as number | string,
-		padding = 60,
-		showTooltip = true,
-		animate = true,
+		lines = [],
+		xKey = 'date',
+		yKey = 'value',
+		title = 'Multi Line Chart',
 		showLegend = true,
-		showPoints = true,
-		showValues = false,
-		strokeWidth = 2,
-		pointRadius = 4,
-		legendGap = -24,
-		curveType = 'smooth' as 'smooth' | 'straight', // Line curve type
-		tension = 0.3 // Curve tension (0 = sharp, 1 = very smooth)
-	} = $props();
+		height = 400,
+		dateFormat = 'MMM dd',
+		inputDateFormat = null
+	} = $props<{
+		lines?: LineData[];
+		xKey?: string;
+		yKey?: string;
+		title?: string;
+		showLegend?: boolean;
+		height?: number;
+		dateFormat?: string;
+		inputDateFormat?: string | null;
+	}>();
 
-	let tooltip = $state({
-		visible: false,
-		x: 0,
-		y: 0,
-		content: ''
-	});
-
-	let hoveredPoint = $state({ productId: '', monthIndex: -1 });
+	// Internal state
+	let chart: SVGElement;
 	let mounted = $state(false);
-	let containerElement: HTMLDivElement;
-	let containerWidth = $state(800);
-	let containerHeight = $state(400);
+	let width = $state(0);
+	let chartHeight = $state(0);
+	let tooltipVisible = $state(false);
+	let tooltipData = $state<TooltipData | null>(null);
+	let hoveredLine = $state<string | null>(null);
 
-	// Helper function to format dimension for CSS
-	const formatDimension = (value: number | string): string => {
-		if (typeof value === 'number') return `${value}px`;
-		return value;
-	};
+	// Chart dimensions
+	const margin = { top: 20, right: 20, bottom: 40, left: 60 };
 
-	// Helper functions to handle responsive dimensions
-	const getNumericValue = (value: number | string): number => {
-		if (typeof value === 'number') return value;
+	// Color palette for lines (fallback if colors not provided)
+	const defaultColors = [
+		'#3b82f6', // blue
+		'#ef4444', // red
+		'#10b981', // green
+		'#f59e0b', // yellow
+		'#8b5cf6' // purple
+	];
 
-		if (typeof value === 'string') {
-			if (value.includes('vw')) {
-				const num = parseFloat(value);
-				if (typeof window !== 'undefined') {
-					return (num / 100) * window.innerWidth;
-				}
-				return 800; // SSR fallback
+	// Helper function to parse dates from various formats
+	function parseDate(dateString: string): Date | null {
+		if (!dateString) return null;
+
+		// Try parsing with provided input format first
+		if (inputDateFormat) {
+			try {
+				const parsed = parse(dateString, inputDateFormat, new Date());
+				if (isValid(parsed)) return parsed;
+			} catch (e) {
+				// Continue to other parsing methods
 			}
-			if (value.includes('vh')) {
-				const num = parseFloat(value);
-				if (typeof window !== 'undefined') {
-					return (num / 100) * window.innerHeight;
-				}
-				return 400; // SSR fallback
-			}
-			if (value.includes('px')) {
-				return parseFloat(value);
-			}
-			if (value.includes('%')) {
-				const num = parseFloat(value);
-				return (num / 100) * 800; // Fallback
-			}
-			const parsed = parseFloat(value);
-			return isNaN(parsed) ? 800 : parsed;
 		}
 
-		return 800; // Default fallback
-	};
+		// Try parsing ISO format
+		try {
+			const parsed = parseISO(dateString);
+			if (isValid(parsed)) return parsed;
+		} catch (e) {
+			// Continue to other parsing methods
+		}
 
-	// Get actual dimensions
-	const actualWidth = $derived(
-		(() => {
-			if (typeof width === 'string' && (width.includes('%') || width === '100%')) {
-				return containerWidth;
+		// Try parsing with native Date constructor
+		try {
+			const parsed = new Date(dateString);
+			if (isValid(parsed)) return parsed;
+		} catch (e) {
+			// Continue
+		}
+
+		return null;
+	}
+
+	// Helper function to format dates for display
+	function formatDateForDisplay(dateString: string): string {
+		const date = parseDate(dateString);
+		if (date) {
+			return format(date, dateFormat);
+		}
+		// Fallback to original string if parsing fails
+		return String(dateString).substring(0, 10);
+	}
+
+	// Function to get all unique x values across all lines
+	function getAllXValues(): string[] {
+		const xValues: string[] = [];
+		const seen = new Set<string>();
+
+		// Get the first line to establish the order
+		if (lines.length > 0) {
+			lines[0].data.forEach((d: Record<string, any>) => {
+				const value = String(d[xKey]);
+				if (!seen.has(value)) {
+					seen.add(value);
+					xValues.push(value);
+				}
+			});
+		}
+
+		// Add any additional unique values from other lines
+		lines.forEach((line: LineData) => {
+			line.data.forEach((d: Record<string, any>) => {
+				const value = String(d[xKey]);
+				if (!seen.has(value)) {
+					seen.add(value);
+					xValues.push(value);
+				}
+			});
+		});
+
+		// Sort dates chronologically if they are dates
+		const firstValue = xValues[0];
+		if (firstValue && parseDate(firstValue)) {
+			return xValues.sort((a, b) => {
+				const dateA = parseDate(a);
+				const dateB = parseDate(b);
+				if (dateA && dateB) {
+					return dateA.getTime() - dateB.getTime();
+				}
+				return 0;
+			});
+		}
+
+		return xValues;
+	}
+
+	// Function to get all y values for scaling
+	function getAllYValues(): number[] {
+		const yValues: number[] = [];
+		lines.forEach((line: LineData) => {
+			line.data.forEach((d: Record<string, any>) => {
+				yValues.push(Number(d[yKey]));
+			});
+		});
+		return yValues;
+	}
+
+	// Function to re-render chart when data changes
+	function renderChart() {
+		if (!mounted || !chart || lines.length === 0) return;
+
+		// Clear previous chart
+		while (chart.firstChild) {
+			chart.removeChild(chart.firstChild);
+		}
+
+		// Calculate dimensions
+		const svgWidth = chart.clientWidth;
+		const svgHeight = height;
+		width = svgWidth - margin.left - margin.right;
+		chartHeight = svgHeight - margin.top - margin.bottom;
+
+		// Get all unique x values and y values
+		const allXValues = getAllXValues();
+		const allYValues = getAllYValues();
+
+		if (allXValues.length === 0 || allYValues.length === 0) return;
+
+		const xMin = 0;
+		const xMax = allXValues.length - 1;
+		const yMin = Math.min(...allYValues);
+		const yMax = Math.max(...allYValues);
+		const yPadding = (yMax - yMin) * 0.1;
+
+		// Scale functions
+		const xScale = (idx: number) => margin.left + (idx / Math.max(1, xMax)) * width;
+		const yScale = (val: number) =>
+			margin.top +
+			chartHeight -
+			((val - yMin + yPadding) / (yMax - yMin + yPadding * 2)) * chartHeight;
+
+		// Create SVG elements
+		const mainG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+
+		// Create axes
+		const xAxis = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+		xAxis.setAttribute('class', 'x-axis');
+		xAxis.setAttribute('transform', `translate(0, ${margin.top + chartHeight})`);
+
+		// X axis line
+		const xAxisLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+		xAxisLine.setAttribute('x1', String(margin.left));
+		xAxisLine.setAttribute('y1', '0');
+		xAxisLine.setAttribute('x2', String(margin.left + width));
+		xAxisLine.setAttribute('y2', '0');
+		xAxisLine.setAttribute('stroke', '#94a3b8');
+		xAxis.appendChild(xAxisLine);
+
+		// X axis ticks - show 5-7 ticks depending on data size
+		const tickInterval = Math.max(1, Math.ceil(allXValues.length / Math.min(7, allXValues.length)));
+		for (let i = 0; i < allXValues.length; i += tickInterval) {
+			const tick = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+			tick.setAttribute('transform', `translate(${xScale(i)}, 0)`);
+
+			const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+			line.setAttribute('y2', '6');
+			line.setAttribute('stroke', '#94a3b8');
+			tick.appendChild(line);
+
+			const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+			text.setAttribute('y', '20');
+			text.setAttribute('text-anchor', 'middle');
+			text.setAttribute('fill', '#64748b');
+			text.setAttribute('font-size', '12px');
+
+			// Format date labels using date-fns
+			const value = allXValues[i];
+			const parsedDate = parseDate(value);
+			if (parsedDate) {
+				text.textContent = formatDateForDisplay(value);
+			} else {
+				text.textContent = String(value).substring(0, 10); // Truncate long labels
 			}
-			return getNumericValue(width);
-		})()
-	);
 
-	const actualHeight = $derived(
-		(() => {
-			if (typeof height === 'string' && (height.includes('%') || height === '100%')) {
-				return containerHeight;
+			tick.appendChild(text);
+			xAxis.appendChild(tick);
+		}
+
+		// Y axis
+		const yAxis = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+		yAxis.setAttribute('class', 'y-axis');
+		yAxis.setAttribute('transform', `translate(${margin.left}, 0)`);
+
+		// Y axis line
+		const yAxisLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+		yAxisLine.setAttribute('x1', '0');
+		yAxisLine.setAttribute('y1', String(margin.top));
+		yAxisLine.setAttribute('x2', '0');
+		yAxisLine.setAttribute('y2', String(margin.top + chartHeight));
+		yAxisLine.setAttribute('stroke', '#94a3b8');
+		yAxis.appendChild(yAxisLine);
+
+		// Y axis ticks - show 5 ticks
+		const yTickCount = 5;
+		for (let i = 0; i <= yTickCount; i++) {
+			const value = yMin + (i / yTickCount) * (yMax - yMin);
+			const yPos = yScale(value);
+
+			const tick = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+			tick.setAttribute('transform', `translate(0, ${yPos})`);
+
+			const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+			line.setAttribute('x2', '-6');
+			line.setAttribute('stroke', '#94a3b8');
+			tick.appendChild(line);
+
+			// Add grid lines
+			const gridLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+			gridLine.setAttribute('x1', '0');
+			gridLine.setAttribute('y1', '0');
+			gridLine.setAttribute('x2', String(width));
+			gridLine.setAttribute('y2', '0');
+			gridLine.setAttribute('stroke', '#e2e8f0');
+			gridLine.setAttribute('stroke-dasharray', '4,4');
+			tick.appendChild(gridLine);
+
+			const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+			text.setAttribute('x', '-10');
+			text.setAttribute('y', '4');
+			text.setAttribute('text-anchor', 'end');
+			text.setAttribute('fill', '#64748b');
+			text.setAttribute('font-size', '12px');
+
+			// Format numbers
+			if (value >= 1000000) {
+				text.textContent = `${(value / 1000000).toFixed(1)}M`;
+			} else if (value >= 1000) {
+				text.textContent = `${(value / 1000).toFixed(1)}k`;
+			} else {
+				text.textContent = value.toFixed(1);
 			}
-			return getNumericValue(height);
-		})()
-	);
 
-	// Process API data to get unique products and months
-	const uniqueProducts = $derived(
-		(() => {
-			const products = new Map<string, ProductInfo>();
-			apiData.forEach((item) => {
-				if (!products.has(item.product_id)) {
-					products.set(item.product_id, {
-						id: item.product_id,
-						name: item.product_name,
-						color: productColors[item.product_id] || '#666'
+			tick.appendChild(text);
+			yAxis.appendChild(tick);
+		}
+
+		// Create lines for each dataset
+		lines.forEach((lineData: LineData, lineIndex: number) => {
+			const color = lineData.color || defaultColors[lineIndex % defaultColors.length];
+			const isHovered = hoveredLine === lineData.id;
+			const isOtherHovered = hoveredLine !== null && hoveredLine !== lineData.id;
+
+			// Create line path
+			const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+			let pathData = '';
+
+			// Build path by matching x values
+			const pathPoints: Array<{ x: number; y: number }> = [];
+			allXValues.forEach((xValue, xIndex) => {
+				const dataPoint = lineData.data.find(
+					(d: Record<string, any>) => String(d[xKey]) === xValue
+				);
+				if (dataPoint) {
+					const x = xScale(xIndex);
+					const y = yScale(Number(dataPoint[yKey]));
+					pathPoints.push({ x, y });
+				}
+			});
+
+			// Create the path
+			if (pathPoints.length > 0) {
+				pathData = `M ${pathPoints[0].x} ${pathPoints[0].y}`;
+				for (let i = 1; i < pathPoints.length; i++) {
+					pathData += ` L ${pathPoints[i].x} ${pathPoints[i].y}`;
+				}
+			}
+
+			line.setAttribute('d', pathData);
+			line.setAttribute('fill', 'none');
+			line.setAttribute('stroke', color);
+			line.setAttribute('stroke-width', isHovered ? '3' : '2');
+			line.setAttribute('opacity', isOtherHovered ? '0.3' : '1');
+			line.setAttribute('class', `line-${lineData.id}`);
+
+			// Add dots at data points
+			const dots = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+			dots.setAttribute('class', `data-points-${lineData.id}`);
+
+			allXValues.forEach((xValue, xIndex) => {
+				const dataPoint = lineData.data.find(
+					(d: Record<string, any>) => String(d[xKey]) === xValue
+				);
+				if (dataPoint) {
+					const x = xScale(xIndex);
+					const y = yScale(Number(dataPoint[yKey]));
+
+					const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+					circle.setAttribute('cx', String(x));
+					circle.setAttribute('cy', String(y));
+					circle.setAttribute('r', isHovered ? '5' : '4');
+					circle.setAttribute('fill', '#ffffff');
+					circle.setAttribute('stroke', color);
+					circle.setAttribute('stroke-width', '2');
+					circle.setAttribute('opacity', isOtherHovered ? '0.3' : '1');
+					circle.setAttribute('class', 'data-point');
+
+					// Add interaction
+					circle.addEventListener('mouseenter', () => {
+						const xValue = String(dataPoint[xKey]);
+						const parsedDate = parseDate(xValue);
+						const displayLabel = parsedDate ? formatDateForDisplay(xValue) : xValue;
+
+						tooltipData = {
+							x,
+							y,
+							value: dataPoint[yKey],
+							label: displayLabel,
+							lineLabel: lineData.label,
+							color
+						};
+						tooltipVisible = true;
+						hoveredLine = lineData.id;
+
+						// Highlight this circle
+						circle.setAttribute('r', '6');
+						circle.setAttribute('fill', color);
 					});
-				}
-			});
-			return Array.from(products.values()).slice(0, 5); // Max 5 products
-		})()
-	);
 
-	const uniqueMonths = $derived(
-		(() => {
-			const months = new Set<string>();
-			apiData.forEach((item) => months.add(item.month));
-			return Array.from(months);
-		})()
-	);
+					circle.addEventListener('mouseleave', () => {
+						tooltipVisible = false;
+						hoveredLine = null;
 
-	// Process data into chart format
-	const processedData = $derived(
-		(() => {
-			const monthMap = new Map<string, ProcessedMonthData>();
+						// Restore circle style
+						circle.setAttribute('r', '4');
+						circle.setAttribute('fill', '#ffffff');
+					});
 
-			// Initialize months
-			uniqueMonths.forEach((month) => {
-				monthMap.set(month, {
-					month,
-					products: {}
-				});
-			});
-
-			// Fill in data
-			apiData.forEach((item) => {
-				if (uniqueProducts.some((p) => p.id === item.product_id)) {
-					const monthData = monthMap.get(item.month);
-					if (monthData) {
-						monthData.products[item.product_id] = item[metric];
-					}
+					dots.appendChild(circle);
 				}
 			});
 
-			return Array.from(monthMap.values());
-		})()
-	);
+			mainG.appendChild(line);
+			mainG.appendChild(dots);
+		});
 
-	// Calculate dimensions
-	const legendHeight = showLegend ? 30 : 0;
-	const chartWidth = $derived(actualWidth - padding * 2);
-	const chartHeight = $derived(actualHeight - padding * 2 - legendHeight);
+		// Add chart title
+		const titleElem = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+		titleElem.setAttribute('x', String(margin.left + width / 2));
+		titleElem.setAttribute('y', String(margin.top - 5));
+		titleElem.setAttribute('text-anchor', 'middle');
+		titleElem.setAttribute('fill', '#1e293b');
+		titleElem.setAttribute('font-size', '16px');
+		titleElem.setAttribute('font-weight', 'bold');
+		titleElem.textContent = title;
 
-	// Find max value for scaling
-	const maxValue = $derived(
-		(() => {
-			let max = 0;
-			processedData.forEach((monthData) => {
-				uniqueProducts.forEach((product) => {
-					const value = monthData.products[product.id] || 0;
-					if (value > max) max = value;
-				});
-			});
-			return max;
-		})()
-	);
+		// Add everything to the chart
+		mainG.appendChild(xAxis);
+		mainG.appendChild(yAxis);
+		chart.appendChild(mainG);
+		chart.appendChild(titleElem);
+	}
 
-	// Calculate point positions for each product line
-	const productLines = $derived(
-		(() => {
-			return uniqueProducts.map((product) => {
-				const points = processedData.map((monthData, monthIndex) => {
-					const value = monthData.products[product.id] || 0;
-					const x = padding + (monthIndex * chartWidth) / (processedData.length - 1);
-					const y = padding + chartHeight - (value / maxValue) * chartHeight;
-					return { x, y, value, monthIndex, month: monthData.month };
-				});
-				return { product, points };
-			});
-		})()
-	);
-
-	// Create smooth curve path using Catmull-Rom spline
-	const createSmoothPath = (points: any[]) => {
-		if (points.length < 2) return '';
-
-		if (curveType === 'straight') {
-			return (
-				`M ${points[0].x},${points[0].y} ` +
-				points
-					.slice(1)
-					.map((p) => `L ${p.x},${p.y}`)
-					.join(' ')
-			);
-		}
-
-		// For 2 points, use a simple curve
-		if (points.length === 2) {
-			const start = points[0];
-			const end = points[1];
-			const dx = end.x - start.x;
-			const midTension = tension * 0.5;
-			const cp1x = start.x + dx * midTension;
-			const cp1y = start.y;
-			const cp2x = end.x - dx * midTension;
-			const cp2y = end.y;
-			return `M ${start.x},${start.y} C ${cp1x},${cp1y} ${cp2x},${cp2y} ${end.x},${end.y}`;
-		}
-
-		// Catmull-Rom spline for 3+ points - naturally smooth without overshoot
-		let path = `M ${points[0].x},${points[0].y}`;
-
-		for (let i = 0; i < points.length - 1; i++) {
-			const p0 = i === 0 ? points[0] : points[i - 1];
-			const p1 = points[i];
-			const p2 = points[i + 1];
-			const p3 = i === points.length - 2 ? points[points.length - 1] : points[i + 2];
-
-			// Calculate control points using Catmull-Rom
-			const t = tension * 0.5; // Reduce tension for smoother curves
-
-			// Control point 1 (for current segment)
-			const cp1x = p1.x + (p2.x - p0.x) * t;
-			const cp1y = p1.y + (p2.y - p0.y) * t;
-
-			// Control point 2 (for current segment)
-			const cp2x = p2.x - (p3.x - p1.x) * t;
-			const cp2y = p2.y - (p3.y - p1.y) * t;
-
-			path += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${p2.x},${p2.y}`;
-		}
-
-		return path;
-	};
-
-	// Animation springs for line paths
-	const animatedOpacity = $derived(
-		uniqueProducts.map(() => new Spring(0, { stiffness: 0.1, damping: 0.8 }))
-	);
-
+	// Use onMount to ensure DOM is ready
 	onMount(() => {
 		mounted = true;
+		renderChart();
 
-		// Set up ResizeObserver
-		if (containerElement) {
-			const updateContainerSize = () => {
-				const rect = containerElement.getBoundingClientRect();
-				containerWidth = rect.width;
-				containerHeight = rect.height;
-			};
+		// Add resize handler
+		const resizeObserver = new ResizeObserver(() => {
+			renderChart();
+		});
 
-			updateContainerSize();
-			const resizeObserver = new ResizeObserver(updateContainerSize);
-			resizeObserver.observe(containerElement);
+		resizeObserver.observe(chart);
 
-			return () => {
-				resizeObserver.disconnect();
-			};
-		}
+		return () => {
+			resizeObserver.disconnect();
+		};
 	});
 
-	// Animate lines when mounted
+	// Watch for data changes
 	$effect(() => {
-		if (mounted && animate) {
-			animatedOpacity.forEach((spring, index) => {
-				setTimeout(() => {
-					spring.target = 1;
-				}, index * 200);
-			});
-		} else if (mounted) {
-			animatedOpacity.forEach((spring) => {
-				spring.target = 1;
-			});
+		if (lines && mounted) {
+			renderChart();
 		}
 	});
 
-	function handlePointMouseEnter(
-		event: MouseEvent,
-		productId: string,
-		monthIndex: number,
-		value: number,
-		month: string
-	) {
-		if (!showTooltip) return;
+	// Watch for prop changes
+	$effect(() => {
+		const _ = xKey;
+		const __ = yKey;
+		const ___ = title;
+		const ____ = showLegend;
+		const _____ = height;
 
-		hoveredPoint = { productId, monthIndex };
-		const rect = (event.target as HTMLElement).getBoundingClientRect();
-		const product = uniqueProducts.find((p) => p.id === productId);
+		if (mounted) {
+			renderChart();
+		}
+	});
 
-		tooltip.visible = true;
-		tooltip.x = rect.left + rect.width / 2;
-		tooltip.y = rect.top - 10;
-		tooltip.content = `${product?.name} (${month}): ${value.toLocaleString()}`;
-	}
-
-	function handlePointMouseLeave() {
-		if (!showTooltip) return;
-
-		hoveredPoint = { productId: '', monthIndex: -1 };
-		tooltip.visible = false;
-	}
-
-	function handleMouseMove(event: MouseEvent) {
-		if (!showTooltip || !tooltip.visible) return;
-
-		tooltip.x = event.clientX;
-		tooltip.y = event.clientY - 10;
-	}
+	// Watch for hover state changes
+	$effect(() => {
+		const _ = hoveredLine;
+		if (mounted) {
+			renderChart();
+		}
+	});
 </script>
 
-<div
-	bind:this={containerElement}
-	class="chart-container"
-	style="width: {formatDimension(width)}; height: {formatDimension(
-		height
-	)}; --legend-gap: {legendGap}px; --legend-height: {legendHeight}px;"
->
-	<svg width="100%" height="100%" viewBox="0 0 {actualWidth} {actualHeight - legendHeight}">
-		<!-- Y-axis guidelines -->
-		{#each Array(6) as _, i}
-			{@const yPos = padding + (chartHeight / 5) * i}
-			{@const value = Math.round(maxValue - (maxValue / 5) * i)}
+<div class="multi-line-chart-container">
+	<svg bind:this={chart} class="multi-line-chart" width="100%" {height}></svg>
 
-			<line
-				x1={padding}
-				y1={yPos}
-				x2={padding + chartWidth}
-				y2={yPos}
-				stroke="#f0f0f0"
-				stroke-width="1"
-				opacity="0.5"
-			/>
-
-			<text
-				x={padding - 8}
-				y={yPos + 4}
-				text-anchor="end"
-				class="axis-label"
-				fill="#999"
-				font-size="10"
-			>
-				{value}
-			</text>
-		{/each}
-
-		<!-- X-axis guidelines -->
-		{#each processedData as monthData, monthIndex}
-			{@const xPos = padding + (monthIndex * chartWidth) / (processedData.length - 1)}
-
-			<line
-				x1={xPos}
-				y1={padding}
-				x2={xPos}
-				y2={padding + chartHeight}
-				stroke="#f0f0f0"
-				stroke-width="1"
-				opacity="0.3"
-			/>
-		{/each}
-
-		<!-- Product lines -->
-		{#each productLines as { product, points }, productIndex}
-			{@const pathData = createSmoothPath(points)}
-			{@const opacity = animate ? animatedOpacity[productIndex].current : 1}
-
-			<!-- Line path -->
-			<path
-				d={pathData}
-				stroke={product.color}
-				stroke-width={strokeWidth}
-				fill="none"
-				{opacity}
-				class="line-path"
-				style="stroke-dasharray: {animate && !mounted ? '5,5' : 'none'}"
-			/>
-
-			<!-- Data points -->
-			{#each points as point}
-				{@const isHovered =
-					hoveredPoint.productId === product.id && hoveredPoint.monthIndex === point.monthIndex}
-
-				{#if showPoints}
-					<circle
-						cx={point.x}
-						cy={point.y}
-						r={isHovered ? pointRadius + 2 : pointRadius}
-						fill={product.color}
-						stroke="white"
-						stroke-width="2"
-						{opacity}
-						class="data-point"
-						role="graphics-symbol"
-						aria-label="{product.name} {point.month}: {point.value}"
-						onmouseenter={(e) =>
-							handlePointMouseEnter(e, product.id, point.monthIndex, point.value, point.month)}
-						onmouseleave={handlePointMouseLeave}
-						onmousemove={handleMouseMove}
-					/>
-				{/if}
-
-				<!-- Value labels -->
-				{#if showValues}
-					<text
-						x={point.x}
-						y={point.y - 15}
-						text-anchor="middle"
-						class="value-label"
-						fill={product.color}
-						font-size="9"
-						font-weight="500"
-						{opacity}
-					>
-						{point.value.toLocaleString()}
-					</text>
-				{/if}
-			{/each}
-		{/each}
-
-		<!-- Month labels at bottom -->
-		{#each processedData as monthData, monthIndex}
-			{@const xPos = padding + (monthIndex * chartWidth) / (processedData.length - 1)}
-
-			<text
-				x={xPos}
-				y={padding + chartHeight + 16}
-				text-anchor="middle"
-				class="month-label"
-				fill="#666"
-				font-size="12"
-				font-weight="500"
-			>
-				{monthData.month}
-			</text>
-		{/each}
-
-		<!-- Y-axis line -->
-		<line
-			x1={padding}
-			y1={padding}
-			x2={padding}
-			y2={padding + chartHeight}
-			stroke="#ccc"
-			stroke-width="1"
-		/>
-
-		<!-- X-axis line -->
-		<line
-			x1={padding}
-			y1={padding + chartHeight}
-			x2={padding + chartWidth}
-			y2={padding + chartHeight}
-			stroke="#ccc"
-			stroke-width="1"
-		/>
-	</svg>
-
-	<!-- Legend -->
-	{#if showLegend}
+	{#if showLegend && lines.length > 0}
 		<div class="legend">
-			{#each uniqueProducts as product}
-				<div class="legend-item">
-					<div class="legend-color" style="background-color: {product.color};"></div>
-					<span class="legend-label">{product.name}</span>
+			{#each lines as lineData, index}
+				<div
+					class="legend-item"
+					class:hovered={hoveredLine === lineData.id}
+					class:dimmed={hoveredLine !== null && hoveredLine !== lineData.id}
+					role="button"
+					tabindex="0"
+					onmouseenter={() => (hoveredLine = lineData.id)}
+					onmouseleave={() => (hoveredLine = null)}
+					onkeydown={(e) => {
+						if (e.key === 'Enter' || e.key === ' ') {
+							hoveredLine = hoveredLine === lineData.id ? null : lineData.id;
+						}
+					}}
+				>
+					<div
+						class="legend-color"
+						style="background-color: {lineData.color ||
+							defaultColors[index % defaultColors.length]}"
+					></div>
+					<span class="legend-label">{lineData.label}</span>
 				</div>
 			{/each}
 		</div>
 	{/if}
+
+	{#if tooltipVisible && tooltipData}
+		<div class="tooltip" style="left: {tooltipData.x}px; top: {tooltipData.y - 60}px;">
+			<div class="tooltip-content">
+				<div class="tooltip-header" style="color: {tooltipData.color}">
+					{tooltipData.lineLabel}
+				</div>
+				<div class="tooltip-body">
+					<span class="tooltip-label">{tooltipData.label}</span>
+					<span class="tooltip-value">{tooltipData.value}</span>
+				</div>
+			</div>
+		</div>
+	{/if}
 </div>
 
-<!-- Tooltip -->
-{#if showTooltip && tooltip.visible}
-	<div class="tooltip" style="left: {tooltip.x}px; top: {tooltip.y}px;" role="tooltip">
-		{tooltip.content}
-	</div>
-{/if}
-
 <style>
-	.chart-container {
-		position: relative;
-		display: inline-block;
-		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-		box-sizing: border-box;
-	}
-
-	.chart-container svg {
+	.multi-line-chart-container {
 		width: 100%;
-		height: calc(100% - var(--legend-height, 0px));
-		display: block;
-		overflow: visible;
+		position: relative;
+		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 	}
 
-	.line-path {
-		transition: stroke-width 0.2s ease;
-	}
-
-	.line-path:hover {
-		stroke-width: 3;
-	}
-
-	.data-point {
-		cursor: pointer;
-		transition: all 0.2s ease;
-	}
-
-	.data-point:hover {
-		filter: brightness(1.2);
-	}
-
-	.value-label {
-		pointer-events: none;
-		font-family: inherit;
-	}
-
-	.month-label {
-		pointer-events: none;
-		font-family: inherit;
-	}
-
-	.axis-label {
-		pointer-events: none;
-		font-family: inherit;
+	.multi-line-chart {
+		width: 100%;
+		min-height: 300px;
 	}
 
 	.legend {
 		display: flex;
-		justify-content: center;
 		flex-wrap: wrap;
 		gap: 16px;
-		margin-top: var(--legend-gap);
-		padding: 0 20px;
+		margin-top: 16px;
+		padding: 12px;
+		background: #f8fafc;
+		border-radius: 8px;
+		border: 1px solid #e2e8f0;
 	}
 
 	.legend-item {
 		display: flex;
 		align-items: center;
-		gap: 6px;
+		gap: 8px;
+		cursor: pointer;
+		padding: 4px 8px;
+		border-radius: 4px;
+		transition: all 0.2s ease;
+	}
+
+	.legend-item:hover {
+		background: #e2e8f0;
+	}
+
+	.legend-item.hovered {
+		background: #e2e8f0;
+		transform: scale(1.02);
+	}
+
+	.legend-item.dimmed {
+		opacity: 0.5;
 	}
 
 	.legend-color {
-		width: 12px;
-		height: 12px;
+		width: 16px;
+		height: 16px;
 		border-radius: 50%;
-		flex-shrink: 0;
+		border: 2px solid #ffffff;
+		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 	}
 
 	.legend-label {
-		font-size: 12px;
-		color: #666;
-		white-space: nowrap;
+		font-size: 14px;
+		font-weight: 500;
+		color: #374151;
 	}
 
 	.tooltip {
-		position: fixed;
-		background: rgba(0, 0, 0, 0.8);
-		color: white;
-		padding: 8px 12px;
-		border-radius: 4px;
-		font-size: 12px;
-		font-weight: 500;
+		position: absolute;
+		transform: translate(-50%, -100%);
 		pointer-events: none;
-		z-index: 1000;
-		transform: translateX(-50%) translateY(-100%);
-		white-space: nowrap;
-		font-family: inherit;
-		max-width: 200px;
+		z-index: 10;
 	}
 
-	.tooltip::after {
-		content: '';
-		position: absolute;
-		top: 100%;
-		left: 50%;
-		transform: translateX(-50%);
-		width: 0;
-		height: 0;
-		border: 4px solid transparent;
-		border-top-color: rgba(0, 0, 0, 0.8);
+	.tooltip-content {
+		background-color: #1e293b;
+		color: white;
+		padding: 8px 12px;
+		border-radius: 6px;
+		font-size: 12px;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+		min-width: 120px;
+	}
+
+	.tooltip-header {
+		font-weight: 600;
+		margin-bottom: 4px;
+		font-size: 13px;
+	}
+
+	.tooltip-body {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+	}
+
+	.tooltip-label {
+		font-weight: 500;
+		margin-right: 8px;
+	}
+
+	.tooltip-value {
+		font-weight: 700;
+		font-size: 13px;
 	}
 </style>

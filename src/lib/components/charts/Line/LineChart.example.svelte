@@ -1,5 +1,5 @@
 <script lang="ts">
-	import LineChart from '../LineChart.svelte';
+	import LineChart from '../UNUSED/LineChart.svelte';
 
 	// Simple test data - using the same structure as BarComparison
 	const testData = [

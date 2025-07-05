@@ -1,5 +1,5 @@
 <script lang="ts">
-	import MultiLineChart from '$lib/components/charts/LineChart.svelte';
+	import LineChart from '$lib/components/charts/MultiLineChart.example.svelte';
 
 	// Example data for multiple product lines
 	const productData = [
@@ -65,7 +65,7 @@
 		</select>
 	</div>
 
-	<MultiLineChart
+	<LineChart
 		lines={productData}
 		xKey="month"
 		yKey={selectedMetric}

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import LineChart from '../LineChart.svelte';
+	import LineChart from '../UNUSED/LineChart.svelte';
 
 	// Test data with clear ups and downs to see curve behavior
 	const testData = [

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import LineChart from '../LineChart.svelte';
+	import LineChart from '../UNUSED/LineChart.svelte';
 
 	// Simple single line data to match your example image
 	const desktopData = [
