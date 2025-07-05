@@ -834,7 +834,7 @@
 			transition:fly={{ y: -10, duration: 200, easing: cubicInOut }}
 		>
 			<div class="tooltip-content">
-				<div class="tooltip-header" style="color: {tooltipData.color}">
+				<div class="tooltip-header" style="color: #FFF">
 					{tooltipData.lineLabel}
 				</div>
 				<div class="tooltip-body">
@@ -1051,7 +1051,7 @@
 	}
 
 	.tooltip-content {
-		background-color: #1e293b;
+		background-color: oklch(0.279 0.041 260.031);
 		color: white;
 		padding: 8px 12px;
 		border-radius: 6px;

@@ -7,7 +7,7 @@
 		{
 			id: 'performance',
 			label: 'Performance',
-			color: '#000000',
+			color: '#1447E6',
 			data: [
 				{ month: 'Q1', value: 85 },
 				{ month: 'Q2', value: 92 },
@@ -33,7 +33,7 @@
 		{
 			id: 'revenue',
 			label: 'Revenue',
-			color: '#000000',
+			color: '#ff6900',
 			data: [
 				{ period: 'Jan', value: 12000 },
 				{ period: 'Feb', value: 15000 },
@@ -147,7 +147,7 @@
 					<li>Focus on data clarity</li>
 				</ul>
 
-				<a href="/line" class="link-arrow">
+				<a href="/charts" class="link-arrow">
 					Explore Components
 					<ArrowRight size={16} />
 				</a>
