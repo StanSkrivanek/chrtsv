@@ -1,331 +1,471 @@
 <script lang="ts">
-	// Import only what we need
-	import { onMount } from 'svelte';
+	import { format, isValid, parseISO } from 'date-fns';
 
-	// Props with explicit typing using Svelte 5 runes
+	// Convert to Svelte 5 runes
 	let {
-		data = [],
-		yKey = 'date',
-		xKey = 'value',
+		data,
+		xKey,
+		yKey,
 		color = '#3b82f6',
-		title = 'Line Chart'
-	} = $props<{
-		data?: Array<Record<string, any>>;
-		xKey?: string;
-		yKey?: string;
+		title = 'Line Chart',
+		width = 800,
+		height = 400,
+		showPoints = true,
+		dateFormat = 'MMM dd',
+		inputDateFormat = undefined
+	}: {
+		data: any[];
+		xKey: string;
+		yKey: string;
 		color?: string;
 		title?: string;
-	}>();
+		width?: number;
+		height?: number;
+		showPoints?: boolean;
+		dateFormat?: string;
+		inputDateFormat?: string;
+	} = $props();
 
-	// Internal state
-	let chart: SVGElement;
-	let mounted = $state(false);
-	let width = $state(0);
-	let height = $state(0);
-	let tooltipVisible = $state(false);
-	let tooltipData = $state<{ x: number; y: number; value: any; label: string } | null>(null);
+	// Svelte 5 state with runes
+	let container = $state<HTMLDivElement>();
+	let svg = $state<SVGSVGElement>();
+	let containerWidth = $state(width);
+	let containerHeight = $state(height);
 
 	// Chart dimensions
-	const margin = { top: 20, right: 20, bottom: 40, left: 60 };
+	const margin = { top: 20, right: 30, bottom: 40, left: 60 };
+	let chartWidth = $derived(containerWidth - margin.left - margin.right);
+	let chartHeight = $derived(containerHeight - margin.top - margin.bottom);
 
-	// Function to re-render chart when data changes
-	function renderChart() {
-		if (!mounted || !chart || data.length === 0) return;
+	// Date parsing helper
+	function parseDate(dateString: string | Date): Date {
+		if (dateString instanceof Date) return dateString;
+		if (!dateString) return new Date();
 
-		// Clear previous chart
-		while (chart.firstChild) {
-			chart.removeChild(chart.firstChild);
+		// Try custom format first if provided
+		if (inputDateFormat) {
+			// For custom parsing, you might need additional date-fns parse functions
+			// For now, fallback to ISO parsing
 		}
 
-		// Calculate dimensions
-		const svgWidth = chart.clientWidth;
-		const svgHeight = chart.clientHeight || 300;
-		width = svgWidth - margin.left - margin.right;
-		height = svgHeight - margin.top - margin.bottom;
-
-		// Create scales
-		const xValues = data.map((d: Record<string, any>) => d[xKey]);
-		const yValues = data.map((d: Record<string, any>) => Number(d[yKey]));
-
-		const xMin = 0;
-		const xMax = data.length - 1;
-		const yMin = Math.min(...yValues);
-		const yMax = Math.max(...yValues);
-		const yPadding = (yMax - yMin) * 0.1;
-
-		// Scale functions
-		const xScale = (idx: number) => margin.left + (idx / xMax) * width;
-		const yScale = (val: number) =>
-			margin.top + height - ((val - yMin + yPadding) / (yMax - yMin + yPadding * 2)) * height;
-
-		// Create SVG elements
-		const mainG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-
-		// Create axes
-		const xAxis = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-		xAxis.setAttribute('class', 'x-axis');
-		xAxis.setAttribute('transform', `translate(0, ${margin.top + height})`);
-
-		// X axis line
-		const xAxisLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-		xAxisLine.setAttribute('x1', String(margin.left));
-		xAxisLine.setAttribute('y1', '0');
-		xAxisLine.setAttribute('x2', String(margin.left + width));
-		xAxisLine.setAttribute('y2', '0');
-		xAxisLine.setAttribute('stroke', '#94a3b8');
-		xAxis.appendChild(xAxisLine);
-
-		// X axis ticks - show 5-7 ticks depending on data size
-		const tickInterval = Math.ceil(data.length / Math.min(7, data.length));
-		for (let i = 0; i < data.length; i += tickInterval) {
-			const tick = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-			tick.setAttribute('transform', `translate(${xScale(i)}, 0)`);
-
-			const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-			line.setAttribute('y2', '6');
-			line.setAttribute('stroke', '#94a3b8');
-			tick.appendChild(line);
-
-			const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-			text.setAttribute('y', '20');
-			text.setAttribute('text-anchor', 'middle');
-			text.setAttribute('fill', '#64748b');
-			text.setAttribute('font-size', '12px');
-
-			// Format date labels if they look like dates
-			const value = String(data[i][xKey]);
-			if (value.match(/^\d{4}-\d{2}-\d{2}/) || value.match(/^\d{2}\/\d{2}\/\d{4}/)) {
-				const date = new Date(value);
-				text.textContent = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-			} else {
-				text.textContent = String(value).substring(0, 10); // Truncate long labels
-			}
-
-			tick.appendChild(text);
-			xAxis.appendChild(tick);
+		// Try ISO format
+		const isoDate = parseISO(String(dateString));
+		if (isValid(isoDate)) {
+			return isoDate;
 		}
 
-		// Y axis
-		const yAxis = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-		yAxis.setAttribute('class', 'y-axis');
-		yAxis.setAttribute('transform', `translate(${margin.left}, 0)`);
-
-		// Y axis line
-		const yAxisLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-		yAxisLine.setAttribute('x1', '0');
-		yAxisLine.setAttribute('y1', String(margin.top));
-		yAxisLine.setAttribute('x2', '0');
-		yAxisLine.setAttribute('y2', String(margin.top + height));
-		yAxisLine.setAttribute('stroke', '#94a3b8');
-		yAxis.appendChild(yAxisLine);
-
-		// Y axis ticks - show 5 ticks
-		const yTickCount = 5;
-		for (let i = 0; i <= yTickCount; i++) {
-			const value = yMin + (i / yTickCount) * (yMax - yMin);
-			const yPos = yScale(value);
-
-			const tick = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-			tick.setAttribute('transform', `translate(0, ${yPos})`);
-
-			const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-			line.setAttribute('x2', '-6');
-			line.setAttribute('stroke', '#94a3b8');
-			tick.appendChild(line);
-
-			// Add grid lines
-			const gridLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-			gridLine.setAttribute('x1', '0');
-			gridLine.setAttribute('y1', '0');
-			gridLine.setAttribute('x2', String(width));
-			gridLine.setAttribute('y2', '0');
-			gridLine.setAttribute('stroke', '#e2e8f0');
-			gridLine.setAttribute('stroke-dasharray', '4,4');
-			tick.appendChild(gridLine);
-
-			const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-			text.setAttribute('x', '-10');
-			text.setAttribute('y', '4');
-			text.setAttribute('text-anchor', 'end');
-			text.setAttribute('fill', '#64748b');
-			text.setAttribute('font-size', '12px');
-
-			// Format numbers
-			if (value >= 1000000) {
-				text.textContent = `${(value / 1000000).toFixed(1)}M`;
-			} else if (value >= 1000) {
-				text.textContent = `${(value / 1000).toFixed(1)}k`;
-			} else {
-				text.textContent = value.toFixed(1);
-			}
-
-			tick.appendChild(text);
-			yAxis.appendChild(tick);
+		// Fallback to native Date parsing
+		const nativeDate = new Date(String(dateString));
+		if (isValid(nativeDate)) {
+			return nativeDate;
 		}
 
-		// Create line
-		const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-		let pathData = 'M ';
-
-		data.forEach((d: Record<string, any>, i: number) => {
-			const x = xScale(i);
-			const y = yScale(Number(d[yKey]));
-			pathData += i === 0 ? `${x} ${y}` : ` L ${x} ${y}`;
-		});
-
-		line.setAttribute('d', pathData);
-		line.setAttribute('fill', 'none');
-		line.setAttribute('stroke', color);
-		line.setAttribute('stroke-width', '2');
-
-		// Add dots at data points
-		const dots = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-		dots.setAttribute('class', 'data-points');
-
-		data.forEach((d: Record<string, any>, i: number) => {
-			const x = xScale(i);
-			const y = yScale(Number(d[yKey]));
-
-			const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-			circle.setAttribute('cx', String(x));
-			circle.setAttribute('cy', String(y));
-			circle.setAttribute('r', '4');
-			circle.setAttribute('fill', '#ffffff');
-			circle.setAttribute('stroke', color);
-			circle.setAttribute('stroke-width', '2');
-			circle.setAttribute('class', 'data-point');
-
-			// Add interaction
-			circle.addEventListener('mouseenter', () => {
-				tooltipData = {
-					x,
-					y,
-					value: d[yKey],
-					label: String(d[xKey])
-				};
-				tooltipVisible = true;
-
-				// Highlight this circle
-				circle.setAttribute('r', '6');
-				circle.setAttribute('fill', color);
-			});
-
-			circle.addEventListener('mouseleave', () => {
-				tooltipVisible = false;
-
-				// Restore circle style
-				circle.setAttribute('r', '4');
-				circle.setAttribute('fill', '#ffffff');
-			});
-
-			dots.appendChild(circle);
-		});
-
-		// Add chart title
-		const titleElem = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-		titleElem.setAttribute('x', String(margin.left + width / 2));
-		titleElem.setAttribute('y', String(margin.top - 5));
-		titleElem.setAttribute('text-anchor', 'middle');
-		titleElem.setAttribute('fill', '#1e293b');
-		titleElem.setAttribute('font-size', '14px');
-		titleElem.setAttribute('font-weight', 'bold');
-		titleElem.textContent = title;
-
-		// Add everything to the chart
-		mainG.appendChild(xAxis);
-		mainG.appendChild(yAxis);
-		mainG.appendChild(line);
-		mainG.appendChild(dots);
-		chart.appendChild(mainG);
-		chart.appendChild(titleElem);
+		return new Date();
 	}
 
-	// Use onMount to ensure DOM is ready
-	onMount(() => {
-		mounted = true;
-		renderChart();
+	// Format date for display
+	function formatDate(dateValue: string | Date): string {
+		try {
+			const date = parseDate(dateValue);
+			return format(date, dateFormat);
+		} catch {
+			return String(dateValue);
+		}
+	}
 
-		// Add resize handler
-		const resizeObserver = new ResizeObserver(() => {
-			renderChart();
-		});
+	// Check if xKey represents dates
+	function isDateKey(key: string): boolean {
+		return key.toLowerCase().includes('date') || key.toLowerCase().includes('time');
+	}
 
-		resizeObserver.observe(chart);
+	// Data processing with derived state
+	let processedData = $derived(() => {
+		if (!data || data.length === 0) return [];
+
+		return data.map((item: any) => ({
+			...item,
+			[xKey]: isDateKey(xKey) ? parseDate(item[xKey]) : item[xKey]
+		}));
+	});
+
+	// Get min/max values for scaling
+	let xValues = $derived(() => {
+		const processed = processedData();
+		if (!processed.length) return [];
+
+		if (isDateKey(xKey)) {
+			return processed
+				.map((d: any) => d[xKey])
+				.filter((d: any): d is Date => d instanceof Date)
+				.sort((a: Date, b: Date) => a.getTime() - b.getTime());
+		} else {
+			return processed
+				.map((d: any) => d[xKey])
+				.filter((v: any): v is number => typeof v === 'number');
+		}
+	});
+
+	let yValues = $derived(() => {
+		const processed = processedData();
+		return processed
+			.map((d: any) => d[yKey])
+			.filter((v: any): v is number => typeof v === 'number');
+	});
+
+	let xMin = $derived(() => {
+		const xVals = xValues();
+		if (!xVals.length) return 0;
+		if (isDateKey(xKey)) {
+			return xVals[0] as Date;
+		} else {
+			return Math.min(...(xVals as number[]));
+		}
+	});
+
+	let xMax = $derived(() => {
+		const xVals = xValues();
+		if (!xVals.length) return 100;
+		if (isDateKey(xKey)) {
+			return xVals[xVals.length - 1] as Date;
+		} else {
+			return Math.max(...(xVals as number[]));
+		}
+	});
+
+	let yMin = $derived(() => {
+		const yVals = yValues();
+		return yVals.length ? Math.min(...yVals) : 0;
+	});
+
+	let yMax = $derived(() => {
+		const yVals = yValues();
+		return yVals.length ? Math.max(...yVals) : 100;
+	});
+
+	// Scaling functions
+	let xScale = $derived(() => {
+		if (isDateKey(xKey)) {
+			const timeMin = xMin instanceof Date ? xMin.getTime() : 0;
+			const timeMax = xMax instanceof Date ? xMax.getTime() : 1;
+			return (value: Date | string | number) => {
+				const date = value instanceof Date ? value : parseDate(String(value));
+				return ((date.getTime() - timeMin) / (timeMax - timeMin)) * chartWidth;
+			};
+		} else {
+			const numMin = typeof xMin === 'number' ? xMin : 0;
+			const numMax = typeof xMax === 'number' ? xMax : 1;
+			return (value: number | string | Date) => {
+				if (value instanceof Date) {
+					const date = value;
+					return ((date.getTime() - numMin) / (numMax - numMin)) * chartWidth;
+				}
+				const numValue = typeof value === 'number' ? value : parseFloat(String(value));
+				return ((numValue - numMin) / (numMax - numMin)) * chartWidth;
+			};
+		}
+	});
+
+	let yScale = $derived(() => {
+		const numYMax = Number(yMax);
+		const numYMin = Number(yMin);
+		const range = numYMax - numYMin || 1;
+		return (value: number) => chartHeight - ((value - numYMin) / range) * chartHeight;
+	});
+
+	// Generate path data
+	let pathData = $derived(() => {
+		const processed = processedData();
+		if (!processed.length) return '';
+
+		const points = processed
+			.filter((d: any) => typeof d[yKey] === 'number')
+			.map((d: any) => {
+				const x = xScale()(d[xKey]);
+				const y = yScale()(d[yKey]);
+				return `${x},${y}`;
+			});
+
+		if (points.length === 0) return '';
+
+		return `M ${points.join(' L ')}`;
+	});
+
+	// Points for circles
+	let points = $derived(() => {
+		const processed = processedData();
+		if (!processed.length) return [];
+
+		return processed
+			.filter((d: any) => typeof d[yKey] === 'number')
+			.map((d: any) => ({
+				x: xScale()(d[xKey]),
+				y: yScale()(d[yKey]),
+				value: d[yKey],
+				label: isDateKey(xKey) ? formatDate(d[xKey]) : String(d[xKey])
+			}));
+	});
+
+	// Generate tick marks
+	let xTicks = $derived(() => {
+		const xVals = xValues();
+		if (!xVals.length) return [];
+
+		const tickCount = Math.min(6, xVals.length);
+		const ticks = [];
+
+		for (let i = 0; i < tickCount; i++) {
+			const index = Math.floor((i * (xVals.length - 1)) / (tickCount - 1));
+			const value = xVals[index];
+			const position = xScale()(value);
+			const label = isDateKey(xKey) ? formatDate(value as Date) : String(value);
+
+			ticks.push({ position, label, value });
+		}
+
+		return ticks;
+	});
+
+	let yTicks = $derived(() => {
+		const tickCount = 5;
+		const ticks = [];
+		const yMinValue = yMin();
+		const yMaxValue = yMax();
+
+		for (let i = 0; i < tickCount; i++) {
+			const value = yMinValue + (i * (yMaxValue - yMinValue)) / (tickCount - 1);
+			const position = yScale()(value);
+			ticks.push({ position, value: Math.round(value) });
+		}
+
+		return ticks;
+	});
+
+	// Tooltip state
+	let tooltip = $state<{
+		visible: boolean;
+		x: number;
+		y: number;
+		content: string;
+	}>({ visible: false, x: 0, y: 0, content: '' });
+
+	// Resize observer
+	let resizeObserver: ResizeObserver | null = null;
+
+	// Effects
+	$effect(() => {
+		if (container && typeof ResizeObserver !== 'undefined') {
+			resizeObserver = new ResizeObserver((entries) => {
+				for (const entry of entries) {
+					containerWidth = entry.contentRect.width || width;
+					containerHeight = height;
+				}
+			});
+			resizeObserver.observe(container);
+		}
 
 		return () => {
-			resizeObserver.disconnect();
+			if (resizeObserver) {
+				resizeObserver.disconnect();
+			}
 		};
 	});
 
-	// Watch for data changes
-	$effect(() => {
-		if (data && mounted) {
-			renderChart();
-		}
-	});
+	// Event handlers
+	function handleMouseMove(event: MouseEvent) {
+		if (!svg) return;
 
-	// Watch for key changes
-	$effect(() => {
-		const _ = xKey;
-		const __ = yKey;
-		const ___ = color;
-		const ____ = title;
+		const rect = svg.getBoundingClientRect();
+		const x = event.clientX - rect.left - margin.left;
+		const y = event.clientY - rect.top - margin.top;
 
-		if (mounted) {
-			renderChart();
+		// Find closest point
+		const pointsArray = points();
+		const closestPoint = pointsArray.reduce(
+			(closest: { point: any | null; distance: number }, point: any) => {
+				const distance = Math.sqrt(Math.pow(point.x - x, 2) + Math.pow(point.y - y, 2));
+				return distance < closest.distance ? { point, distance } : closest;
+			},
+			{ point: null, distance: Infinity }
+		);
+
+		if (closestPoint.point && closestPoint.distance < 20) {
+			tooltip.visible = true;
+			tooltip.x = event.clientX;
+			tooltip.y = event.clientY;
+			tooltip.content = `${closestPoint.point.label}: ${closestPoint.point.value}`;
+		} else {
+			tooltip.visible = false;
 		}
-	});
+	}
+
+	function handleMouseLeave() {
+		tooltip.visible = false;
+	}
 </script>
 
-<div class="line-chart-container">
-	<svg bind:this={chart} class="line-chart" width="100%" height="100%"></svg>
+<div bind:this={container} class="chart-container">
+	<h3 class="chart-title">{title}</h3>
 
-	{#if tooltipVisible && tooltipData}
-		<div class="tooltip" style="left: {tooltipData.x}px; top: {tooltipData.y - 40}px;">
-			<div class="tooltip-content">
-				<span class="tooltip-label">{tooltipData.label}</span>
-				<span class="tooltip-value">{tooltipData.value}</span>
-			</div>
-		</div>
-	{/if}
+	<svg
+		bind:this={svg}
+		width={containerWidth}
+		height={containerHeight}
+		onmousemove={handleMouseMove}
+		onmouseleave={handleMouseLeave}
+		class="chart-svg"
+		role="img"
+		aria-labelledby="chart-title"
+		aria-describedby="chart-description"
+	>
+		<title id="chart-title">{title}</title>
+		<desc id="chart-description">
+			Line chart showing {yKey} values over {xKey}. Contains {data.length} data points.
+		</desc>
+
+		<g transform={`translate(${margin.left}, ${margin.top})`}>
+			<!-- Grid lines -->
+			{#each yTicks() as tick}
+				<line
+					x1={0}
+					y1={tick.position}
+					x2={chartWidth}
+					y2={tick.position}
+					stroke="#e2e8f0"
+					stroke-width="1"
+					aria-hidden="true"
+				/>
+			{/each}
+
+			<!-- Axes -->
+			<line
+				x1={0}
+				y1={chartHeight}
+				x2={chartWidth}
+				y2={chartHeight}
+				stroke="#374151"
+				stroke-width="2"
+				aria-label="X-axis"
+			/>
+			<line
+				x1={0}
+				y1={0}
+				x2={0}
+				y2={chartHeight}
+				stroke="#374151"
+				stroke-width="2"
+				aria-label="Y-axis"
+			/>
+
+			<!-- X-axis labels -->
+			{#each xTicks() as tick}
+				<text
+					x={tick.position}
+					y={chartHeight + 20}
+					text-anchor="middle"
+					class="axis-label"
+					aria-label="X-axis label: {tick.label}"
+				>
+					{tick.label}
+				</text>
+			{/each}
+
+			<!-- Y-axis labels -->
+			{#each yTicks() as tick}
+				<text
+					x={-10}
+					y={tick.position + 5}
+					text-anchor="end"
+					class="axis-label"
+					aria-label="Y-axis label: {tick.value}"
+				>
+					{tick.value}
+				</text>
+			{/each}
+
+			<!-- Line path -->
+			{#if pathData()}
+				<path
+					d={pathData()}
+					fill="none"
+					stroke={color}
+					stroke-width="2"
+					stroke-linejoin="round"
+					stroke-linecap="round"
+					aria-label="Data line connecting {points().length} points"
+				/>
+			{/if}
+
+			<!-- Data points -->
+			{#if showPoints}
+				{#each points() as point, index}
+					<circle
+						cx={point.x}
+						cy={point.y}
+						r="4"
+						fill={color}
+						class="data-point"
+						aria-label="Data point {index + 1}: {point.label}, value {point.value}"
+						tabindex="0"
+					/>
+				{/each}
+			{/if}
+		</g>
+	</svg>
 </div>
 
+<!-- Tooltip -->
+{#if tooltip.visible}
+	<div class="tooltip" style="left: {tooltip.x + 10}px; top: {tooltip.y - 10}px;">
+		{tooltip.content}
+	</div>
+{/if}
+
 <style>
-	.line-chart-container {
+	.chart-container {
 		width: 100%;
-		height: 100%;
 		position: relative;
+		background: white;
+		border-radius: 8px;
+		padding: 1rem;
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+	}
+
+	.chart-title {
+		margin: 0 0 1rem 0;
+		font-size: 1.25rem;
+		font-weight: 600;
+		color: #1f2937;
+		text-align: center;
+	}
+
+	.chart-svg {
+		overflow: visible;
+	}
+
+	.axis-label {
+		font-size: 12px;
+		fill: #6b7280;
 		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 	}
 
-	.line-chart {
-		width: 100%;
-		height: 100%;
-		min-height: 300px;
+	.data-point {
+		transition: r 0.2s ease;
+		cursor: pointer;
+	}
+
+	.data-point:hover {
+		r: 6;
 	}
 
 	.tooltip {
-		position: absolute;
-		transform: translate(-50%, -100%);
-		pointer-events: none;
-		z-index: 10;
-	}
-
-	.tooltip-content {
-		background-color: #1e293b;
+		position: fixed;
+		background: rgba(0, 0, 0, 0.9);
 		color: white;
-		padding: 6px 10px;
+		padding: 0.5rem;
 		border-radius: 4px;
-		font-size: 12px;
-		box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-	}
-
-	.tooltip-label {
-		font-weight: 500;
-		margin-right: 5px;
-	}
-
-	.tooltip-value {
-		font-weight: 700;
+		font-size: 0.875rem;
+		pointer-events: none;
+		z-index: 1000;
+		white-space: nowrap;
 	}
 </style>
