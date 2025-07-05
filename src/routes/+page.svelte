@@ -3,7 +3,6 @@
 	import {
 		Activity,
 		ChartLine,
-
 		TrendingDown,
 		TrendingUp,
 		Users
@@ -411,7 +410,7 @@
 	}
 
 	.controls label {
-		display: inline-block;
+		/* display: inline-block; */
 		margin-right: 1rem;
 		font-weight: 600;
 		color: #374151;
