@@ -2,6 +2,8 @@
 	// Import only what we need
 	import { format, isValid, parse, parseISO } from 'date-fns';
 	import { onMount } from 'svelte';
+	import { cubicInOut } from 'svelte/easing';
+	import { fade, fly, scale } from 'svelte/transition';
 
 	// Type definitions
 	interface LineData {
@@ -19,7 +21,7 @@
 		lineLabel: string;
 		color: string;
 	}
-
+// TODO: add props showValues to display values on top pf each point and hasTooltip to use tooltips or not
 	// Props with explicit typing using Svelte 5 runes
 	let {
 		lines = [],
@@ -49,6 +51,7 @@
 	let tooltipVisible = $state(false);
 	let tooltipData = $state<TooltipData | null>(null);
 	let hoveredLine = $state<string | null>(null);
+	let linesDrawn = $state(false);
 
 	// Chart dimensions
 	const margin = { top: 20, right: 20, bottom: 40, left: 60 };
@@ -336,6 +339,23 @@
 			line.setAttribute('opacity', isOtherHovered ? '0.3' : '1');
 			line.setAttribute('class', `line-${lineData.id}`);
 
+			// Add smooth transitions for hover effects only
+			line.style.transition = 'stroke-width 0.3s ease, opacity 0.3s ease';
+
+			// Add line drawing animation only on initial load
+			if (!linesDrawn) {
+				const pathLength = line.getTotalLength();
+				line.style.strokeDasharray = pathLength.toString();
+				line.style.strokeDashoffset = pathLength.toString();
+
+				// Animate line drawing
+				setTimeout(() => {
+					line.style.transition =
+						'stroke-dashoffset 1s ease-in-out, stroke-width 0.3s ease, opacity 0.3s ease';
+					line.style.strokeDashoffset = '0';
+				}, lineIndex * 200);
+			}
+
 			// Add dots at data points
 			const dots = document.createElementNS('http://www.w3.org/2000/svg', 'g');
 			dots.setAttribute('class', `data-points-${lineData.id}`);
@@ -351,12 +371,26 @@
 					const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
 					circle.setAttribute('cx', String(x));
 					circle.setAttribute('cy', String(y));
-					circle.setAttribute('r', isHovered ? '5' : '4');
+					circle.setAttribute('r', '4');
 					circle.setAttribute('fill', '#ffffff');
 					circle.setAttribute('stroke', color);
 					circle.setAttribute('stroke-width', '2');
 					circle.setAttribute('opacity', isOtherHovered ? '0.3' : '1');
 					circle.setAttribute('class', 'data-point');
+
+					// Add smooth transitions for dots
+					circle.style.transition = 'opacity 0.3s ease, transform 0.2s ease';
+
+					// Initial scale animation only on first load
+					if (!linesDrawn) {
+						circle.style.transform = 'scale(0)';
+						setTimeout(
+							() => {
+								circle.style.transform = 'scale(1)';
+							},
+							lineIndex * 200 + xIndex * 50
+						);
+					}
 
 					// Add interaction
 					circle.addEventListener('mouseenter', () => {
@@ -375,7 +409,7 @@
 						tooltipVisible = true;
 						hoveredLine = lineData.id;
 
-						// Highlight this circle
+						// Simple hover effect
 						circle.setAttribute('r', '6');
 						circle.setAttribute('fill', color);
 					});
@@ -412,6 +446,16 @@
 		mainG.appendChild(yAxis);
 		chart.appendChild(mainG);
 		chart.appendChild(titleElem);
+
+		// Mark lines as drawn after initial animation
+		if (!linesDrawn) {
+			setTimeout(
+				() => {
+					linesDrawn = true;
+				},
+				lines.length * 200 + 500
+			);
+		}
 	}
 
 	// Use onMount to ensure DOM is ready
@@ -440,22 +484,64 @@
 
 	// Watch for prop changes
 	$effect(() => {
-		const _ = xKey;
-		const __ = yKey;
-		const ___ = title;
-		const ____ = showLegend;
-		const _____ = height;
+		// const _ = xKey;
+		// const __ = yKey;
+		// const ___ = title;
+		// const ____ = showLegend;
+		// const _____ = height;
 
 		if (mounted) {
 			renderChart();
 		}
 	});
 
-	// Watch for hover state changes
+	// Watch for hover state changes - only update opacity and stroke width
 	$effect(() => {
-		const _ = hoveredLine;
-		if (mounted) {
-			renderChart();
+		if (hoveredLine !== null && mounted && chart) {
+			const allLines = chart.querySelectorAll('path[class*="line-"]');
+			const allDots = chart.querySelectorAll('.data-point');
+
+			allLines.forEach((line: Element) => {
+				const pathElement = line as SVGPathElement;
+				const lineId = pathElement.getAttribute('class')?.match(/line-(\w+)/)?.[1];
+
+				if (lineId === hoveredLine) {
+					pathElement.setAttribute('stroke-width', '3');
+					pathElement.setAttribute('opacity', '1');
+				} else {
+					pathElement.setAttribute('stroke-width', '2');
+					pathElement.setAttribute('opacity', '0.3');
+				}
+			});
+
+			allDots.forEach((dot: Element) => {
+				const circleElement = dot as SVGCircleElement;
+				const parentElement = circleElement.parentElement as SVGElement | null;
+				const isHoveredLineDot = parentElement
+					?.getAttribute('class')
+					?.includes(`data-points-${hoveredLine}`);
+
+				if (!isHoveredLineDot) {
+					circleElement.setAttribute('opacity', '0.3');
+				} else {
+					circleElement.setAttribute('opacity', '1');
+				}
+			});
+		} else if (hoveredLine === null && mounted && chart) {
+			// Restore all elements
+			const allLines = chart.querySelectorAll('path[class*="line-"]');
+			const allDots = chart.querySelectorAll('.data-point');
+
+			allLines.forEach((line: Element) => {
+				const pathElement = line as SVGPathElement;
+				pathElement.setAttribute('stroke-width', '2');
+				pathElement.setAttribute('opacity', '1');
+			});
+
+			allDots.forEach((dot: Element) => {
+				const circleElement = dot as SVGCircleElement;
+				circleElement.setAttribute('opacity', '1');
+			});
 		}
 	});
 </script>
@@ -464,7 +550,7 @@
 	<svg bind:this={chart} class="multi-line-chart" width="100%" {height}></svg>
 
 	{#if showLegend && lines.length > 0}
-		<div class="legend">
+		<div class="legend" transition:fade={{ duration: 300, delay: 200 }}>
 			{#each lines as lineData, index}
 				<div
 					class="legend-item"
@@ -479,6 +565,7 @@
 							hoveredLine = hoveredLine === lineData.id ? null : lineData.id;
 						}
 					}}
+					transition:scale={{ duration: 200, delay: index * 50, easing: cubicInOut }}
 				>
 					<div
 						class="legend-color"
@@ -492,7 +579,11 @@
 	{/if}
 
 	{#if tooltipVisible && tooltipData}
-		<div class="tooltip" style="left: {tooltipData.x}px; top: {tooltipData.y - 24}px;">
+		<div
+			class="tooltip"
+			style="left: {tooltipData.x}px; top: {tooltipData.y - 24}px;"
+			transition:fly={{ y: -10, duration: 200, easing: cubicInOut }}
+		>
 			<div class="tooltip-content">
 				<div class="tooltip-header" style="color: {tooltipData.color}">
 					{tooltipData.lineLabel}
@@ -518,6 +609,14 @@
 		min-height: 300px;
 	}
 
+	/* Smooth transitions for SVG elements */
+	:global(.data-point) {
+		transition:
+			opacity 0.3s ease,
+			transform 0.2s ease;
+		transform-origin: center;
+	}
+
 	.legend {
 		display: flex;
 		flex-wrap: wrap;
@@ -536,20 +635,25 @@
 		cursor: pointer;
 		padding: 4px 8px;
 		border-radius: 4px;
-		transition: all 0.2s ease;
+		transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+		transform-origin: center;
 	}
 
 	.legend-item:hover {
 		background: #e2e8f0;
+		transform: translateY(-2px);
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 	}
 
 	.legend-item.hovered {
 		background: #e2e8f0;
-		transform: scale(1.02);
+		transform: translateY(-2px) scale(1.05);
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 	}
 
 	.legend-item.dimmed {
 		opacity: 0.5;
+		transform: scale(0.95);
 	}
 
 	.legend-color {
@@ -558,12 +662,25 @@
 		border-radius: 50%;
 		border: 2px solid #ffffff;
 		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+		transition:
+			transform 0.2s ease,
+			box-shadow 0.2s ease;
+	}
+
+	.legend-item:hover .legend-color {
+		transform: scale(1.1);
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 	}
 
 	.legend-label {
 		font-size: 14px;
 		font-weight: 500;
 		color: #374151;
+		transition: color 0.2s ease;
+	}
+
+	.legend-item:hover .legend-label {
+		color: #1f2937;
 	}
 
 	.tooltip {
@@ -581,12 +698,16 @@
 		font-size: 12px;
 		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 		min-width: 100px;
+		backdrop-filter: blur(8px);
+		border: 1px solid rgba(255, 255, 255, 0.1);
+		transition: all 0.2s ease;
 	}
 
 	.tooltip-header {
 		font-weight: 600;
 		margin-bottom: 4px;
 		font-size: 13px;
+		transition: color 0.2s ease;
 	}
 
 	.tooltip-body {
