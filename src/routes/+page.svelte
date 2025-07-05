@@ -199,7 +199,7 @@
 		title={`Product Performance - ${metrics.find((m) => m.value === selectedMetric)?.label}`}
 		showLegend={true}
 		showValues={true}
-		hasTooltip={false}
+		hasTooltip={false }
 
 	/>
 
