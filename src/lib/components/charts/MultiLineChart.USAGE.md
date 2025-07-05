@@ -1,14 +1,19 @@
 # MultiLineChart Component
 
-A flexible multi-line chart component built with Svelte 5 that can display up to 5 lines simultaneously. Perfect for comparing multiple datasets over time.
+A flexible multi-line chart component built with Svelte 5 that can display up to 5 lines simultaneously. Perfect for comparing multiple datasets over time, including support for negative values and profit/loss analysis.
 
 ## Features
 
 - **Multiple Lines**: Display up to 5 lines at once
+- **Negative Values Support**: Automatic handling of negative data with zero reference line
+- **Auto-Doubled Ticks**: Automatically increases tick density for negative value datasets
 - **Interactive Legend**: Click or hover legend items to highlight specific lines
+- **Value Labels**: Optional display of values above each data point
+- **Configurable Tooltips**: Enable/disable hover tooltips
 - **Responsive Design**: Automatically adjusts to container size
 - **Customizable Colors**: Each line can have its own color
-- **Tooltip Support**: Hover over data points to see detailed information
+- **Flexible Tick Count**: Configure Y-axis tick density
+- **Date Parsing**: Built-in support for various date formats using date-fns
 - **Smooth Animations**: Hover effects and line highlighting
 - **Accessibility**: Full keyboard navigation and ARIA support
 
@@ -54,16 +59,20 @@ A flexible multi-line chart component built with Svelte 5 that can display up to
 
 ## Props
 
-| Prop              | Type             | Default              | Description                                     |
-| ----------------- | ---------------- | -------------------- | ----------------------------------------------- |
-| `lines`           | `LineData[]`     | `[]`                 | Array of line data objects (max 5 lines)        |
-| `xKey`            | `string`         | `'date'`             | Key to use for x-axis values                    |
-| `yKey`            | `string`         | `'value'`            | Key to use for y-axis values                    |
-| `title`           | `string`         | `'Multi Line Chart'` | Chart title                                     |
-| `showLegend`      | `boolean`        | `true`               | Whether to show the legend                      |
-| `height`          | `number`         | `400`                | Chart height in pixels                          |
-| `dateFormat`      | `string`         | `'MMM dd'`           | Date format for display (using date-fns format) |
-| `inputDateFormat` | `string \| null` | `null`               | Expected input date format for parsing          |
+| Prop                      | Type             | Default              | Description                                                   |
+| ------------------------- | ---------------- | -------------------- | ------------------------------------------------------------- |
+| `lines`                   | `LineData[]`     | `[]`                 | Array of line data objects (max 5 lines)                      |
+| `xKey`                    | `string`         | `'date'`             | Key to use for x-axis values                                  |
+| `yKey`                    | `string`         | `'value'`            | Key to use for y-axis values                                  |
+| `title`                   | `string`         | `'Multi Line Chart'` | Chart title                                                   |
+| `showLegend`              | `boolean`        | `true`               | Whether to show the legend                                    |
+| `height`                  | `number`         | `400`                | Chart height in pixels                                        |
+| `dateFormat`              | `string`         | `'MMM dd'`           | Date format for display (using date-fns format)               |
+| `inputDateFormat`         | `string \| null` | `null`               | Expected input date format for parsing                        |
+| `showValues`              | `boolean`        | `false`              | Show value labels above each data point                       |
+| `hasTooltip`              | `boolean`        | `true`               | Enable/disable tooltips on hover                              |
+| `yTickCount`              | `number`         | `5`                  | Number of ticks on Y-axis                                     |
+| `doubleTicksForNegatives` | `boolean`        | `true`               | Automatically double tick count when negative values detected |
 
 ## LineData Interface
 
@@ -74,6 +83,99 @@ interface LineData {
 	color: string; // Hex color code for the line
 	data: Array<Record<string, any>>; // Array of data points
 }
+```
+
+## Advanced Features
+
+### Negative Values Support
+
+The component automatically handles negative values with enhanced features:
+
+```svelte
+<script>
+	const profitLossData = [
+		{
+			id: 'product_a',
+			label: 'Product A',
+			color: '#3b82f6',
+			data: [
+				{ month: 'Jan', profit: -1200 },
+				{ month: 'Feb', profit: -800 },
+				{ month: 'Mar', profit: 200 },
+				{ month: 'Apr', profit: 1500 }
+			]
+		},
+		{
+			id: 'product_b',
+			label: 'Product B',
+			color: '#ef4444',
+			data: [
+				{ month: 'Jan', profit: -2000 },
+				{ month: 'Feb', profit: -1500 },
+				{ month: 'Mar', profit: -500 },
+				{ month: 'Apr', profit: 800 }
+			]
+		}
+	];
+</script>
+
+<MultiLineChart
+	lines={profitLossData}
+	xKey="month"
+	yKey="profit"
+	title="Profit/Loss Analysis"
+	yTickCount={5}
+	doubleTicksForNegatives={true}
+/>
+```
+
+**Features for negative values:**
+
+- **Zero reference line**: Automatic horizontal line at y=0
+- **Auto-doubled ticks**: Doubles tick count (5→10) for better granularity
+- **Smart scaling**: Proper Y-axis scaling with negative padding
+- **Bold zero tick**: Zero tick is highlighted in bold
+
+### Value Labels
+
+Show values directly on the chart:
+
+```svelte
+<MultiLineChart
+	lines={salesData}
+	xKey="month"
+	yKey="sales"
+	title="Sales with Value Labels"
+	showValues={true}
+	showLegend={true}
+/>
+```
+
+### Tooltip Configuration
+
+Control tooltip behavior:
+
+```svelte
+<!-- Enable tooltips (default) -->
+<MultiLineChart lines={data} hasTooltip={true} />
+
+<!-- Disable tooltips -->
+<MultiLineChart lines={data} hasTooltip={false} />
+```
+
+### Custom Tick Configuration
+
+Control Y-axis tick density:
+
+```svelte
+<!-- Sparse ticks for simple data -->
+<MultiLineChart lines={data} yTickCount={3} />
+
+<!-- Dense ticks for detailed analysis -->
+<MultiLineChart lines={data} yTickCount={8} />
+
+<!-- Disable auto-doubling for negative values -->
+<MultiLineChart lines={profitData} yTickCount={5} doubleTicksForNegatives={false} />
 ```
 
 ## Example with Different Metrics
@@ -188,6 +290,92 @@ You can use any format supported by date-fns:
 - `'EEE, MMM dd'` → "Mon, Jan 15"
 - `'MMMM yyyy'` → "January 2024"
 
+## Complete Example
+
+Here's a comprehensive example showcasing all major features:
+
+```svelte
+<script>
+	import { MultiLineChart } from '$lib';
+
+	// Profit/Loss data with negative values
+	const profitLossData = [
+		{
+			id: 'product_a',
+			label: 'Product A',
+			color: '#3b82f6',
+			data: [
+				{ month: 'Jan', profit: -1200, margin: -15.2 },
+				{ month: 'Feb', profit: -800, margin: -8.5 },
+				{ month: 'Mar', profit: 200, margin: 2.1 },
+				{ month: 'Apr', profit: 1500, margin: 12.3 },
+				{ month: 'May', profit: 2800, margin: 18.7 },
+				{ month: 'Jun', profit: 2200, margin: 16.4 }
+			]
+		},
+		{
+			id: 'product_b',
+			label: 'Product B',
+			color: '#ef4444',
+			data: [
+				{ month: 'Jan', profit: -2000, margin: -22.8 },
+				{ month: 'Feb', profit: -1500, margin: -18.2 },
+				{ month: 'Mar', profit: -500, margin: -5.4 },
+				{ month: 'Apr', profit: 800, margin: 8.9 },
+				{ month: 'May', profit: 1800, margin: 15.6 },
+				{ month: 'Jun', profit: 2500, margin: 21.3 }
+			]
+		}
+	];
+
+	let selectedMetric = 'profit';
+	let showLabels = true;
+	let enableTooltips = true;
+	let tickCount = 5;
+</script>
+
+<!-- Controls -->
+<div class="controls">
+	<label>
+		Metric:
+		<select bind:value={selectedMetric}>
+			<option value="profit">Profit ($)</option>
+			<option value="margin">Margin (%)</option>
+		</select>
+	</label>
+
+	<label>
+		<input type="checkbox" bind:checked={showLabels} />
+		Show Value Labels
+	</label>
+
+	<label>
+		<input type="checkbox" bind:checked={enableTooltips} />
+		Enable Tooltips
+	</label>
+
+	<label>
+		Tick Count:
+		<input type="range" min="3" max="10" bind:value={tickCount} />
+		{tickCount}
+	</label>
+</div>
+
+<!-- Chart -->
+<MultiLineChart
+	lines={profitLossData}
+	xKey="month"
+	yKey={selectedMetric}
+	title={`Product Performance - ${selectedMetric === 'profit' ? 'Profit ($)' : 'Margin (%)'}`}
+	showLegend={true}
+	showValues={showLabels}
+	hasTooltip={enableTooltips}
+	yTickCount={tickCount}
+	doubleTicksForNegatives={true}
+	height={450}
+/>
+```
+
 ## Styling
 
 The component includes built-in styling but can be customized using CSS custom properties:
@@ -216,11 +404,37 @@ The component includes built-in styling but can be customized using CSS custom p
 
 ## Best Practices
 
+### General Guidelines
+
 1. **Limit Lines**: Keep to 5 lines maximum for readability
 2. **Color Contrast**: Use high contrast colors for better visibility
 3. **Data Consistency**: Ensure all lines have similar x-axis values
 4. **Responsive Design**: Set appropriate height for your container
 5. **Legend**: Use descriptive labels for legend items
+
+### Negative Values
+
+1. **Use Auto-Doubled Ticks**: Keep `doubleTicksForNegatives={true}` for better granularity
+2. **Clear Zero Line**: The automatic zero reference line helps users distinguish positive/negative
+3. **Contextual Colors**: Consider using red for losses and green for profits
+
+### Performance
+
+1. **Value Labels**: Use `showValues={true}` sparingly with dense data
+2. **Tooltip Management**: Disable tooltips (`hasTooltip={false}`) for better performance with many points
+3. **Tick Count**: Higher tick counts (`yTickCount`) provide more detail but can clutter the axis
+
+### Data Visualization
+
+1. **Meaningful Ranges**: Choose tick counts that create meaningful intervals
+2. **Consistent Metrics**: When switching metrics, ensure they're contextually related
+3. **Date Formatting**: Use appropriate date formats for your data frequency
+
+### Accessibility
+
+1. **High Contrast**: Ensure sufficient color contrast for all lines
+2. **Descriptive Labels**: Use clear, descriptive labels for legend items
+3. **Alternative Text**: Consider providing data tables as alternative access
 
 ## Browser Support
 

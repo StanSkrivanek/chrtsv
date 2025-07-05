@@ -33,7 +33,9 @@
 		dateFormat = 'MMM dd',
 		inputDateFormat = null,
 		showValues = false,
-		hasTooltip = true
+		hasTooltip = true,
+		yTickCount = 5,
+		doubleTicksForNegatives = true
 	} = $props<{
 		lines?: LineData[];
 		xKey?: string;
@@ -45,6 +47,8 @@
 		inputDateFormat?: string | null;
 		showValues?: boolean;
 		hasTooltip?: boolean;
+		yTickCount?: number;
+		doubleTicksForNegatives?: boolean;
 	}>();
 
 	// Internal state
@@ -191,14 +195,20 @@
 		const xMax = allXValues.length - 1;
 		const yMin = Math.min(...allYValues);
 		const yMax = Math.max(...allYValues);
-		const yPadding = (yMax - yMin) * 0.1;
+
+		// Handle padding for negative values properly
+		const yRange = yMax - yMin;
+		const yPadding = yRange * 0.1;
+		const yMinWithPadding = yMin - yPadding;
+		const yMaxWithPadding = yMax + yPadding;
+		const hasNegativeValues = yMin < 0;
 
 		// Scale functions
 		const xScale = (idx: number) => margin.left + (idx / Math.max(1, xMax)) * width;
 		const yScale = (val: number) =>
 			margin.top +
 			chartHeight -
-			((val - yMin + yPadding) / (yMax - yMin + yPadding * 2)) * chartHeight;
+			((val - yMinWithPadding) / (yMaxWithPadding - yMinWithPadding)) * chartHeight;
 
 		// Create SVG elements
 		const mainG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -261,10 +271,50 @@
 		yAxisLine.setAttribute('stroke', '#94a3b8');
 		yAxis.appendChild(yAxisLine);
 
-		// Y axis ticks - show 5 ticks
-		const yTickCount = 5;
-		for (let i = 0; i <= yTickCount; i++) {
-			const value = yMin + (i / yTickCount) * (yMax - yMin);
+		// Add zero line if there are negative values
+		if (hasNegativeValues && yMinWithPadding < 0 && yMaxWithPadding > 0) {
+			const zeroY = yScale(0);
+			const zeroLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+			zeroLine.setAttribute('x1', '0');
+			zeroLine.setAttribute('y1', String(zeroY));
+			zeroLine.setAttribute('x2', String(width));
+			zeroLine.setAttribute('y2', String(zeroY));
+			zeroLine.setAttribute('stroke', '#6b7280');
+			zeroLine.setAttribute('stroke-width', '1');
+			zeroLine.setAttribute('opacity', '0.8');
+			yAxis.appendChild(zeroLine);
+		}
+
+		// Y axis ticks - automatically double tick count for negative values if enabled
+		const effectiveTickCount =
+			hasNegativeValues && doubleTicksForNegatives ? yTickCount * 2 : yTickCount;
+		const tickValues = [];
+
+		// Generate regular tick values
+		for (let i = 0; i <= effectiveTickCount; i++) {
+			const value =
+				yMinWithPadding + (i / effectiveTickCount) * (yMaxWithPadding - yMinWithPadding);
+			tickValues.push(value);
+		}
+
+		// Always add zero tick if we have negative values (might be redundant but ensures it's there)
+		if (hasNegativeValues && yMinWithPadding < 0 && yMaxWithPadding > 0) {
+			tickValues.push(0);
+		}
+
+		// Sort tick values and remove duplicates (with small tolerance for floating point)
+		const uniqueTickValues = tickValues
+			.filter((value, index, array) => {
+				// Keep value if it's the first occurrence or sufficiently different from previous values
+				return !array
+					.slice(0, index)
+					.some(
+						(prevValue) => Math.abs(value - prevValue) < (yMaxWithPadding - yMinWithPadding) * 0.02
+					);
+			})
+			.sort((a, b) => b - a);
+
+		uniqueTickValues.forEach((value) => {
 			const yPos = yScale(value);
 
 			const tick = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -292,10 +342,16 @@
 			text.setAttribute('fill', '#64748b');
 			text.setAttribute('font-size', '12px');
 
-			// Format numbers
-			if (value >= 1000000) {
+			// Special styling for zero tick
+			if (value === 0) {
+				text.setAttribute('fill', '#374151');
+				text.setAttribute('font-weight', 'bold');
+			}
+
+			// Format numbers - handle negative values
+			if (Math.abs(value) >= 1000000) {
 				text.textContent = `${(value / 1000000).toFixed(1)}M`;
-			} else if (value >= 1000) {
+			} else if (Math.abs(value) >= 1000) {
 				text.textContent = `${(value / 1000).toFixed(1)}k`;
 			} else {
 				text.textContent = value.toFixed(1);
@@ -303,7 +359,7 @@
 
 			tick.appendChild(text);
 			yAxis.appendChild(tick);
-		}
+		});
 
 		// Create lines for each dataset
 		lines.forEach((lineData: LineData, lineIndex: number) => {

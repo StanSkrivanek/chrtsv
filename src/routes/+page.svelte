@@ -1,5 +1,15 @@
 <script lang="ts">
 	import MultiLineChart from '$lib/components/charts/MultiLineChart.svelte';
+	import {
+		Activity,
+		BarChart2,
+		BarChart3,
+		LineChart,
+		PieChart,
+		TrendingDown,
+		TrendingUp,
+		Users
+	} from 'lucide-svelte';
 
 	// Example data for multiple product lines
 	const productData = [
@@ -147,44 +157,102 @@
 			]
 		}
 	];
+
+	// Sample data with negative values for testing
+	const profitLossData = [
+		{
+			id: 'product_a',
+			label: 'Product A',
+			color: '#3b82f6',
+			data: [
+				{ month: 'Jan', profit: -1200, margin: -15.2 },
+				{ month: 'Feb', profit: -800, margin: -8.5 },
+				{ month: 'Mar', profit: 200, margin: 2.1 },
+				{ month: 'Apr', profit: 1500, margin: 12.3 },
+				{ month: 'May', profit: 2800, margin: 18.7 },
+				{ month: 'Jun', profit: 2200, margin: 16.4 }
+			]
+		},
+		{
+			id: 'product_b',
+			label: 'Product B',
+			color: '#ef4444',
+			data: [
+				{ month: 'Jan', profit: -2000, margin: -22.8 },
+				{ month: 'Feb', profit: -1500, margin: -18.2 },
+				{ month: 'Mar', profit: -500, margin: -5.4 },
+				{ month: 'Apr', profit: 800, margin: 8.9 },
+				{ month: 'May', profit: 1800, margin: 15.6 },
+				{ month: 'Jun', profit: 2500, margin: 21.3 }
+			]
+		},
+		{
+			id: 'product_c',
+			label: 'Product C',
+			color: '#10b981',
+			data: [
+				{ month: 'Jan', profit: 500, margin: 4.2 },
+				{ month: 'Feb', profit: -200, margin: -2.1 },
+				{ month: 'Mar', profit: 800, margin: 7.8 },
+				{ month: 'Apr', profit: 1200, margin: 11.5 },
+				{ month: 'May', profit: -300, margin: -2.8 },
+				{ month: 'Jun', profit: 1500, margin: 13.2 }
+			]
+		}
+	];
+
 	let selectedMetric = 'sales' as 'sales' | 'revenue' | 'units_sold';
+	let selectedProfitMetric = 'profit' as 'profit' | 'margin';
 
 	const metrics = [
 		{ value: 'sales' as const, label: 'Sales ($)' },
 		{ value: 'revenue' as const, label: 'Revenue ($)' },
 		{ value: 'units_sold' as const, label: 'Units Sold' }
 	];
+
+	const profitMetrics = [
+		{ value: 'profit' as const, label: 'Profit ($)' },
+		{ value: 'margin' as const, label: 'Margin (%)' }
+	];
 </script>
+
 <div class="example-container">
-	<h1>Single Line Chart</h1>
-	
+	<h1><LineChart size={28} class="icon" /> Single Line Chart</h1>
+
 	<MultiLineChart
 		lines={[dateBasedData[2]]}
 		xKey="date"
 		yKey="value"
-		title={`${[dateBasedData[2].label]} Count Over Time` }
+		title={`${[dateBasedData[2].label]} Count Over Time`}
 		showLegend={true}
 		height={450}
+		yTickCount={4}
 	/>
 
 	<div class="description">
-		<h2>Features Demonstrated:</h2>
+		<h2><Activity size={20} class="icon-small" /> Features Demonstrated:</h2>
 		<ul>
-			<li>Single data series (Desktop Sales)</li>
-			<li>Interactive legend with hover effects</li>
-			<li><b>Uses `date-fns` for date parsing</b></li>
-			<li>Responsive design</li>
-			<li>Tooltip on data point hover</li>
-			<li>Color-coded lines with accessibility support</li>
+			<li><LineChart size={16} class="feature-icon" /> Single data series (Desktop Sales)</li>
+			<li><Users size={16} class="feature-icon" /> Interactive legend with hover effects</li>
+			<li><Activity size={16} class="feature-icon" /> <b>Uses `date-fns` for date parsing</b></li>
+			<li>
+				<BarChart2 size={16} class="feature-icon" /> <strong>Custom Y-axis ticks</strong> - Using 4 ticks
+				instead of default 5
+			</li>
+			<li><Activity size={16} class="feature-icon" /> Responsive design</li>
+			<li><Activity size={16} class="feature-icon" /> Tooltip on data point hover</li>
+			<li>
+				<Activity size={16} class="feature-icon" /> Color-coded lines with accessibility support
+			</li>
 		</ul>
 	</div>
 </div>
 
 <div class="example-container">
-	<h1>Multi Line Chart Example</h1>
+	<h1><BarChart3 size={28} class="icon" /> Multi Line Chart Example</h1>
 
 	<div class="controls">
-		<label for="metric-select">Select Metric:</label>
+		<label for="metric-select"><BarChart2 size={16} class="icon-inline" /> Select Metric:</label>
 		<select id="metric-select" bind:value={selectedMetric}>
 			{#each metrics as metric}
 				<option value={metric.value}>{metric.label}</option>
@@ -199,19 +267,124 @@
 		title={`Product Performance - ${metrics.find((m) => m.value === selectedMetric)?.label}`}
 		showLegend={true}
 		showValues={true}
-		hasTooltip={false }
-
+		hasTooltip={false}
 	/>
 
 	<div class="description">
-		<h2>Features Demonstrated:</h2>
+		<h2><Activity size={20} class="icon-small" /> Features Demonstrated:</h2>
 		<ul>
-			<li>Multiple data series (Desktop, Mobile, Tablet)</li>
-			<li>Interactive legend with hover effects</li>
-			<li>Dynamic metric switching</li>
-			<li>Responsive design</li>
-			<li>Tooltip on data point hover</li>
-			<li>Color-coded lines with accessibility support</li>
+			<li>
+				<BarChart3 size={16} class="feature-icon" /> Multiple data series (Desktop, Mobile, Tablet)
+			</li>
+			<li><Users size={16} class="feature-icon" /> Interactive legend with hover effects</li>
+			<li><BarChart2 size={16} class="feature-icon" /> Dynamic metric switching</li>
+			<li><Activity size={16} class="feature-icon" /> Responsive design</li>
+			<li><Activity size={16} class="feature-icon" /> Tooltip on data point hover</li>
+			<li>
+				<Activity size={16} class="feature-icon" /> Color-coded lines with accessibility support
+			</li>
+		</ul>
+	</div>
+</div>
+
+<div class="example-container">
+	<h1>
+		<TrendingDown size={28} class="icon profit-loss" /> Profit/Loss Chart with Negative Values
+	</h1>
+
+	<div class="controls">
+		<label for="profit-metric-select">Select Metric:</label>
+		<select id="profit-metric-select" bind:value={selectedProfitMetric}>
+			{#each profitMetrics as metric}
+				<option value={metric.value}>{metric.label}</option>
+			{/each}
+		</select>
+	</div>
+
+	<MultiLineChart
+		lines={profitLossData}
+		xKey="month"
+		yKey={selectedProfitMetric}
+		title={`Product Performance - ${profitMetrics.find((m) => m.value === selectedProfitMetric)?.label}`}
+		showLegend={true}
+		showValues={true}
+		hasTooltip={true}
+		height={450}
+		yTickCount={5}
+		doubleTicksForNegatives={true}
+	/>
+
+	<div class="description">
+		<h2><Activity size={20} class="icon-small" /> Features Demonstrated:</h2>
+		<ul>
+			<li>
+				<TrendingDown size={16} class="feature-icon negative" />
+				<strong>Negative values support</strong> - Properly scaled Y-axis with negative numbers
+			</li>
+			<li>
+				<Activity size={16} class="feature-icon" /> <strong>Zero reference line</strong> - Horizontal
+				line at y=0 for visual reference
+			</li>
+			<li>
+				<TrendingUp size={16} class="feature-icon positive" /> <strong>Auto-doubled ticks</strong> -
+				Automatically doubles tick count (5→10) for negative data
+			</li>
+			<li>
+				<BarChart3 size={16} class="feature-icon" /> Multiple data series with both positive and negative
+				values
+			</li>
+			<li>
+				<BarChart2 size={16} class="feature-icon" /> Dynamic metric switching between profit and margin
+			</li>
+			<li><Activity size={16} class="feature-icon" /> Responsive design with proper grid lines</li>
+			<li>Tooltips showing negative values correctly</li>
+		</ul>
+	</div>
+</div>
+
+<div class="example-container">
+	<h1><PieChart size={28} class="icon" /> Comparison: Standard vs Auto-Doubled Ticks</h1>
+
+	<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
+		<div>
+			<h3 style="text-align: center; margin-bottom: 1rem;">Standard Ticks (5 total)</h3>
+			<MultiLineChart
+				lines={profitLossData}
+				xKey="month"
+				yKey="profit"
+				title="Profit - Standard Ticks"
+				showLegend={false}
+				height={350}
+				yTickCount={5}
+				doubleTicksForNegatives={false}
+			/>
+		</div>
+		<div>
+			<h3 style="text-align: center; margin-bottom: 1rem;">Auto-Doubled Ticks (10 total)</h3>
+			<MultiLineChart
+				lines={profitLossData}
+				xKey="month"
+				yKey="profit"
+				title="Profit - Auto-Doubled Ticks"
+				showLegend={false}
+				height={350}
+				yTickCount={5}
+				doubleTicksForNegatives={true}
+			/>
+		</div>
+	</div>
+
+	<div class="description">
+		<h2>Comparison Benefits:</h2>
+		<ul>
+			<li>
+				<strong>Better granularity</strong> - More ticks around the zero line for precise reading
+			</li>
+			<li><strong>Automatic detection</strong> - No manual configuration needed</li>
+			<li>
+				<strong>Configurable</strong> - Can be disabled with `doubleTicksForNegatives={false}`
+			</li>
+			<li><strong>Smart spacing</strong> - Maintains readable tick intervals</li>
 		</ul>
 	</div>
 </div>
@@ -228,6 +401,10 @@
 		color: #1e293b;
 		margin-bottom: 2rem;
 		text-align: center;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.75rem;
 	}
 
 	.controls {
@@ -240,6 +417,10 @@
 		margin-right: 1rem;
 		font-weight: 600;
 		color: #374151;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		justify-content: center;
 	}
 
 	.controls select {
@@ -269,6 +450,9 @@
 	.description h2 {
 		color: #1e293b;
 		margin-bottom: 1rem;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
 	}
 
 	.description ul {
@@ -278,5 +462,65 @@
 
 	.description li {
 		margin-bottom: 0.5rem;
+	}
+
+	/* Icon styles */
+	:global(.icon) {
+		color: #3b82f6;
+		stroke-width: 2;
+	}
+
+	:global(.icon-small) {
+		color: #6b7280;
+		stroke-width: 2;
+	}
+
+	:global(.icon-inline) {
+		color: #6b7280;
+		stroke-width: 2;
+		vertical-align: middle;
+	}
+
+	:global(.feature-icon) {
+		color: #6b7280;
+		stroke-width: 2;
+		margin-right: 0.5rem;
+		vertical-align: middle;
+		flex-shrink: 0;
+	}
+
+	:global(.feature-icon.positive) {
+		color: #10b981;
+	}
+
+	:global(.feature-icon.negative) {
+		color: #ef4444;
+	}
+
+	:global(.profit-loss) {
+		color: #ef4444;
+	}
+
+	h1 :global(.icon) {
+		flex-shrink: 0;
+	}
+
+	.controls label :global(.icon-inline) {
+		flex-shrink: 0;
+	}
+
+	.description h2 :global(.icon-small) {
+		flex-shrink: 0;
+	}
+
+	.description li {
+		margin-bottom: 0.5rem;
+		display: flex;
+		align-items: flex-start;
+		gap: 0.5rem;
+	}
+
+	.description li :global(.feature-icon) {
+		margin-top: 0.1rem;
 	}
 </style>
