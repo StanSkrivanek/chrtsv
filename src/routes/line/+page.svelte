@@ -64,7 +64,7 @@
 	height={450}
 	/>
 </div>
-<div class="example-container">
+<!-- <div class="example-container">
 	<h1>Multi Line Chart Example</h1>
 	<div>
 		<div class="controls">
@@ -96,7 +96,7 @@
 			<li>Color-coded lines with accessibility support</li>
 		</ul>
 	</div>
-</div>
+</div> -->
 
 <style>
 	.example-container {

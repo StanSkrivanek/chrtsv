@@ -43,7 +43,6 @@
 
 	// Internal state
 	let chart: SVGElement;
-	let container: HTMLDivElement;
 	let mounted = $state(false);
 	let width = $state(0);
 	let chartHeight = $state(0);
@@ -62,59 +61,6 @@
 		'#f59e0b', // yellow
 		'#8b5cf6' // purple
 	];
-
-	// Derived values - use $derived instead of functions
-	const allXValues = $derived(() => {
-		const xValues: string[] = [];
-		const seen = new Set<string>();
-
-		// Get the first line to establish the order
-		if (lines.length > 0) {
-			lines[0].data.forEach((d: Record<string, any>) => {
-				const value = String(d[xKey]);
-				if (!seen.has(value)) {
-					seen.add(value);
-					xValues.push(value);
-				}
-			});
-		}
-
-		// Add any additional unique values from other lines
-		lines.forEach((line: LineData) => {
-			line.data.forEach((d: Record<string, any>) => {
-				const value = String(d[xKey]);
-				if (!seen.has(value)) {
-					seen.add(value);
-					xValues.push(value);
-				}
-			});
-		});
-
-		// Sort dates chronologically if they are dates
-		const firstValue = xValues[0];
-		if (firstValue && parseDate(firstValue)) {
-			return xValues.sort((a, b) => {
-				const dateA = parseDate(a);
-				const dateB = parseDate(b);
-				if (dateA && dateB) {
-					return dateA.getTime() - dateB.getTime();
-				}
-				return 0;
-			});
-		}
-
-		return xValues;
-	});
-
-	const allYValues = $derived(() => {
-		const yValues: number[] = [];
-		lines.forEach((line: LineData) => {
-			line.data.forEach((d: Record<string, any>) => {
-				yValues.push(Number(d[yKey]));
-			});
-		});
-		return yValues;
-	});
 
 	// Helper function to parse dates from various formats
 	function parseDate(dateString: string): Date | null {
@@ -159,15 +105,58 @@
 		return String(dateString).substring(0, 10);
 	}
 
-	// Tooltip positioning helper
-	function getTooltipPosition(svgX: number, svgY: number): { x: number; y: number } {
-		if (!container) return { x: svgX, y: svgY };
+	// Function to get all unique x values across all lines
+	function getAllXValues(): string[] {
+		const xValues: string[] = [];
+		const seen = new Set<string>();
 
-		const rect = container.getBoundingClientRect();
-		return {
-			x: rect.left + svgX,
-			y: rect.top + svgY - 10
-		};
+		// Get the first line to establish the order
+		if (lines.length > 0) {
+			lines[0].data.forEach((d: Record<string, any>) => {
+				const value = String(d[xKey]);
+				if (!seen.has(value)) {
+					seen.add(value);
+					xValues.push(value);
+				}
+			});
+		}
+
+		// Add any additional unique values from other lines
+		lines.forEach((line: LineData) => {
+			line.data.forEach((d: Record<string, any>) => {
+				const value = String(d[xKey]);
+				if (!seen.has(value)) {
+					seen.add(value);
+					xValues.push(value);
+				}
+			});
+		});
+
+		// Sort dates chronologically if they are dates
+		const firstValue = xValues[0];
+		if (firstValue && parseDate(firstValue)) {
+			return xValues.sort((a, b) => {
+				const dateA = parseDate(a);
+				const dateB = parseDate(b);
+				if (dateA && dateB) {
+					return dateA.getTime() - dateB.getTime();
+				}
+				return 0;
+			});
+		}
+
+		return xValues;
+	}
+
+	// Function to get all y values for scaling
+	function getAllYValues(): number[] {
+		const yValues: number[] = [];
+		lines.forEach((line: LineData) => {
+			line.data.forEach((d: Record<string, any>) => {
+				yValues.push(Number(d[yKey]));
+			});
+		});
+		return yValues;
 	}
 
 	// Function to re-render chart when data changes
@@ -186,15 +175,15 @@
 		chartHeight = svgHeight - margin.top - margin.bottom;
 
 		// Get all unique x values and y values
-		const xValues = allXValues();
-		const yValues = allYValues();
+		const allXValues = getAllXValues();
+		const allYValues = getAllYValues();
 
-		if (xValues.length === 0 || yValues.length === 0) return;
+		if (allXValues.length === 0 || allYValues.length === 0) return;
 
 		const xMin = 0;
-		const xMax = xValues.length - 1;
-		const yMin = Math.min(...yValues);
-		const yMax = Math.max(...yValues);
+		const xMax = allXValues.length - 1;
+		const yMin = Math.min(...allYValues);
+		const yMax = Math.max(...allYValues);
 		const yPadding = (yMax - yMin) * 0.1;
 
 		// Scale functions
@@ -222,8 +211,8 @@
 		xAxis.appendChild(xAxisLine);
 
 		// X axis ticks - show 5-7 ticks depending on data size
-		const tickInterval = Math.max(1, Math.ceil(xValues.length / Math.min(7, xValues.length)));
-		for (let i = 0; i < xValues.length; i += tickInterval) {
+		const tickInterval = Math.max(1, Math.ceil(allXValues.length / Math.min(7, allXValues.length)));
+		for (let i = 0; i < allXValues.length; i += tickInterval) {
 			const tick = document.createElementNS('http://www.w3.org/2000/svg', 'g');
 			tick.setAttribute('transform', `translate(${xScale(i)}, 0)`);
 
@@ -239,7 +228,7 @@
 			text.setAttribute('font-size', '12px');
 
 			// Format date labels using date-fns
-			const value = xValues[i];
+			const value = allXValues[i];
 			const parsedDate = parseDate(value);
 			if (parsedDate) {
 				text.textContent = formatDateForDisplay(value);
@@ -321,7 +310,7 @@
 
 			// Build path by matching x values
 			const pathPoints: Array<{ x: number; y: number }> = [];
-			xValues.forEach((xValue, xIndex) => {
+			allXValues.forEach((xValue, xIndex) => {
 				const dataPoint = lineData.data.find(
 					(d: Record<string, any>) => String(d[xKey]) === xValue
 				);
@@ -351,9 +340,7 @@
 			const dots = document.createElementNS('http://www.w3.org/2000/svg', 'g');
 			dots.setAttribute('class', `data-points-${lineData.id}`);
 
-			let hideTimeout: number;
-
-			xValues.forEach((xValue, xIndex) => {
+			allXValues.forEach((xValue, xIndex) => {
 				const dataPoint = lineData.data.find(
 					(d: Record<string, any>) => String(d[xKey]) === xValue
 				);
@@ -373,21 +360,14 @@
 
 					// Add interaction
 					circle.addEventListener('mouseenter', () => {
-						clearTimeout(hideTimeout);
-
 						const xValue = String(dataPoint[xKey]);
 						const parsedDate = parseDate(xValue);
 						const displayLabel = parsedDate ? formatDateForDisplay(xValue) : xValue;
 
-						const pos = getTooltipPosition(x, y);
-
 						tooltipData = {
-							x: pos.x,
-							y: pos.y,
-							value:
-								typeof dataPoint[yKey] === 'number'
-									? dataPoint[yKey].toLocaleString()
-									: dataPoint[yKey],
+							x,
+							y,
+							value: dataPoint[yKey],
 							label: displayLabel,
 							lineLabel: lineData.label,
 							color
@@ -401,14 +381,12 @@
 					});
 
 					circle.addEventListener('mouseleave', () => {
-						hideTimeout = setTimeout(() => {
-							tooltipVisible = false;
-							hoveredLine = null;
+						tooltipVisible = false;
+						hoveredLine = null;
 
-							// Restore circle style
-							circle.setAttribute('r', '4');
-							circle.setAttribute('fill', '#ffffff');
-						}, 150);
+						// Restore circle style
+						circle.setAttribute('r', '4');
+						circle.setAttribute('fill', '#ffffff');
 					});
 
 					dots.appendChild(circle);
@@ -446,31 +424,43 @@
 			renderChart();
 		});
 
-		if (chart) {
-			resizeObserver.observe(chart);
-		}
+		resizeObserver.observe(chart);
 
 		return () => {
 			resizeObserver.disconnect();
 		};
 	});
 
-	// Use $effect for side effects only - re-render when data or props change
+	// Watch for data changes
 	$effect(() => {
-		if (mounted && lines) {
+		if (lines && mounted) {
 			renderChart();
 		}
 	});
 
-	// Use $effect for hover state changes
+	// Watch for prop changes
 	$effect(() => {
-		if (mounted && hoveredLine !== null) {
+		const _ = xKey;
+		const __ = yKey;
+		const ___ = title;
+		const ____ = showLegend;
+		const _____ = height;
+
+		if (mounted) {
+			renderChart();
+		}
+	});
+
+	// Watch for hover state changes
+	$effect(() => {
+		const _ = hoveredLine;
+		if (mounted) {
 			renderChart();
 		}
 	});
 </script>
 
-<div class="multi-line-chart-container" bind:this={container}>
+<div class="multi-line-chart-container">
 	<svg bind:this={chart} class="multi-line-chart" width="100%" {height}></svg>
 
 	{#if showLegend && lines.length > 0}
@@ -502,17 +492,16 @@
 	{/if}
 
 	{#if tooltipVisible && tooltipData}
-		<div class="tooltip" style="left: {tooltipData.x}px; top: {tooltipData.y}px; position: fixed;">
+		<div class="tooltip" style="left: {tooltipData.x}px; top: {tooltipData.y - 60}px;">
 			<div class="tooltip-content">
 				<div class="tooltip-header" style="color: {tooltipData.color}">
 					{tooltipData.lineLabel}
 				</div>
 				<div class="tooltip-body">
-					<span class="tooltip-label">{tooltipData.label}:</span>
+					<span class="tooltip-label">{tooltipData.label}</span>
 					<span class="tooltip-value">{tooltipData.value}</span>
 				</div>
 			</div>
-			<div class="tooltip-arrow"></div>
 		</div>
 	{/if}
 </div>
@@ -578,10 +567,10 @@
 	}
 
 	.tooltip {
+		position: absolute;
 		transform: translate(-50%, -100%);
 		pointer-events: none;
-		z-index: 1000;
-		margin-top: -10px;
+		z-index: 10;
 	}
 
 	.tooltip-content {
@@ -592,19 +581,6 @@
 		font-size: 12px;
 		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 		min-width: 120px;
-		position: relative;
-	}
-
-	.tooltip-arrow {
-		position: absolute;
-		top: 100%;
-		left: 50%;
-		transform: translateX(-50%);
-		width: 0;
-		height: 0;
-		border-left: 6px solid transparent;
-		border-right: 6px solid transparent;
-		border-top: 6px solid #1e293b;
 	}
 
 	.tooltip-header {
@@ -617,12 +593,11 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		gap: 8px;
 	}
 
 	.tooltip-label {
 		font-weight: 500;
-		white-space: nowrap;
+		margin-right: 8px;
 	}
 
 	.tooltip-value {
