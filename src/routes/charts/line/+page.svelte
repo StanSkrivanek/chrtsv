@@ -1154,8 +1154,8 @@ function getDataTableSummary(): string;`}
 		gap: var(--spacing-sm);
 		font-size: 8rem;
 		margin-bottom: var(--spacing-sm);
-		font-family: 'heavy';
-		letter-spacing: 0.05em;
+		font-family: 'extrabold';
+		letter-spacing: 0.025em;
 	}
 
 	.header-text h1 :global(svg) {
@@ -1424,10 +1424,10 @@ function getDataTableSummary(): string;`}
 		color: var(--color-gray-dark);
 	}
 
-	.comment {
+	/* .comment {
 		color: var(--color-gray-text);
 		font-style: italic;
-	}
+	} */
 
 	@media (max-width: 768px) {
 		.comparison-grid {
@@ -1492,21 +1492,21 @@ function getDataTableSummary(): string;`}
 	}
 
 	/* Accessibility Features - Swiss Design */
-	.accessibility-intro {
+	/* .accessibility-intro {
 		font-size: 1rem;
 		color: var(--color-gray-dark);
 		margin-bottom: var(--spacing-md);
 		line-height: 1.6;
-	}
+	} */
 
-	.accessibility-grid {
+	/* .accessibility-grid {
 		display: grid;
 		grid-template-columns: repeat(2, minmax(280px, 1fr));
 		gap: var(--spacing-md);
 		margin-bottom: var(--spacing-md);
-	}
+	} */
 
-	.accessibility-card {
+	/* .accessibility-card {
 		background: var(--color-white);
 		border: 2px solid var(--color-gray-medium);
 		padding: var(--spacing-md);
@@ -1514,14 +1514,14 @@ function getDataTableSummary(): string;`}
 		flex-direction: column;
 		gap: var(--spacing-sm);
 		transition: var(--transition);
-	}
+	} */
 
-	.accessibility-card:hover {
+	/* .accessibility-card:hover {
 		border-color: var(--color-brand);
 		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-	}
+	} */
 
-	.accessibility-icon {
+	/* .accessibility-icon {
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -1532,19 +1532,19 @@ function getDataTableSummary(): string;`}
 		color: var(--color-brand);
 		flex-shrink: 0;
 		margin-bottom: var(--spacing-xs);
-	}
+	} */
 
-	.accessibility-card h4 {
+	/* .accessibility-card h4 {
 		font-size: 1.125rem;
 		font-weight: 500;
 		margin: 0;
 		color: var(--color-black);
 		line-height: 1.3;
-	}
+	} */
 
-	.accessibility-content {
+	/* .accessibility-content {
 		flex: 1;
-	}
+	} */
 
 	/* Accessibility Section */
 	.accessibility-overview {
@@ -1788,14 +1788,14 @@ function getDataTableSummary(): string;`}
 	}
 
 	/* Legacy styles for backward compatibility */
-	.shortcut {
+	/* .shortcut {
 		display: flex;
 		align-items: center;
 		gap: var(--spacing-sm);
 		font-size: 0.875rem;
-	}
+	} */
 
-	.shortcut kbd {
+	/* .shortcut kbd {
 		display: inline-block;
 		padding: 0.25rem 0.5rem;
 		font-size: 0.75rem;
@@ -1806,24 +1806,24 @@ function getDataTableSummary(): string;`}
 		color: var(--color-black);
 		min-width: 2rem;
 		text-align: center;
-	}
+	} */
 
-	.shortcut span {
+	/* .shortcut span {
 		color: var(--color-gray-dark);
 		line-height: 1.4;
-	}
+	} */
 
 	/* WCAG Compliance Box */
-	.wcag-compliance {
+	/* .wcag-compliance {
 		background: var(--color-gray-light);
 		border: 2px solid var(--color-brand);
 		padding: var(--spacing-md);
 		display: flex;
 		align-items: flex-start;
 		gap: var(--spacing-sm);
-	}
+	} */
 
-	.wcag-icon {
+	/* .wcag-icon {
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -1832,21 +1832,21 @@ function getDataTableSummary(): string;`}
 		background: var(--color-brand);
 		color: var(--color-white);
 		flex-shrink: 0;
-	}
+	} */
 
-	.wcag-content h4 {
+	/* .wcag-content h4 {
 		font-size: 1.125rem;
 		font-weight: 500;
 		margin: 0 0 var(--spacing-xs) 0;
 		color: var(--color-black);
-	}
+	} */
 
-	.wcag-content p {
+	/* .wcag-content p {
 		font-size: 0.875rem;
 		color: var(--color-gray-dark);
 		margin: 0;
 		line-height: 1.5;
-	}
+	} */
 
 	/* Mobile Responsiveness */
 	@media (max-width: 768px) {
@@ -1854,26 +1854,25 @@ function getDataTableSummary(): string;`}
 			grid-template-columns: 1fr;
 		}
 
-		.accessibility-grid {
+		/* .accessibility-grid {
 			grid-template-columns: 1fr;
-		}
+		} */
 
-		.wcag-principles {
+		/* .wcag-principles {
 			grid-template-columns: 1fr;
-		}
+		} */
 
-		.feature-card,
-		.accessibility-card {
+		.feature-card {
 			padding: var(--spacing-sm);
 		}
 
-		.wcag-compliance {
+		/* .wcag-compliance {
 			flex-direction: column;
 			text-align: center;
-		}
+		} */
 
-		.wcag-icon {
+		/* .wcag-icon {
 			align-self: center;
-		}
+		} */
 	}
 </style>
