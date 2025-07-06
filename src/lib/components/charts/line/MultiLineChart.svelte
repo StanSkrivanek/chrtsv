@@ -21,8 +21,8 @@
 		lineLabel: string;
 		color: string;
 	}
-	// TODO: add props showValues to display values on top pf each point and hasTooltip to use tooltips or not
-	// Props with explicit typing using Svelte 5 runes
+	
+	// Props with explicit typing
 	let {
 		lines = [],
 		xKey = 'date',
@@ -35,7 +35,7 @@
 		showValues = false,
 		hasTooltip = true,
 		yTickCount = 5,
-		doubleTicksForNegatives = true
+		doubleTicks = true
 	} = $props<{
 		lines?: LineData[];
 		xKey?: string;
@@ -48,7 +48,7 @@
 		showValues?: boolean;
 		hasTooltip?: boolean;
 		yTickCount?: number;
-		doubleTicksForNegatives?: boolean;
+		doubleTicks?: boolean;
 	}>();
 
 	// Internal state
@@ -329,7 +329,7 @@
 
 		// Y axis ticks - automatically double tick count for negative values if enabled
 		const effectiveTickCount =
-			hasNegativeValues && doubleTicksForNegatives ? yTickCount * 2 : yTickCount;
+			hasNegativeValues && doubleTicks ? yTickCount * 2 : yTickCount;
 		const tickValues = [];
 
 		// Generate regular tick values
