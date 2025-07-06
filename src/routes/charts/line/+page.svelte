@@ -1,4 +1,5 @@
 <script lang="ts">
+	import CodeBlock from '$lib/components/CodeBlock.svelte';
 	import MultiLineChart from '$lib/components/charts/line/MultiLineChart.svelte';
 	import {
 		Accessibility,
@@ -13,7 +14,8 @@
 		Tag,
 		Target,
 		TrendingDown,
-		Users
+		Users,
+		Settings
 	} from 'lucide-svelte';
 
 	// Documentation visibility state
@@ -367,28 +369,23 @@
 						</table>
 					</div>
 				</div>
-
 				<!-- Basic Usage -->
 				<div class="doc-section">
 					<h2><Code size={20} /> Basic Usage</h2>
 					<div class="code-preview">
-						<div class="code-header">Component Usage</div>
-						<div class="code-content">
-							<code>
-								<span class="ltgt">&lt;</span><span class="">MultiLineChart</span><br />
-								&nbsp;&nbsp;<span class="prop">lines</span>=<span class="code-tag"
-									>&#123;data&#125;</span
-								><br />
-								&nbsp;&nbsp;<span class="prop">xKey</span>=<span class="value">"month"</span><br />
-								&nbsp;&nbsp;<span class="prop">yKey</span>=<span class="value">"sales"</span><br />
-								&nbsp;&nbsp;<span class="prop">title</span>=<span class="value"
-									>"Product Performance"</span
-								><br />
-								&nbsp;&nbsp;<span class="prop">showLegend</span>=<span class="code-tag"
-									>&#123;true&#125;</span
-								><br />
-								<span class="ltgt">/&gt;</span>
-							</code>
+						<div class="features-visual">
+							<CodeBlock
+								code={`
+									<MultiLineChart
+										lines={Data}
+										xKey="month"
+										yKey="sales"
+										title="Product Performance"
+										showLegend={true}
+									/>`}
+								language="svelte"
+								theme="tokyo-night"
+							/>
 						</div>
 					</div>
 				</div>
@@ -405,26 +402,21 @@
 					</div>
 
 					<div class="code-preview">
-						<div class="code-header">Negative Values Example</div>
-						<div class="code-content">
-							<code>
-								<span class="ltgt">&lt;</span><span class="">MultiLineChart</span><br />
-								&nbsp;&nbsp;<span class="prop">lines</span>=<span class="code-tag"
-									>&#123;profitLossData&#125;</span
-								><br />
-								&nbsp;&nbsp;<span class="prop">xKey</span>=<span class="value">"month"</span><br />
-								&nbsp;&nbsp;<span class="prop">yKey</span>=<span class="value">"profit"</span><br />
-								&nbsp;&nbsp;<span class="prop">title</span>=<span class="value"
-									>"Profit/Loss Analysis"</span
-								><br />
-								&nbsp;&nbsp;<span class="prop">yTickCount</span>=<span class="code-tag"
-									>&#123;5&#125;</span
-								><br />
-								&nbsp;&nbsp;<span class="prop">doubleTicksForNegatives</span>=<span class="code-tag"
-									>&#123;true&#125;</span
-								><br />
-								<span class="ltgt">/&gt;</span>
-							</code>
+						<div class="features-visual">
+							<CodeBlock
+								code={`
+									<MultiLineChart
+										lines={profitLossData}
+										xKey="month"
+										yKey="profit"
+										title="Profit/Loss Analysis"
+										yTickCount={5}
+										doubleTicksForNegatives={true}
+									/>
+									`}
+								language="svelte"
+								theme="tokyo-night"
+							/>
 						</div>
 					</div>
 				</div>
@@ -434,35 +426,53 @@
 					<h2><Sparkles size={20} /> Key Features</h2>
 					<div class="feature-grid">
 						<div class="feature-card">
-							<h4><ChartLine size={18} /> Multiple Lines</h4>
+							<div class="feature-icon">
+								<ChartLine size={24} />
+							</div>
+							<h4>Multiple Lines</h4>
 							<p>
 								Display up to 5 lines simultaneously with automatic color assignment and interactive
 								legend.
 							</p>
 						</div>
 						<div class="feature-card">
-							<h4><TrendingDown size={18} /> Negative Values Support</h4>
+							<div class="feature-icon">
+								<TrendingDown size={24} />
+							</div>
+							<h4>Negative Values Support</h4>
 							<p>
 								Automatic handling of negative data with zero reference line and enhanced scaling.
 							</p>
 						</div>
 						<div class="feature-card">
-							<h4><Target size={18} /> Auto-Doubled Ticks</h4>
+							<div class="feature-icon">
+								<Target size={24} />
+							</div>
+							<h4>Auto-Doubled Ticks</h4>
 							<p>
 								Automatically increases tick density when negative values are detected for better
 								granularity.
 							</p>
 						</div>
 						<div class="feature-card">
-							<h4><Smartphone size={18} /> Responsive Design</h4>
+							<div class="feature-icon">
+								<Smartphone size={24} />
+							</div>
+							<h4>Responsive Design</h4>
 							<p>Automatically adjusts to container size with smooth animations and transitions.</p>
 						</div>
 						<div class="feature-card">
-							<h4><Tag size={18} /> Value Labels</h4>
+							<div class="feature-icon">
+								<Tag size={24} />
+							</div>
+							<h4>Value Labels</h4>
 							<p>Optional display of values above each data point for precise reading.</p>
 						</div>
 						<div class="feature-card">
-							<h4><Accessibility size={18} /> Accessibility</h4>
+							<div class="feature-icon">
+								<Accessibility size={24} />
+							</div>
+							<h4>Accessibility</h4>
 							<p>
 								Full keyboard navigation, comprehensive ARIA support, screen reader compatibility,
 								and alternative data table access.
@@ -471,70 +481,88 @@
 					</div>
 				</div>
 
-				<!-- Advanced Examples */
+				<!-- Advanced Examples -->
 				<div class="doc-section">
 					<h2><Settings size={20} /> Advanced Configuration</h2>
 					<div class="config-grid">
 						<div class="config-item">
-							<h4>With Value Labels</h4>
+							<h4><Tag size={18} /> Point Value Labels</h4>
 							<div class="code-preview small">
-								<div class="code-content">
-									<code>
-										<span class="ltgt">&lt;</span><span class="">MultiLineChart</span><br/>
-										&nbsp;&nbsp;<span class="prop">lines</span>=<span class="code-tag">&#123;lines&#125;</span><br/>
-										&nbsp;&nbsp;<span class="prop">showValues</span>=<span class="code-tag">&#123;true&#125;</span><br/>
-										&nbsp;&nbsp;<span class="prop">showLegend</span>=<span class="code-tag">&#123;true&#125;</span><br/>
-										<span class="ltgt">/&gt;</span>
-									</code>
-								</div>
+								<CodeBlock
+									code={`
+										<MultiLineChart
+											lines={data}
+											xKey="date"
+											yKey="value"
+											showValues={true}
+											showLegend={false}
+										/>
+										`}
+									language="svelte"
+									theme="tokyo-night"
+								/>
 							</div>
 						</div>
 						<div class="config-item">
-							<h4>Custom Tick Count</h4>
+							<h4><Target size={18} /> Custom Tick Count</h4>
 							<div class="code-preview small">
-								<div class="code-content">
-									<code>
-										<span class="ltgt">&lt;</span><span class="">MultiLineChart</span><br/>
-										&nbsp;&nbsp;<span class="prop">lines</span>=<span class="code-tag">&#123;lines&#125;</span><br/>
-										&nbsp;&nbsp;<span class="prop">yTickCount</span>=<span class="code-tag">&#123;8&#125;</span><br/>
-										&nbsp;&nbsp;<span class="prop">doubleTicksForNegatives</span>=<span class="code-tag">&#123;false&#125;</span><br/>
-										<span class="ltgt">/&gt;</span>
-									</code>
-								</div>
+								<CodeBlock
+								code={`
+									<MultiLineChart
+										lines={data}
+										xKey="date"
+										yKey="value"
+										yTickCount={8}
+										doubleTicksForNegatives={false}
+									/>
+									`}
+								language="svelte"
+								theme="tokyo-night"
+							/>
+							</div>
+						</div>
+						
+						<div class="config-item">
+							<h4><Activity size={18} /> Disable Tooltips</h4>
+							<div class="code-preview small">
+								<CodeBlock
+								code={`
+									<MultiLineChart
+										lines={data}
+										xKey="date"
+										yKey="value"
+										yTickCount={8}
+										hasTooltip={false}
+									/>
+									`}
+								language="svelte"
+								theme="tokyo-night"
+							/>
 							</div>
 						</div>
 						<div class="config-item">
-							<h4>Disable Tooltips</h4>
+							<h4><ChartLine size={18} /> Custom Date Format</h4>
 							<div class="code-preview small">
-								<div class="code-content">
-									<code>
-										<span class="ltgt">&lt;</span><span class="">MultiLineChart</span><br/>
-										&nbsp;&nbsp;<span class="prop">lines</span>=<span class="code-tag">&#123;lines&#125;</span><br/>
-										&nbsp;&nbsp;<span class="prop">hasTooltip</span>=<span class="code-tag">&#123;false&#125;</span><br/>
-										<span class="ltgt">/&gt;</span>
-									</code>
-								</div>
-							</div>
-						</div>
-						<div class="config-item">
-							<h4>Custom Date Format</h4>
-							<div class="code-preview small">
-								<div class="code-content">
-									<code>
-										<span class="ltgt">&lt;</span><span class="">MultiLineChart</span><br/>
-										&nbsp;&nbsp;<span class="prop">lines</span>=<span class="code-tag">&#123;lines&#125;</span><br/>
-										&nbsp;&nbsp;<span class="prop">dateFormat</span>=<span class="value">"MMM dd, yyyy"</span><br/>
-										&nbsp;&nbsp;<span class="prop">inputDateFormat</span>=<span class="value">"dd/MM/yyyy"</span><br/>
-										<span class="ltgt">/&gt;</span>
-									</code>
-								</div>
+								<CodeBlock
+								code={`
+									<MultiLineChart
+										lines={data}
+										xKey="date"
+										yKey="value"
+										dateFormat="MMM dd, yyyy"
+										inputDateFormat="dd/MM/yyyy"
+									/>
+									`}
+								language="svelte"
+								theme="tokyo-night"
+							/>
 							</div>
 						</div>
 					</div>
 				</div>
 
 				<!-- LineData Interface -->
-				<div class="doc-section">
+				<!-- <div class="doc-section">
 					<h2><Code size={20} /> LineData Interface</h2>
 					<div class="code-preview">
 						<div class="code-header">TypeScript Interface</div>
@@ -562,60 +590,94 @@
 							</code>
 						</div>
 					</div>
-				</div>
+				</div> -->
 
 				<!-- Accessibility Features -->
 				<div class="doc-section">
 					<h2><Accessibility size={20} /> Accessibility Features</h2>
-					<p>
+					<p class="accessibility-intro">
 						This chart component is designed with accessibility as a core feature, providing
 						multiple ways to interact with and understand the data:
 					</p>
 
-					<div class="feature-grid">
-						<div class="feature-card">
-							<h4><Activity size={18} /> Keyboard Navigation</h4>
-							<p>
-								<strong>Tab:</strong> Navigate between legend items<br />
-								<strong>Enter/Space:</strong> Toggle line highlighting<br />
-								<strong>Escape:</strong> Clear all highlights
-							</p>
+					<div class="accessibility-grid">
+						<div class="accessibility-card">
+							<div class="accessibility-icon">
+								<Activity size={24} />
+							</div>
+							<h4>Keyboard Navigation</h4>
+							<div class="accessibility-content">
+								<div class="keyboard-shortcuts">
+									<div class="shortcut">
+										<kbd>Tab</kbd>
+										<span>Navigate between legend items</span>
+									</div>
+									<div class="shortcut">
+										<kbd>Enter</kbd> / <kbd>Space</kbd>
+										<span>Toggle line highlighting</span>
+									</div>
+									<div class="shortcut">
+										<kbd>Escape</kbd>
+										<span>Clear all highlights</span>
+									</div>
+								</div>
+							</div>
 						</div>
 
-						<div class="feature-card">
-							<h4><Users size={18} /> Screen Reader Support</h4>
-							<p>
-								• Comprehensive ARIA labels and descriptions<br />
-								• Live region announcements for interactions<br />
-								• Chart summary and data point information
-							</p>
+						<div class="accessibility-card">
+							<div class="accessibility-icon">
+								<Users size={24} />
+							</div>
+							<h4>Screen Reader Support</h4>
+							<div class="accessibility-content">
+								<ul class="accessibility-list">
+									<li>Comprehensive ARIA labels and descriptions</li>
+									<li>Live region announcements for interactions</li>
+									<li>Chart summary and data point information</li>
+								</ul>
+							</div>
 						</div>
 
-						<div class="feature-card">
-							<h4><ChartLine size={18} /> Alternative Data Access</h4>
-							<p>
-								• Optional accessible data table view<br />
-								• Proper table headers and structure<br />
-								• Toggle between chart and table views
-							</p>
+						<div class="accessibility-card">
+							<div class="accessibility-icon">
+								<ChartLine size={24} />
+							</div>
+							<h4>Alternative Data Access</h4>
+							<div class="accessibility-content">
+								<ul class="accessibility-list">
+									<li>Optional accessible data table view</li>
+									<li>Proper table headers and structure</li>
+									<li>Toggle between chart and table views</li>
+								</ul>
+							</div>
 						</div>
 
-						<div class="feature-card">
-							<h4><Activity size={18} /> Visual Accessibility</h4>
-							<p>
-								• High contrast colors and tooltips<br />
-								• Clear focus indicators<br />
-								• Responsive design for all screen sizes
-							</p>
+						<div class="accessibility-card">
+							<div class="accessibility-icon">
+								<Activity size={24} />
+							</div>
+							<h4>Visual Accessibility</h4>
+							<div class="accessibility-content">
+								<ul class="accessibility-list">
+									<li>High contrast colors and tooltips</li>
+									<li>Clear focus indicators</li>
+									<li>Responsive design for all screen sizes</li>
+								</ul>
+							</div>
 						</div>
 					</div>
 
-					<div class="highlight-box">
-						<h4><Activity size={18} /> WCAG Compliance</h4>
-						<p>
-							This component meets WCAG 2.1 AA standards for accessibility, providing perceivable,
-							operable, understandable, and robust chart interactions for all users.
-						</p>
+					<div class="wcag-compliance">
+						<div class="wcag-icon">
+							<Activity size={20} />
+						</div>
+						<div class="wcag-content">
+							<h4>WCAG Compliance</h4>
+							<p>
+								This component meets WCAG 2.1 AA standards for accessibility, providing perceivable,
+								operable, understandable, and robust chart interactions for all users.
+							</p>
+						</div>
 					</div>
 				</div>
 			</div>
@@ -1020,7 +1082,10 @@
 	.value {
 		color: var(--color-green);
 	}
-
+	.features-visual {
+		display: flex;
+		flex-direction: column;
+	}
 	/* Features List */
 	.features-list {
 		display: grid;
@@ -1162,6 +1227,229 @@
 
 		.config-grid {
 			grid-template-columns: 1fr;
+		}
+	}
+
+	/* Feature Grid - Swiss Design */
+	.feature-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+		gap: var(--spacing-md);
+		margin-top: var(--spacing-md);
+	}
+
+	.feature-card {
+		background: var(--color-white);
+		border: 2px solid var(--color-gray-medium);
+		padding: var(--spacing-md);
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: var(--spacing-sm);
+		transition: var(--transition);
+		position: relative;
+	}
+
+	.feature-card:hover {
+		border-color: var(--color-brand);
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+	}
+
+	.feature-icon {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 48px;
+		height: 48px;
+		background: var(--color-gray-light);
+		border: 1px solid var(--color-gray-medium);
+		color: var(--color-brand);
+		flex-shrink: 0;
+	}
+
+	.feature-card h4 {
+		font-size: 1.125rem;
+		font-weight: 500;
+		margin: 0;
+		color: var(--color-black);
+		line-height: 1.3;
+	}
+
+	.feature-card p {
+		font-size: 0.875rem;
+		color: var(--color-gray-dark);
+		margin: 0;
+		line-height: 1.5;
+	}
+
+	/* Accessibility Features - Swiss Design */
+	.accessibility-intro {
+		font-size: 1rem;
+		color: var(--color-gray-dark);
+		margin-bottom: var(--spacing-md);
+		line-height: 1.6;
+	}
+
+	.accessibility-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+		gap: var(--spacing-md);
+		margin-bottom: var(--spacing-md);
+	}
+
+	.accessibility-card {
+		background: var(--color-white);
+		border: 2px solid var(--color-gray-medium);
+		padding: var(--spacing-md);
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-sm);
+		transition: var(--transition);
+	}
+
+	.accessibility-card:hover {
+		border-color: var(--color-brand);
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+	}
+
+	.accessibility-icon {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 48px;
+		height: 48px;
+		background: var(--color-gray-light);
+		border: 1px solid var(--color-gray-medium);
+		color: var(--color-brand);
+		flex-shrink: 0;
+		margin-bottom: var(--spacing-xs);
+	}
+
+	.accessibility-card h4 {
+		font-size: 1.125rem;
+		font-weight: 500;
+		margin: 0;
+		color: var(--color-black);
+		line-height: 1.3;
+	}
+
+	.accessibility-content {
+		flex: 1;
+	}
+
+	.keyboard-shortcuts {
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-xs);
+	}
+
+	.shortcut {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-sm);
+		font-size: 0.875rem;
+	}
+
+	.shortcut kbd {
+		display: inline-block;
+		padding: 0.25rem 0.5rem;
+		font-size: 0.75rem;
+		font-family: var(--font-mono);
+		background: var(--color-gray-light);
+		border: 1px solid var(--color-gray-medium);
+		border-radius: 3px;
+		color: var(--color-black);
+		min-width: 2rem;
+		text-align: center;
+	}
+
+	.shortcut span {
+		color: var(--color-gray-dark);
+		line-height: 1.4;
+	}
+
+	.accessibility-list {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-xs);
+	}
+
+	.accessibility-list li {
+		font-size: 0.875rem;
+		color: var(--color-gray-dark);
+		line-height: 1.5;
+		position: relative;
+		padding-left: 1rem;
+	}
+
+	.accessibility-list li::before {
+		content: '•';
+		position: absolute;
+		left: 0;
+		color: var(--color-brand);
+		font-weight: bold;
+	}
+
+	/* WCAG Compliance Box */
+	.wcag-compliance {
+		background: var(--color-gray-light);
+		border: 2px solid var(--color-brand);
+		padding: var(--spacing-md);
+		display: flex;
+		align-items: flex-start;
+		gap: var(--spacing-sm);
+	}
+
+	.wcag-icon {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 40px;
+		height: 40px;
+		background: var(--color-brand);
+		color: var(--color-white);
+		flex-shrink: 0;
+	}
+
+	.wcag-content h4 {
+		font-size: 1.125rem;
+		font-weight: 500;
+		margin: 0 0 var(--spacing-xs) 0;
+		color: var(--color-black);
+	}
+
+	.wcag-content p {
+		font-size: 0.875rem;
+		color: var(--color-gray-dark);
+		margin: 0;
+		line-height: 1.5;
+	}
+
+	/* Mobile Responsiveness */
+	@media (max-width: 768px) {
+		.feature-grid {
+			grid-template-columns: 1fr;
+		}
+
+		.accessibility-grid {
+			grid-template-columns: 1fr;
+		}
+
+		.feature-card,
+		.accessibility-card {
+			padding: var(--spacing-sm);
+		}
+
+		.wcag-compliance {
+			flex-direction: column;
+			text-align: center;
+		}
+
+		.wcag-icon {
+			align-self: center;
 		}
 	}
 </style>
