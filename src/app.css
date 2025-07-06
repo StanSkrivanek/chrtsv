@@ -419,9 +419,9 @@
 	--bg-overlay: oklch(0 0 0 / 0.5); /* Black with 50% alpha */
 
 	/* Border Colors */
-	--border-light: var(--slate-200);
-	--border-medium: var(--slate-300);
-	--border-dark: var(--slate-400);
+	--border-light: var(--color-slate-200);
+	--border-medium: var(--color-slate-300);
+	--border-dark: var(--color-slate-400);
 
 	/* Spacing Scale (Tailwind 4 based) */
 	--space-0: 0;

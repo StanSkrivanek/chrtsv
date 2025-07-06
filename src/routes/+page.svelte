@@ -46,20 +46,20 @@
 	];
 </script>
 
-<main class="container">
+<main>
 	<!-- Hero Section -->
 	<section class="hero">
+		<div class="brand">
+			<ChartLine size={120} />
+			<h1>Svelte Charts</h1>
+		</div>
+
 		<div class="hero-content">
 			<div class="hero-text">
-				<div class="brand">
-					<ChartLine size={32} />
-					<span>Svelte Charts</span>
-				</div>
-
-				<h1>
+				<h2>
 					Precise Data<br />
 					<span class="accent">Visualization</span>
-				</h1>
+				</h2>
 
 				<p class="lead">
 					Professional chart components built for Svelte 5. Clean, accessible, and performant data
@@ -90,14 +90,14 @@
 	</section>
 
 	<!-- Features Grid -->
-	<section id="features" class="features">
+	<section id="features" class="features__c">
 		<div class="section-header">
-			<h2>Features</h2>
-			<p>Built with precision and attention to detail</p>
+			<h2>Features<span class="accent">.</span></h2>
+			<p class="lead">Built with precision and attention to detail</p>
 		</div>
 
-		<div class="features-grid">
-			<div class="feature-card">
+		<div class="features__w">
+			<div class="feature">
 				<div class="feature-icon">
 					<Zap size={24} />
 				</div>
@@ -108,7 +108,7 @@
 				</p>
 			</div>
 
-			<div class="feature-card">
+			<div class="feature">
 				<div class="feature-icon">
 					<Shield size={24} />
 				</div>
@@ -118,7 +118,7 @@
 				</p>
 			</div>
 
-			<div class="feature-card">
+			<div class="feature">
 				<div class="feature-icon">
 					<Palette size={24} />
 				</div>
@@ -135,7 +135,7 @@
 		<div class="showcase-content">
 			<div class="showcase-info">
 				<h2>Clean Design</h2>
-				<p>
+				<p class="lead">
 					Every element serves a purpose. No decoration without function. Clear typography and
 					precise spacing create hierarchy and improve readability.
 				</p>
@@ -238,14 +238,14 @@
 		box-sizing: border-box;
 	}
 
-	.container {
+	/* .container {
 		max-width: 1200px;
 		margin: 0 auto;
 		padding: 0 var(--spacing-sm);
 		font-family: var(--font-system);
 		line-height: 1.5;
 		color: var(--color-black);
-	}
+	} */
 
 	/* Typography */
 	h1,
@@ -257,7 +257,8 @@
 	}
 
 	h1 {
-		font-size: clamp(2.5rem, 5vw, 4rem);
+		font-family: 'bold';
+		/* font-size: clamp(8rem, 1vw, 2rem); */
 		line-height: 1.1;
 	}
 
@@ -274,6 +275,10 @@
 	p {
 		margin: 0 0 var(--spacing-sm) 0;
 		color: var(--color-gray-dark);
+	}
+	:global(svg) {
+		color: var(--color-red);
+		
 	}
 
 	/* Hero Section */
@@ -293,14 +298,22 @@
 		display: flex;
 		align-items: center;
 		gap: var(--spacing-xs);
-		font-size: 1.25rem;
-		font-weight: 500;
-		margin-bottom: var(--spacing-md);
+		justify-content: center;
+		margin-bottom: var(--spacing-xl);
+		width: fit-content; /* Add this to constrain width */
+		margin-left: auto; /* Add this for centering */
+		margin-right: auto; /* Add this for centering */
+
+		& h1 {
+			display: inline-block;
+			line-height: 1;
+			font-size: clamp(3rem, 0.8824rem + 10.5882vw, 12rem);
+			white-space: nowrap; /* Prevent text wrapping */
+			flex-shrink: 0; /* Prevent shrinking */
+		}
 	}
 
-	.brand :global(svg) {
-		color: var(--color-red);
-	}
+	
 
 	.accent {
 		color: var(--color-red);
@@ -346,6 +359,9 @@
 	.btn-primary:hover {
 		background: var(--color-red);
 		border-color: var(--color-red);
+		:global(svg) {
+		color: var(--color-slate-100);
+		}
 	}
 
 	.btn-secondary {
@@ -355,6 +371,7 @@
 
 	.btn-secondary:hover {
 		background: var(--color-gray-light);
+		
 	}
 
 	.btn-outline {
@@ -368,34 +385,71 @@
 	}
 
 	/* Features Section */
-	.features {
+	.features__c {
+		display: flex;
+		justify-content: space-between;
 		padding: var(--spacing-xl) 0;
 		border-bottom: 1px solid var(--color-gray-medium);
+		.section-header {
+			
+			margin-bottom: var(--spacing-lg);
+			h2 {
+				font-size: clamp(3rem, 0.8824rem + 10.5882vw, 12rem);
+				letter-spacing: -0.02em;
+				font-family: 'bold';
+				line-height: 1;
+				
+			}
+			p {
+				font-size: clamp(1.125rem, 0.2941rem + 2.3529vw, 1.8rem);
+				line-height: 1;
+			}
+		}
+		@media screen and (max-width: 768px) {
+			width: 100%;
+			flex-direction: column;
+			
+		}
+
 	}
 
-	.section-header {
-		text-align: center;
-		margin-bottom: var(--spacing-lg);
-	}
+	.features__w {
+		display:flex;
+		/* width: 100%; */
 
-	.section-header p {
-		font-size: 1.125rem;
-		max-width: 500px;
-		margin: 0 auto;
-	}
-
-	.features-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+		flex-direction: column;
+		/* justify-content: flex-end; */
+		/* align-items: end; */
+		/* text-align: right; */
+		/* grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); */
 		gap: var(--spacing-lg);
+	
 	}
 
-	.feature-card {
-		text-align: center;
-		padding: var(--spacing-md);
+	.feature {
+		padding: var(--spacing-sm);
+		line-clamp: 3;
+		
+		
+		& h3 {
+			/* display: flex;
+			align-items: center; */
+			gap: var(--spacing-xs);
+			font-size: 2rem;
+			margin-bottom: var(--spacing-sm);
+			border-bottom: 2px solid var(--color-slate-500);
+		}
+		& p{
+			font-size: 1.125rem;
+			color: var(--color-slate-500);
+			margin-bottom: var(--spacing-sm);
+			max-width: 30ch;
+			/* text-align: right; */
+		} 
+	
 	}
 
-	.feature-icon {
+	/* .feature-icon {
 		width: 48px;
 		height: 48px;
 		margin: 0 auto var(--spacing-sm);
@@ -403,11 +457,11 @@
 		align-items: center;
 		justify-content: center;
 		border: 2px solid var(--color-black);
-	}
+	} */
 
-	.feature-icon :global(svg) {
+	/* .feature-icon :global(svg) {
 		color: var(--color-red);
-	}
+	} */
 
 	/* Showcase Section */
 	.showcase {
@@ -524,16 +578,20 @@
 			grid-template-columns: 1fr;
 			gap: var(--spacing-md);
 		}
-
+		.brand {
+			flex-direction: column;
+			align-items: center;
+			text-align: center;
+		}
 		.hero-chart,
 		.showcase-chart {
 			order: -1;
 		}
 
-		.features-grid {
+		/* .features-grid {
 			grid-template-columns: 1fr;
 			gap: var(--spacing-md);
-		}
+		} */
 
 		.stats-grid {
 			grid-template-columns: repeat(2, 1fr);
