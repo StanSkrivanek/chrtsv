@@ -1,6 +1,11 @@
 
 
 @font-face {
+	font-family: 'mono';
+	src: url('/fonts/Mono-Book.woff2') format('woff2');
+
+}
+@font-face {
 	font-family: 'thin';
 	src: url('/fonts/Gilroy-Thin.ttf') format('truetype');
 	/* font-weight: 100; */
