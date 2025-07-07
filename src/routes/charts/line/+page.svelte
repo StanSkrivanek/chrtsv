@@ -259,8 +259,8 @@
 	<div class="container">
 		<div class="header-content">
 			<div class="header-text">
+				<ChartLine size={32} />
 				<h1>
-					<ChartLine size={32} />
 					Line Charts
 				</h1>
 				<p class="header-description">
@@ -1157,7 +1157,7 @@ function getDataTableSummary(): string;`}
 	} */
 
 	.container {
-		max-width: 1200px;
+		max-width: 1680px;
 		margin: 0 auto;
 		padding: 0 var(--spacing-sm);
 		line-height: 1.5;
@@ -1269,7 +1269,7 @@ function getDataTableSummary(): string;`}
 
 	/* Tabs Section */
 	.tabs-section {
-		padding: var(--spacing-3xl) 0;
+		
 		background: #f8fafc;
 		border-top: 1px solid #e2e8f0;
 	}

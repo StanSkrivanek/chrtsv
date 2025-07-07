@@ -195,7 +195,7 @@
 	</section>
 
 	<!-- CTA Section -->
-	<section class="cta-section">
+	<section class="cta-footer-section">
 		<div class="cta-content">
 			<h2>Start Building</h2>
 			<p>Add professional charts to your Svelte application today.</p>
@@ -238,51 +238,7 @@
 		--transition: all 0.2s ease;
 	}
 
-	* {
-		box-sizing: border-box;
-	}
 
-	/* .container {
-		max-width: 1200px;
-		margin: 0 auto;
-		padding: 0 var(--spacing-sm);
-		font-family: var(--font-system);
-		line-height: 1.5;
-		color: var(--color-slate-900);
-	} */
-
-	/* Typography */
-	h1,
-	h2,
-	h3 {
-		font-weight: 400;
-		letter-spacing: -0.02em;
-		margin: 0;
-	}
-
-	h1 {
-		font-family: 'bold';
-		/* font-size: clamp(8rem, 1vw, 2rem); */
-		line-height: 1.1;
-	}
-
-	h2 {
-		font-size: 2rem;
-		margin-bottom: var(--space-4);
-	}
-
-	h3 {
-		font-size: 1.25rem;
-		margin-bottom: var(--spacing-xs);
-	}
-
-	p {
-		margin: 0 0 var(--space-4) 0;
-		color: var(--color-slate-400);
-	}
-	:global(svg) {
-		color: var(--color-rose-500);
-	}
 
 	/* Hero Section */
 	.hero {
@@ -357,73 +313,13 @@
 		}
 	}
 
-	.accent {
-		color: var(--color-rose-500);
-	}
+	
 
-	.lead {
-		font-size: 1.125rem;
-		margin-bottom: var(--spacing-md);
-		max-width: 400px;
-	}
+	
 
-	.cta-group {
-		display: flex;
-		gap: var(--space-4);
-		flex-wrap: wrap;
-	}
 
-	/* .hero-chart {
-		
-		padding: var(--spacing-md);
-	} */
 
-	/* Buttons */
-	.btn {
-		display: inline-flex;
-		align-items: center;
-		gap: var(--spacing-xs);
-		padding: var(--space-4);
-		text-decoration: none;
-		font-weight: 500;
-		border: 2px solid var(--color-slate-900);
-		transition: var(--transition);
-		cursor: pointer;
-		font-family: inherit;
-		font-size: 0.95rem;
-	}
 
-	.btn-primary {
-		background: var(--color-slate-900);
-		color: var(--color-slate-50);
-	}
-
-	.btn-primary:hover {
-		background: var(--color-rose-500);
-		border-color: var(--color-rose-500);
-		:global(svg) {
-			color: var(--color-slate-100);
-		}
-	}
-
-	.btn-secondary {
-		background: var(--color-slate-50);
-		color: var(--color-slate-900);
-	}
-
-	.btn-secondary:hover {
-		background: var(--color-slate-200);
-	}
-
-	.btn-outline {
-		background: transparent;
-		color: var(--color-slate-900);
-	}
-
-	.btn-outline:hover {
-		background: var(--color-slate-900);
-		color: var(--color-slate-50);
-	}
 
 	/* Features Section */
 	.features__c {
@@ -512,19 +408,6 @@
 		}
 	}
 
-	/* .feature-icon {
-		width: 48px;
-		height: 48px;
-		margin: 0 auto var(--space-4);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		border: 2px solid var(--color-slate-900);
-	} */
-
-	/* .feature-icon :global(svg) {
-		color: var(--color-rose-500);
-	} */
 
 	/* Showcase Section */
 	.showcase {
@@ -566,32 +449,7 @@
 		}
 	}
 
-	.link-arrow {
-		display: inline-flex;
-		align-items: center;
-		gap: var(--spacing-xs);
-		color: var(--color-rose-500);
-		text-decoration: none;
-		font-weight: 500;
-		transition: var(--transition);
-	}
 
-	.link-arrow:hover {
-		color: var(--color-slate-900);
-	}
-
-	.chart__w {
-		background: var(--color-slate-50);
-		padding: var(--spacing-md);
-	}
-
-	.chart-label {
-		font-size: 0.875rem;
-		color: var(--color-slate-400);
-		margin-bottom: var(--space-4);
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-	}
 
 	/* Stats Section */
 	.stats {
@@ -625,7 +483,7 @@
 	}
 
 	/* CTA Section */
-	.cta-section {
+	.cta-footer-section {
 		padding: var(--spacing-xl) 0;
 		text-align: center;
 	}
@@ -658,10 +516,10 @@
 			align-items: center;
 			text-align: center;
 		}
-		.hero-chart,
+		/* .hero-chart,
 		.showcase-chart {
 			order: -1;
-		}
+		} */
 
 		/* .features-grid {
 			grid-template-columns: 1fr;
