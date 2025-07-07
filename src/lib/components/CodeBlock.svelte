@@ -6,7 +6,7 @@
 	let {
 		code = '',
 		language = 'javascript' as BundledLanguage,
-		theme = 'github-dark' as BundledTheme,
+		theme = 'catppuccin-mocha' as BundledTheme,
 		caption = '',
 		tabSize = 4
 	}: {

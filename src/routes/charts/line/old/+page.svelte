@@ -688,7 +688,7 @@ const lines = [
 		hasTooltip={true}
 		height={450}
 		yTickCount={5}
-		doubleTicksForNegatives={true}
+		doubleTicks={true}
 	/>
 
 	<div class="description">
@@ -733,7 +733,7 @@ const lines = [
 				showLegend={false}
 				height={350}
 				yTickCount={5}
-				doubleTicksForNegatives={false}
+				doubleTicks={false}
 			/>
 		</div>
 		<div>
@@ -746,7 +746,7 @@ const lines = [
 				showLegend={false}
 				height={350}
 				yTickCount={5}
-				doubleTicksForNegatives={true}
+				doubleTicks={true}
 			/>
 		</div>
 	</div>
@@ -1219,3 +1219,5 @@ const lines = [
 		}
 	}
 </style>
+
+ 
