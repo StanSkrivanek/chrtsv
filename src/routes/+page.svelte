@@ -1,6 +1,6 @@
 <script lang="ts">
 	import MultiLineChart from '$lib/components/charts/line/MultiLineChart.svelte';
-	import { ArrowRight, ChartLine, Github, Palette, Shield, Zap } from 'lucide-svelte';
+	import { ArrowRight, ChartLine, Palette, Shield, Zap } from 'lucide-svelte';
 
 	// Sample data for hero chart
 	const heroData = [
@@ -134,18 +134,21 @@
 	<!-- Showcase Section -->
 	<section class="showcase">
 		<div class="showcase-content">
-			<div class="showcase-info">
+			<div class="section-text">
 				<h2>Clean Design</h2>
+				<p class="sub-heading">Built for clarity. Nothing extra</p>
 				<p class="lead">
-					Every element serves a purpose. No decoration without function. Clear typography and
-					precise spacing create hierarchy and improve readability.
+					<!-- Every element serves a purpose. No decoration without function. Clear typography and
+					precise spacing create hierarchy and improve readability. -->
+					Every element supports the data. No decoration without purpose. Clear structure, precise spacing,
+					and accessible contrast improve comprehension
 				</p>
 
-				<ul class="feature-list">
-					<li>Swiss-inspired design system</li>
-					<li>Consistent spacing and typography</li>
-					<li>Minimal cognitive load</li>
-					<li>Focus on data clarity</li>
+				<ul class="feature-list lead">
+					<li>Data clarity first</li>
+					<li>Consistent layout</li>
+					<li>Low cognitive load</li>
+					<li>Accessible contrast</li>
 				</ul>
 
 				<a href="/charts" class="link-arrow">
@@ -203,7 +206,14 @@
 					View Documentation
 				</a>
 				<a href="https://github.com" class="btn btn-outline">
-					<Github size={16} />
+					<!-- <Github size={16} /> -->
+					<img
+						src="/github.svg"
+						alt=""
+						width="16"
+						height="16"
+						style="color: var(--color-red-600);"
+					/>
 					View on GitHub
 				</a>
 			</div>
@@ -461,7 +471,7 @@
 		}
 		@media screen and (max-width: 480px) {
 			display: block;
-			gap: var(--spacing-sm);			
+			gap: var(--spacing-sm);
 		}
 	}
 
@@ -527,21 +537,33 @@
 		grid-template-columns: 1fr 1fr;
 		gap: var(--spacing-lg);
 		align-items: center;
+		h2 {
+			font-size: clamp(3rem, 0.8824rem + 5.5882vw, 4rem);
+			letter-spacing: -0.02em;
+			font-family: 'bold';
+			line-height: 1;
+			/* margin-bottom: var(--spacing-md); */
+		}
+		.sub-heading {
+			font-size: 1.125rem;
+			font-family: 'semibold';
+			margin-bottom: var(--spacing-md);
+			color: var(--color-slate-600);
+		}
 	}
 
 	.feature-list {
 		list-style: none;
 		padding: 0;
 		margin: var(--spacing-md) 0;
-	}
-
-	.feature-list li {
-		padding: var(--spacing-xs) 0;
-		border-bottom: 1px solid var(--color-slate-300);
-	}
-
-	.feature-list li:last-child {
-		border-bottom: none;
+		li {
+			padding: var(--spacing-sm) 0;
+			border-bottom: 1px solid var(--color-slate-300);
+			letter-spacing: 0.025em;
+		}
+		li:last-child {
+			border-bottom: none;
+		}
 	}
 
 	.link-arrow {
