@@ -1,6 +1,8 @@
 <script lang="ts">
-	import CodeBlock from '$lib/components/CodeBlock.svelte';
 	import MultiLineChart from '$lib/components/charts/line/MultiLineChart.svelte';
+	import CodeBlock from '$lib/components/CodeBlock.svelte';
+	import TabComponent from '$lib/components/TabComponent.svelte';
+	import UsageExample from '$lib/components/UsageExample.svelte';
 	import {
 		Accessibility,
 		Activity,
@@ -18,8 +20,19 @@
 		Users
 	} from 'lucide-svelte';
 
-	// Documentation visibility state
-	let showDocumentation = true;
+	// Tab state
+	let showTabs = $state(false);
+	let activeTab = $state('documentation');
+
+	// Tab configuration
+	const tabs = [
+		{ id: 'documentation', label: 'Documentation', icon: BookOpen },
+		{ id: 'usage', label: 'Usage Example', icon: Code }
+	];
+
+	function handleTabChange(tabId: string) {
+		activeTab = tabId;
+	}
 
 	// Example data for multiple product lines
 	const productData = [
@@ -211,8 +224,8 @@
 		}
 	];
 
-	let selectedMetric = 'sales' as 'sales' | 'revenue' | 'units_sold';
-	let selectedProfitMetric = 'profit' as 'profit' | 'margin';
+	let selectedMetric = $state('sales' as 'sales' | 'revenue' | 'units_sold');
+	let selectedProfitMetric = $state('profit' as 'profit' | 'margin');
 
 	const metrics = [
 		{ value: 'sales' as const, label: 'Sales ($)' },
@@ -264,118 +277,128 @@
 			</div>
 
 			<div class="header-actions">
-				<button class="btn btn-secondary" onclick={() => (showDocumentation = !showDocumentation)}>
+				<button
+					class="btn btn-secondary"
+					onclick={() => {
+						showTabs = !showTabs;
+						if (showTabs && !activeTab) {
+							activeTab = 'documentation';
+						}
+					}}
+				>
 					<BookOpen size={16} />
-					{showDocumentation ? 'Hide' : 'Show'} Documentation
+					{showTabs ? 'Hide' : 'Show'} Documentation & Usage
 				</button>
 			</div>
 		</div>
 	</div>
 </header>
 
-<!-- Documentation Section -->
+<!-- Documentation & Usage Section -->
 <main>
-	{#if showDocumentation}
-		<section class="documentation">
+	{#if showTabs}
+		<section class="tabs-section">
 			<div class="container">
-				<div class="doc-grid">
-					<!-- Props Reference -->
-					<div class="doc-section">
-						<h2><ClipboardList size={20} /> Props Reference</h2>
-						<div class="table-container">
-							<table class="props-table">
-								<thead>
-									<tr>
-										<th>Prop</th>
-										<th>Type</th>
-										<th>Default</th>
-										<th>Description</th>
-									</tr>
-								</thead>
-								<tbody>
-									<tr>
-										<td><code>lines</code></td>
-										<td><code>LineData[]</code></td>
-										<td><code>[]</code></td>
-										<td>Array of line data objects (max 5 lines)</td>
-									</tr>
-									<tr>
-										<td><code>xKey</code></td>
-										<td><code>string</code></td>
-										<td><code>'date'</code></td>
-										<td>Key to use for x-axis values</td>
-									</tr>
-									<tr>
-										<td><code>yKey</code></td>
-										<td><code>string</code></td>
-										<td><code>'value'</code></td>
-										<td>Key to use for y-axis values</td>
-									</tr>
-									<tr>
-										<td><code>title</code></td>
-										<td><code>string</code></td>
-										<td><code>'Multi Line Chart'</code></td>
-										<td>Chart title</td>
-									</tr>
-									<tr>
-										<td><code>showLegend</code></td>
-										<td><code>boolean</code></td>
-										<td><code>true</code></td>
-										<td>Whether to show the legend</td>
-									</tr>
-									<tr>
-										<td><code>height</code></td>
-										<td><code>number</code></td>
-										<td><code>400</code></td>
-										<td>Chart height in pixels</td>
-									</tr>
-									<tr>
-										<td><code>showValues</code></td>
-										<td><code>boolean</code></td>
-										<td><code>false</code></td>
-										<td>Show value labels above each data point</td>
-									</tr>
-									<tr>
-										<td><code>hasTooltip</code></td>
-										<td><code>boolean</code></td>
-										<td><code>true</code></td>
-										<td>Enable/disable tooltips on hover</td>
-									</tr>
-									<tr>
-										<td><code>yTickCount</code></td>
-										<td><code>number</code></td>
-										<td><code>5</code></td>
-										<td>Number of ticks on Y-axis</td>
-									</tr>
-									<tr>
-										<td><code>doubleTicks</code></td>
-										<td><code>boolean</code></td>
-										<td><code>true</code></td>
-										<td>Auto double tick count for negative values</td>
-									</tr>
-									<tr>
-										<td><code>dateFormat</code></td>
-										<td><code>string</code></td>
-										<td><code>'MMM dd'</code></td>
-										<td>Date format for display (using date-fns format)</td>
-									</tr>
-									<tr>
-										<td><code>inputDateFormat</code></td>
-										<td><code>string | null</code></td>
-										<td><code>null</code></td>
-										<td>Expected input date format for parsing</td>
-									</tr>
-								</tbody>
-							</table>
-						</div>
-					</div>
-					<!-- Basic Usage -->
-					<div class="doc-section">
-						<h2><Code size={20} /> Basic Usage</h2>
-						<div class="code-preview">
-							<div class="features-visual">
-								<CodeBlock
-									code={`
+				<TabComponent {tabs} {activeTab} onTabChange={handleTabChange}>
+					{#snippet documentation()}
+						<div class="doc-grid">
+							<!-- Props Reference -->
+							<div class="doc-section">
+								<h2><ClipboardList size={20} /> Props Reference</h2>
+								<div class="table-container">
+									<table class="props-table">
+										<thead>
+											<tr>
+												<th>Prop</th>
+												<th>Type</th>
+												<th>Default</th>
+												<th>Description</th>
+											</tr>
+										</thead>
+										<tbody>
+											<tr>
+												<td><code>lines</code></td>
+												<td><code>LineData[]</code></td>
+												<td><code>[]</code></td>
+												<td>Array of line data objects (max 5 lines)</td>
+											</tr>
+											<tr>
+												<td><code>xKey</code></td>
+												<td><code>string</code></td>
+												<td><code>'date'</code></td>
+												<td>Key to use for x-axis values</td>
+											</tr>
+											<tr>
+												<td><code>yKey</code></td>
+												<td><code>string</code></td>
+												<td><code>'value'</code></td>
+												<td>Key to use for y-axis values</td>
+											</tr>
+											<tr>
+												<td><code>title</code></td>
+												<td><code>string</code></td>
+												<td><code>'Multi Line Chart'</code></td>
+												<td>Chart title</td>
+											</tr>
+											<tr>
+												<td><code>showLegend</code></td>
+												<td><code>boolean</code></td>
+												<td><code>true</code></td>
+												<td>Whether to show the legend</td>
+											</tr>
+											<tr>
+												<td><code>height</code></td>
+												<td><code>number</code></td>
+												<td><code>400</code></td>
+												<td>Chart height in pixels</td>
+											</tr>
+											<tr>
+												<td><code>showValues</code></td>
+												<td><code>boolean</code></td>
+												<td><code>false</code></td>
+												<td>Show value labels above each data point</td>
+											</tr>
+											<tr>
+												<td><code>hasTooltip</code></td>
+												<td><code>boolean</code></td>
+												<td><code>true</code></td>
+												<td>Enable/disable tooltips on hover</td>
+											</tr>
+											<tr>
+												<td><code>yTickCount</code></td>
+												<td><code>number</code></td>
+												<td><code>5</code></td>
+												<td>Number of ticks on Y-axis</td>
+											</tr>
+											<tr>
+												<td><code>doubleTicks</code></td>
+												<td><code>boolean</code></td>
+												<td><code>true</code></td>
+												<td>Auto double tick count for negative values</td>
+											</tr>
+											<tr>
+												<td><code>dateFormat</code></td>
+												<td><code>string</code></td>
+												<td><code>'MMM dd'</code></td>
+												<td>Date format for display (using date-fns format)</td>
+											</tr>
+											<tr>
+												<td><code>inputDateFormat</code></td>
+												<td><code>string | null</code></td>
+												<td><code>null</code></td>
+												<td>Expected input date format for parsing</td>
+											</tr>
+										</tbody>
+									</table>
+								</div>
+							</div>
+							<!-- Basic Usage -->
+							<div class="doc-section">
+								<h2><Code size={20} /> Basic Usage</h2>
+								<div class="code-preview">
+									<div class="features-visual">
+										<CodeBlock
+											code={`
 									<MultiLineChart
 										lines={Data}
 										xKey="month"
@@ -383,28 +406,29 @@
 										title="Product Performance"
 										showLegend={true}
 									/>`}
-									language="svelte"
-									theme="tokyo-night"
-								/>
+											language="svelte"
+											theme="tokyo-night"
+										/>
+									</div>
+								</div>
 							</div>
-						</div>
-					</div>
 
-					<!-- Negative Values Support -->
-					<div class="doc-section">
-						<h2><TrendingDown size={20} /> Negative Values Support</h2>
-						<div class="highlight-box">
-							<h4><Target size={18} /> Automatic Features</h4>
-							<p>
-								When negative values are detected, the component automatically adds a zero reference
-								line and can double the tick count for better granularity around the zero line.
-							</p>
-						</div>
+							<!-- Negative Values Support -->
+							<div class="doc-section">
+								<h2><TrendingDown size={20} /> Negative Values Support</h2>
+								<div class="highlight-box">
+									<h4><Target size={18} /> Automatic Features</h4>
+									<p>
+										When negative values are detected, the component automatically adds a zero
+										reference line and can double the tick count for better granularity around the
+										zero line.
+									</p>
+								</div>
 
-						<div class="code-preview">
-							<div class="features-visual">
-								<CodeBlock
-									code={`
+								<div class="code-preview">
+									<div class="features-visual">
+										<CodeBlock
+											code={`
 									<MultiLineChart
 										lines={profitLossData}
 										xKey="month"
@@ -414,84 +438,86 @@
 										doubleTicks={true}
 									/>
 									`}
-									language="svelte"
-									theme="tokyo-night"
-								/>
+											language="svelte"
+											theme="tokyo-night"
+										/>
+									</div>
+								</div>
 							</div>
-						</div>
-					</div>
 
-					<!-- Key Features -->
-					<div class="doc-section">
-						<h2><Sparkles size={20} /> Key Features</h2>
-						<div class="feature-grid">
-							<div class="feature-card">
-								<div class="feature-icon">
-									<ChartLine size={24} />
+							<!-- Key Features -->
+							<div class="doc-section">
+								<h2><Sparkles size={20} /> Key Features</h2>
+								<div class="feature-grid">
+									<div class="feature-card">
+										<div class="feature-icon">
+											<ChartLine size={24} />
+										</div>
+										<h4>Multiple Lines</h4>
+										<p>
+											Display up to 5 lines simultaneously with automatic color assignment and
+											interactive legend.
+										</p>
+									</div>
+									<div class="feature-card">
+										<div class="feature-icon">
+											<TrendingDown size={24} />
+										</div>
+										<h4>Negative Values Support</h4>
+										<p>
+											Automatic handling of negative data with zero reference line and enhanced
+											scaling.
+										</p>
+									</div>
+									<div class="feature-card">
+										<div class="feature-icon">
+											<Target size={24} />
+										</div>
+										<h4>Auto-Doubled Ticks</h4>
+										<p>
+											Automatically increases tick density when negative values are detected for
+											better granularity.
+										</p>
+									</div>
+									<div class="feature-card">
+										<div class="feature-icon">
+											<Smartphone size={24} />
+										</div>
+										<h4>Responsive Design</h4>
+										<p>
+											Automatically adjusts to container size with smooth animations and
+											transitions.
+										</p>
+									</div>
+									<div class="feature-card">
+										<div class="feature-icon">
+											<Tag size={24} />
+										</div>
+										<h4>Value Labels</h4>
+										<p>Optional display of values above each data point for precise reading.</p>
+									</div>
+									<div class="feature-card">
+										<div class="feature-icon">
+											<Accessibility size={24} />
+										</div>
+										<h4>Accessibility</h4>
+										<p>
+											Full keyboard navigation, comprehensive ARIA support, screen reader
+											compatibility, and alternative data table access.
+										</p>
+									</div>
 								</div>
-								<h4>Multiple Lines</h4>
-								<p>
-									Display up to 5 lines simultaneously with automatic color assignment and
-									interactive legend.
-								</p>
 							</div>
-							<div class="feature-card">
-								<div class="feature-icon">
-									<TrendingDown size={24} />
-								</div>
-								<h4>Negative Values Support</h4>
-								<p>
-									Automatic handling of negative data with zero reference line and enhanced scaling.
-								</p>
-							</div>
-							<div class="feature-card">
-								<div class="feature-icon">
-									<Target size={24} />
-								</div>
-								<h4>Auto-Doubled Ticks</h4>
-								<p>
-									Automatically increases tick density when negative values are detected for better
-									granularity.
-								</p>
-							</div>
-							<div class="feature-card">
-								<div class="feature-icon">
-									<Smartphone size={24} />
-								</div>
-								<h4>Responsive Design</h4>
-								<p>
-									Automatically adjusts to container size with smooth animations and transitions.
-								</p>
-							</div>
-							<div class="feature-card">
-								<div class="feature-icon">
-									<Tag size={24} />
-								</div>
-								<h4>Value Labels</h4>
-								<p>Optional display of values above each data point for precise reading.</p>
-							</div>
-							<div class="feature-card">
-								<div class="feature-icon">
-									<Accessibility size={24} />
-								</div>
-								<h4>Accessibility</h4>
-								<p>
-									Full keyboard navigation, comprehensive ARIA support, screen reader compatibility,
-									and alternative data table access.
-								</p>
-							</div>
-						</div>
-					</div>
 
-					<!-- Advanced Examples -->
-					<div class="doc-section">
-						<h2><Settings size={20} /> Advanced Configuration</h2>
-						<div class="config-grid">
-							<div class="config-item">
-								<h4><Tag size={18} /> Point Value Labels</h4>
-								<div class="code-preview small">
-									<CodeBlock
-										code={`
+							<!-- Advanced Examples -->
+							<div class="doc-section">
+								<h2><Settings size={20} /> Advanced Configuration</h2>
+								<div class="config-grid">
+									<div class="config-item">
+										<h4><Tag size={18} /> Point Value Labels</h4>
+										<div class="code-preview small">
+											<CodeBlock
+												code={`
 										<MultiLineChart
 											lines={data}
 											xKey="date"
@@ -500,16 +526,16 @@
 											showLegend={false}
 										/>
 										`}
-										language="svelte"
-										theme="tokyo-night"
-									/>
-								</div>
-							</div>
-							<div class="config-item">
-								<h4><Target size={18} /> Custom Tick Count</h4>
-								<div class="code-preview small">
-									<CodeBlock
-										code={`
+												language="svelte"
+												theme="tokyo-night"
+											/>
+										</div>
+									</div>
+									<div class="config-item">
+										<h4><Target size={18} /> Custom Tick Count</h4>
+										<div class="code-preview small">
+											<CodeBlock
+												code={`
 									<MultiLineChart
 										lines={data}
 										xKey="date"
@@ -518,16 +544,16 @@
 										doubleTicks={false}
 									/>
 									`}
-										language="svelte"
-										theme="tokyo-night"
-									/>
-								</div>
-							</div>
-							<div class="config-item">
-								<h4><Activity size={18} /> Disable Tooltips</h4>
-								<div class="code-preview small">
-									<CodeBlock
-										code={`
+												language="svelte"
+												theme="tokyo-night"
+											/>
+										</div>
+									</div>
+									<div class="config-item">
+										<h4><Activity size={18} /> Disable Tooltips</h4>
+										<div class="code-preview small">
+											<CodeBlock
+												code={`
 									<MultiLineChart
 										lines={data}
 										xKey="date"
@@ -536,16 +562,16 @@
 										hasTooltip={false}
 									/>
 									`}
-										language="svelte"
-										theme="tokyo-night"
-									/>
-								</div>
-							</div>
-							<div class="config-item">
-								<h4><ChartLine size={18} /> Custom Date Format</h4>
-								<div class="code-preview small">
-									<CodeBlock
-										code={`
+												language="svelte"
+												theme="tokyo-night"
+											/>
+										</div>
+									</div>
+									<div class="config-item">
+										<h4><ChartLine size={18} /> Custom Date Format</h4>
+										<div class="code-preview small">
+											<CodeBlock
+												code={`
 									<MultiLineChart
 										lines={data}
 										xKey="date"
@@ -554,16 +580,16 @@
 										inputDateFormat="dd/MM/yyyy"
 									/>
 									`}
-										language="svelte"
-										theme="tokyo-night"
-									/>
+												language="svelte"
+												theme="tokyo-night"
+											/>
+										</div>
+									</div>
 								</div>
 							</div>
-						</div>
-					</div>
 
-					<!-- LineData Interface -->
-					<!-- <div class="doc-section">
+							<!-- LineData Interface -->
+							<!-- <div class="doc-section">
 					<h2><Code size={20} /> LineData Interface</h2>
 					<div class="code-preview">
 						<div class="code-header">TypeScript Interface</div>
@@ -593,105 +619,113 @@
 					</div>
 				</div> -->
 
-					<!-- Accessibility -->
-					<div class="doc-section">
-						<h2><Accessibility size={20} /> Accessibility</h2>
+							<!-- Accessibility -->
+							<div class="doc-section">
+								<h2><Accessibility size={20} /> Accessibility</h2>
 
-						<div class="accessibility-overview">
-							<p>
-								The MultiLineChart component has been significantly enhanced with comprehensive
-								accessibility features, making it fully compliant with WCAG 2.1 AA standards and
-								providing an excellent experience for all users, including those using assistive
-								technologies.
-							</p>
-						</div>
-
-						<div class="accessibility-features">
-							<h3><Activity size={18} /> Full Keyboard Navigation</h3>
-							<div class="accessibility-subsection">
-								<ul class="accessibility-list">
-									<li><strong>Chart Container:</strong> Focus management with keyboard controls</li>
-									<li><strong>Legend Items:</strong> Tab navigation with Enter/Space activation</li>
-									<li>
-										<strong>Data Table:</strong> Full keyboard navigation through table structure
-									</li>
-									<li>
-										<strong>Escape Key:</strong> Global reset to clear all highlights and return to normal
-										state
-									</li>
-								</ul>
-
-								<h4>Keyboard Shortcuts:</h4>
-								<div class="keyboard-shortcuts">
-									<div class="shortcut-item">
-										<kbd>Tab</kbd>
-										<span>Navigate between interactive elements</span>
-									</div>
-									<div class="shortcut-item">
-										<kbd>Enter</kbd> / <kbd>Space</kbd>
-										<span>Toggle line highlighting in legend</span>
-									</div>
-									<div class="shortcut-item">
-										<kbd>Escape</kbd>
-										<span>Clear all highlights and return to normal view</span>
-									</div>
+								<div class="accessibility-overview">
+									<p>
+										The MultiLineChart component has been significantly enhanced with comprehensive
+										accessibility features, making it fully compliant with WCAG 2.1 AA standards and
+										providing an excellent experience for all users, including those using assistive
+										technologies.
+									</p>
 								</div>
-							</div>
 
-							<h3><Users size={18} /> Screen Reader Support</h3>
-							<div class="accessibility-subsection">
-								<ul class="accessibility-list">
-									<li>
-										<strong>ARIA Labels:</strong> Comprehensive labels for all interactive elements
-									</li>
-									<li>
-										<strong>ARIA Descriptions:</strong> Detailed descriptions of chart content and functionality
-									</li>
-									<li>
-										<strong>ARIA Live Regions:</strong> Real-time announcements for user interactions
-									</li>
-									<li>
-										<strong>ARIA Pressed States:</strong> Current state information for highlighted lines
-									</li>
-									<li>
-										<strong>Semantic HTML:</strong> Proper heading structure and landmark roles
-									</li>
-								</ul>
+								<div class="accessibility-features">
+									<h3><Activity size={18} /> Full Keyboard Navigation</h3>
+									<div class="accessibility-subsection">
+										<ul class="accessibility-list">
+											<li>
+												<strong>Chart Container:</strong> Focus management with keyboard controls
+											</li>
+											<li>
+												<strong>Legend Items:</strong> Tab navigation with Enter/Space activation
+											</li>
+											<li>
+												<strong>Data Table:</strong> Full keyboard navigation through table structure
+											</li>
+											<li>
+												<strong>Escape Key:</strong> Global reset to clear all highlights and return
+												to normal state
+											</li>
+										</ul>
 
-								<h4>Example Screen Reader Announcements:</h4>
-								<div class="code-preview">
-									<CodeBlock
-										code={`'Highlighting Desktop Sales series';
+										<h4>Keyboard Shortcuts:</h4>
+										<div class="keyboard-shortcuts">
+											<div class="shortcut-item">
+												<kbd>Tab</kbd>
+												<span>Navigate between interactive elements</span>
+											</div>
+											<div class="shortcut-item">
+												<kbd>Enter</kbd> / <kbd>Space</kbd>
+												<span>Toggle line highlighting in legend</span>
+											</div>
+											<div class="shortcut-item">
+												<kbd>Escape</kbd>
+												<span>Clear all highlights and return to normal view</span>
+											</div>
+										</div>
+									</div>
+
+									<h3><Users size={18} /> Screen Reader Support</h3>
+									<div class="accessibility-subsection">
+										<ul class="accessibility-list">
+											<li>
+												<strong>ARIA Labels:</strong> Comprehensive labels for all interactive elements
+											</li>
+											<li>
+												<strong>ARIA Descriptions:</strong> Detailed descriptions of chart content and
+												functionality
+											</li>
+											<li>
+												<strong>ARIA Live Regions:</strong> Real-time announcements for user interactions
+											</li>
+											<li>
+												<strong>ARIA Pressed States:</strong> Current state information for highlighted
+												lines
+											</li>
+											<li>
+												<strong>Semantic HTML:</strong> Proper heading structure and landmark roles
+											</li>
+										</ul>
+
+										<h4>Example Screen Reader Announcements:</h4>
+										<div class="code-preview">
+											<CodeBlock
+												code={`'Highlighting Desktop Sales series';
 										'All series visible';
 										'Chart cleared, all lines visible';
 										'Data table opened';`}
-										language="javascript"
-										theme="tokyo-night"
-									/>
-								</div>
-							</div>
+												language="javascript"
+												theme="tokyo-night"
+											/>
+										</div>
+									</div>
 
-							<h3><ChartLine size={18} /> Alternative Data Access</h3>
-							<div class="accessibility-subsection">
-								<ul class="accessibility-list">
-									<li>
-										<strong>Toggle Data Table:</strong> Optional accessible table representation of chart
-										data
-									</li>
-									<li>
-										<strong>Proper Table Structure:</strong> Semantic headers with
-										<code>scope</code> attributes
-									</li>
-									<li>
-										<strong>Data Summary:</strong> Screen reader accessible summary of data ranges
-									</li>
-									<li><strong>Table Caption:</strong> Descriptive caption for the data table</li>
-								</ul>
+									<h3><ChartLine size={18} /> Alternative Data Access</h3>
+									<div class="accessibility-subsection">
+										<ul class="accessibility-list">
+											<li>
+												<strong>Toggle Data Table:</strong> Optional accessible table representation
+												of chart data
+											</li>
+											<li>
+												<strong>Proper Table Structure:</strong> Semantic headers with
+												<code>scope</code> attributes
+											</li>
+											<li>
+												<strong>Data Summary:</strong> Screen reader accessible summary of data ranges
+											</li>
+											<li>
+												<strong>Table Caption:</strong> Descriptive caption for the data table
+											</li>
+										</ul>
 
-								<h4>Table Structure Example:</h4>
-								<div class="code-preview">
-									<CodeBlock
-										code={`<table>
+										<h4>Table Structure Example:</h4>
+										<div class="code-preview">
+											<CodeBlock
+												code={`<table>
 										<caption class="sr-only">Multi Line Chart - Detailed data table with 3 data series</caption>
 										<thead>
 											<tr>
@@ -700,53 +734,57 @@
 											</tr>
 										</thead>
 										</table>`}
-										language="html"
-										theme="tokyo-night"
-									/>
-								</div>
-							</div>
+												language="html"
+												theme="tokyo-night"
+											/>
+										</div>
+									</div>
 
-							<h3><Target size={18} /> Visual Accessibility</h3>
-							<div class="accessibility-subsection">
-								<ul class="accessibility-list">
-									<li>
-										<strong>High Contrast:</strong> Enhanced color contrast for all UI elements
-									</li>
-									<li>
-										<strong>Focus Indicators:</strong> Clear visual indicators for focused elements
-									</li>
-									<li>
-										<strong>Responsive Design:</strong> Accessible across all screen sizes and zoom levels
-									</li>
-									<li>
-										<strong>Color Independence:</strong> Information not conveyed through color alone
-									</li>
-								</ul>
-							</div>
+									<h3><Target size={18} /> Visual Accessibility</h3>
+									<div class="accessibility-subsection">
+										<ul class="accessibility-list">
+											<li>
+												<strong>High Contrast:</strong> Enhanced color contrast for all UI elements
+											</li>
+											<li>
+												<strong>Focus Indicators:</strong> Clear visual indicators for focused elements
+											</li>
+											<li>
+												<strong>Responsive Design:</strong> Accessible across all screen sizes and zoom
+												levels
+											</li>
+											<li>
+												<strong>Color Independence:</strong> Information not conveyed through color alone
+											</li>
+										</ul>
+									</div>
 
-							<h3><Sparkles size={18} /> Interactive Feedback</h3>
-							<div class="accessibility-subsection">
-								<ul class="accessibility-list">
-									<li>
-										<strong>Live Announcements:</strong> Screen reader announcements for all state changes
-									</li>
-									<li><strong>Hover States:</strong> Visual feedback for mouse interactions</li>
-									<li><strong>Focus States:</strong> Clear indication of keyboard focus</li>
-									<li><strong>Loading States:</strong> Accessible loading and transition states</li>
-								</ul>
-							</div>
+									<h3><Sparkles size={18} /> Interactive Feedback</h3>
+									<div class="accessibility-subsection">
+										<ul class="accessibility-list">
+											<li>
+												<strong>Live Announcements:</strong> Screen reader announcements for all state
+												changes
+											</li>
+											<li><strong>Hover States:</strong> Visual feedback for mouse interactions</li>
+											<li><strong>Focus States:</strong> Clear indication of keyboard focus</li>
+											<li>
+												<strong>Loading States:</strong> Accessible loading and transition states
+											</li>
+										</ul>
+									</div>
 
-							<h3><Code size={18} /> Technical Implementation</h3>
-							<div class="accessibility-subsection">
-								<p>
-									No new props are required - accessibility is built-in while maintaining backward
-									compatibility.
-								</p>
+									<h3><Code size={18} /> Technical Implementation</h3>
+									<div class="accessibility-subsection">
+										<p>
+											No new props are required - accessibility is built-in while maintaining
+											backward compatibility.
+										</p>
 
-								<h4>Key Functions:</h4>
-								<div class="code-preview">
-									<CodeBlock
-										code={`// Screen reader announcements
+										<h4>Key Functions:</h4>
+										<div class="code-preview">
+											<CodeBlock
+												code={`// Screen reader announcements
 function announceToScreenReader(message: string);
 
 // Chart description generation
@@ -754,28 +792,28 @@ function generateChartDescription(): string;
 
 // Data table summary
 function getDataTableSummary(): string;`}
-										language="typescript"
-										theme="tokyo-night"
-									/>
-								</div>
+												language="typescript"
+												theme="tokyo-night"
+											/>
+										</div>
 
-								<h4>CSS Classes:</h4>
-								<div class="code-preview">
-									<CodeBlock
-										code={`.sr-only                    /* Screen reader only content */
+										<h4>CSS Classes:</h4>
+										<div class="code-preview">
+											<CodeBlock
+												code={`.sr-only                    /* Screen reader only content */
 .chart-keyboard-handler     /* Keyboard navigation handler */
 .data-table-toggle         /* Data table toggle button */
 .data-table-container      /* Data table wrapper */
 .chart-container           /* Chart container */`}
-										language="css"
-										theme="tokyo-night"
-									/>
-								</div>
+												language="css"
+												theme="tokyo-night"
+											/>
+										</div>
 
-								<h4>ARIA Implementation:</h4>
-								<div class="code-preview">
-									<CodeBlock
-										code={`<svg role="img" aria-label="Line chart: Multi Line Chart" aria-describedby="chart-description">
+										<h4>ARIA Implementation:</h4>
+										<div class="code-preview">
+											<CodeBlock
+												code={`<svg role="img" aria-label="Line chart: Multi Line Chart" aria-describedby="chart-description">
   <div
     role="button"
     aria-label="Toggle highlight for Desktop Sales series"
@@ -783,140 +821,152 @@ function getDataTableSummary(): string;`}
     aria-describedby="legend-instructions"
   ></div>
 </svg>`}
-										language="html"
-										theme="tokyo-night"
-									/>
-								</div>
-							</div>
-
-							<h3><Accessibility size={18} /> WCAG 2.1 AA Compliance</h3>
-							<div class="accessibility-subsection">
-								<div class="wcag-principles">
-									<div class="wcag-principle">
-										<h4>✅ Perceivable</h4>
-										<ul>
-											<li>Alternative text for all visual content</li>
-											<li>High contrast ratios for text and UI elements</li>
-											<li>Supports zoom up to 200% without loss of functionality</li>
-											<li>Information not conveyed through color alone</li>
-										</ul>
+												language="html"
+												theme="tokyo-night"
+											/>
+										</div>
 									</div>
 
-									<div class="wcag-principle">
-										<h4>✅ Operable</h4>
-										<ul>
-											<li>All functionality available via keyboard</li>
-											<li>No flashing or moving content that could trigger seizures</li>
-											<li>Clear navigation structure with landmarks and headings</li>
-											<li>Clear labels and instructions for all inputs</li>
-										</ul>
+									<h3><Accessibility size={18} /> WCAG 2.1 AA Compliance</h3>
+									<div class="accessibility-subsection">
+										<div class="wcag-principles">
+											<div class="wcag-principle">
+												<h4>✅ Perceivable</h4>
+												<ul>
+													<li>Alternative text for all visual content</li>
+													<li>High contrast ratios for text and UI elements</li>
+													<li>Supports zoom up to 200% without loss of functionality</li>
+													<li>Information not conveyed through color alone</li>
+												</ul>
+											</div>
+
+											<div class="wcag-principle">
+												<h4>✅ Operable</h4>
+												<ul>
+													<li>All functionality available via keyboard</li>
+													<li>No flashing or moving content that could trigger seizures</li>
+													<li>Clear navigation structure with landmarks and headings</li>
+													<li>Clear labels and instructions for all inputs</li>
+												</ul>
+											</div>
+
+											<div class="wcag-principle">
+												<h4>✅ Understandable</h4>
+												<ul>
+													<li>Clear language and proper reading order</li>
+													<li>Consistent navigation and interaction patterns</li>
+													<li>Error identification and suggestions where applicable</li>
+												</ul>
+											</div>
+
+											<div class="wcag-principle">
+												<h4>✅ Robust</h4>
+												<ul>
+													<li>Compatible with current and future assistive technologies</li>
+													<li>Valid HTML with proper semantic markup</li>
+													<li>Graceful degradation and error recovery</li>
+												</ul>
+											</div>
+										</div>
 									</div>
 
-									<div class="wcag-principle">
-										<h4>✅ Understandable</h4>
-										<ul>
-											<li>Clear language and proper reading order</li>
-											<li>Consistent navigation and interaction patterns</li>
-											<li>Error identification and suggestions where applicable</li>
-										</ul>
-									</div>
+									<h3><Settings size={18} /> Usage Examples</h3>
+									<div class="accessibility-subsection">
+										<h4>Basic Usage (Accessibility Built-in):</h4>
+										<div class="code-preview">
+											<CodeBlock
+												code={`<MultiLineChart {lines} title="Sales Performance" showLegend={true} />`}
+												language="svelte"
+												theme="tokyo-night"
+											/>
+										</div>
 
-									<div class="wcag-principle">
-										<h4>✅ Robust</h4>
-										<ul>
-											<li>Compatible with current and future assistive technologies</li>
-											<li>Valid HTML with proper semantic markup</li>
-											<li>Graceful degradation and error recovery</li>
-										</ul>
-									</div>
-								</div>
-							</div>
-
-							<h3><Settings size={18} /> Usage Examples</h3>
-							<div class="accessibility-subsection">
-								<h4>Basic Usage (Accessibility Built-in):</h4>
-								<div class="code-preview">
-									<CodeBlock
-										code={`<MultiLineChart {lines} title="Sales Performance" showLegend={true} />`}
-										language="svelte"
-										theme="tokyo-night"
-									/>
-								</div>
-
-								<h4>With Data Table Access:</h4>
-								<div class="code-preview">
-									<CodeBlock
-										code={`<MultiLineChart {lines} title="Performance Metrics" showLegend={true} />
+										<h4>With Data Table Access:</h4>
+										<div class="code-preview">
+											<CodeBlock
+												code={`<MultiLineChart {lines} title="Performance Metrics" showLegend={true} />
 <!-- Data table toggle appears automatically -->`}
-										language="svelte"
-										theme="tokyo-night"
-									/>
-								</div>
-							</div>
+												language="svelte"
+												theme="tokyo-night"
+											/>
+										</div>
+									</div>
 
-							<h3><Activity size={18} /> Testing & Validation</h3>
-							<div class="accessibility-subsection">
-								<div class="testing-section">
-									<h4>Screen Reader Testing:</h4>
-									<ul class="testing-list">
-										<li><strong>NVDA:</strong> Fully compatible with Windows screen reader</li>
-										<li><strong>JAWS:</strong> Complete functionality with JAWS screen reader</li>
-										<li><strong>VoiceOver:</strong> Native macOS screen reader support</li>
-										<li><strong>Mobile:</strong> iOS and Android screen reader support</li>
-									</ul>
-								</div>
+									<h3><Activity size={18} /> Testing & Validation</h3>
+									<div class="accessibility-subsection">
+										<div class="testing-section">
+											<h4>Screen Reader Testing:</h4>
+											<ul class="testing-list">
+												<li><strong>NVDA:</strong> Fully compatible with Windows screen reader</li>
+												<li>
+													<strong>JAWS:</strong> Complete functionality with JAWS screen reader
+												</li>
+												<li><strong>VoiceOver:</strong> Native macOS screen reader support</li>
+												<li><strong>Mobile:</strong> iOS and Android screen reader support</li>
+											</ul>
+										</div>
 
-								<div class="testing-section">
-									<h4>Browser Testing:</h4>
-									<ul class="testing-list">
-										<li><strong>Chrome:</strong> Full accessibility features supported</li>
-										<li><strong>Firefox:</strong> Complete ARIA and keyboard support</li>
-										<li><strong>Safari:</strong> Native accessibility API integration</li>
-										<li><strong>Edge:</strong> Windows accessibility features enabled</li>
-									</ul>
-								</div>
-							</div>
+										<div class="testing-section">
+											<h4>Browser Testing:</h4>
+											<ul class="testing-list">
+												<li><strong>Chrome:</strong> Full accessibility features supported</li>
+												<li><strong>Firefox:</strong> Complete ARIA and keyboard support</li>
+												<li><strong>Safari:</strong> Native accessibility API integration</li>
+												<li><strong>Edge:</strong> Windows accessibility features enabled</li>
+											</ul>
+										</div>
+									</div>
 
-							<h3><Target size={18} /> Benefits</h3>
-							<div class="accessibility-subsection">
-								<div class="benefits-section">
-									<h4>For All Users:</h4>
-									<ul class="benefits-list">
-										<li>Enhanced usability patterns benefit everyone</li>
-										<li>Better performance through semantic HTML</li>
-										<li>Future-proof standards-compliant implementation</li>
-										<li>Professional quality enterprise-grade accessibility</li>
-									</ul>
-								</div>
+									<h3><Target size={18} /> Benefits</h3>
+									<div class="accessibility-subsection">
+										<div class="benefits-section">
+											<h4>For All Users:</h4>
+											<ul class="benefits-list">
+												<li>Enhanced usability patterns benefit everyone</li>
+												<li>Better performance through semantic HTML</li>
+												<li>Future-proof standards-compliant implementation</li>
+												<li>Professional quality enterprise-grade accessibility</li>
+											</ul>
+										</div>
 
-								<div class="benefits-section">
-									<h4>For Users with Disabilities:</h4>
-									<ul class="benefits-list">
-										<li>Screen reader users get complete data access and navigation</li>
-										<li>Keyboard users have full functionality without mouse dependency</li>
-										<li>
-											Visual impairments are supported with high contrast and scalable interfaces
-										</li>
-										<li>
-											Cognitive disabilities benefit from clear structure and predictable
-											interactions
-										</li>
-									</ul>
-								</div>
+										<div class="benefits-section">
+											<h4>For Users with Disabilities:</h4>
+											<ul class="benefits-list">
+												<li>Screen reader users get complete data access and navigation</li>
+												<li>Keyboard users have full functionality without mouse dependency</li>
+												<li>
+													Visual impairments are supported with high contrast and scalable
+													interfaces
+												</li>
+												<li>
+													Cognitive disabilities benefit from clear structure and predictable
+													interactions
+												</li>
+											</ul>
+										</div>
 
-								<div class="benefits-section">
-									<h4>For Developers:</h4>
-									<ul class="benefits-list">
-										<li>Meets accessibility regulations and legal compliance</li>
-										<li>No breaking changes to existing code</li>
-										<li>Comprehensive documentation and testing support</li>
-										<li>Built-in accessibility testing features</li>
-									</ul>
+										<div class="benefits-section">
+											<h4>For Developers:</h4>
+											<ul class="benefits-list">
+												<li>Meets accessibility regulations and legal compliance</li>
+												<li>No breaking changes to existing code</li>
+												<li>Comprehensive documentation and testing support</li>
+												<li>Built-in accessibility testing features</li>
+											</ul>
+										</div>
+									</div>
 								</div>
 							</div>
 						</div>
-					</div>
-				</div>
+					{/snippet}
+
+					{#snippet usage()}
+						<UsageExample
+							title="Basic Implementation"
+							description="Simple example showing how to create a multi-line chart with two data series"
+						/>
+					{/snippet}
+				</TabComponent>
 			</div>
 		</section>
 	{/if}
@@ -1215,11 +1265,13 @@ function getDataTableSummary(): string;`}
 		background: var(--color-gray-light);
 	}
 
-	/* Documentation */
-	.documentation {
-		border-bottom: 1px solid var(--color-gray-medium);
-		padding: var(--spacing-lg) 0;
-		background: var(--color-gray-light);
+	/* Tabs Section */
+
+	/* Tabs Section */
+	.tabs-section {
+		padding: var(--spacing-3xl) 0;
+		background: #f8fafc;
+		border-top: 1px solid #e2e8f0;
 	}
 
 	.doc-grid {
