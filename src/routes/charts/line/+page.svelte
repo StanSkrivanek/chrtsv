@@ -255,40 +255,42 @@
 </nav>
 
 <!-- Page Header -->
-<header class="page-header">
+<header class="hero">
 	<div class="container">
-		<div class="header-content">
-			<div class="header-text">
-				<ChartLine size={32} />
-				<h1>
-					Line Charts
-				</h1>
-				<p class="header-description">
+		<div class="hero-content">
+			<div class="hero-lead">
+				<ChartLine size={128} />
+				<h1>Line</h1>
+				<p class="hero-lead--paragraph">
 					Professional line chart component for Svelte 5. Display trends and changes over time with
 					support for multiple data series, negative values, and comprehensive accessibility
 					features.
 				</p>
-				<div class="header-features">
+				<button
+				class="btn btn-secondary"
+				onclick={() => {
+					showTabs = !showTabs;
+					if (showTabs && !activeTab) {
+						activeTab = 'documentation';
+					}
+				}}
+			>
+				<BookOpen size={16} />
+				{showTabs ? 'Hide' : 'Show'} Documentation & Usage
+			</button>
+			</div>
+
+			<div class="hero-side">
+				<div class="hero-side--title">
+					<div>Features<span class="accent">.</span></div>
+				</div>
+				<div class="hero-features">
 					<span class="feature-tag">Multi-line Support</span>
 					<span class="feature-tag">Negative Values</span>
 					<span class="feature-tag">Date Parsing</span>
 					<span class="feature-tag">Accessibility</span>
 				</div>
-			</div>
 
-			<div class="header-actions">
-				<button
-					class="btn btn-secondary"
-					onclick={() => {
-						showTabs = !showTabs;
-						if (showTabs && !activeTab) {
-							activeTab = 'documentation';
-						}
-					}}
-				>
-					<BookOpen size={16} />
-					{showTabs ? 'Hide' : 'Show'} Documentation & Usage
-				</button>
 			</div>
 		</div>
 	</div>
@@ -1185,58 +1187,96 @@ function getDataTableSummary(): string;`}
 	}
 
 	/* Page Header */
-	.page-header {
+	.hero {
 		border-bottom: 1px solid var(--color-gray-medium);
 		padding: var(--spacing-lg) 0;
 	}
 
-	.header-content {
-		display: flex;
-		justify-content: space-between;
-		align-items: flex-start;
+	.hero-content {
+		display: grid;
+		grid-template-columns: 3fr 1fr;
 		gap: var(--spacing-md);
 	}
 
-	.header-text h1 {
-		display: flex;
+	.hero-lead h1 {
+		/* display: flex; */
 		flex-direction: column;
 		align-items: left;
 		gap: var(--spacing-sm);
-		font-size: 8rem;
 		margin-bottom: var(--spacing-sm);
 		font-family: 'extrabold';
 		letter-spacing: 0.025em;
+		display: inline-block;
+		line-height: 1;
+		font-size: clamp(3rem, 0.8824rem + 10.5882vw, 12rem);
+		white-space: nowrap; /* Prevent text wrapping */
+		flex-shrink: 0; /* Prevent shrinking */
 	}
 
-	.header-text h1 :global(svg) {
+	.hero-lead h1 :global(svg) {
 		color: var(--color-brand);
 	}
 
-	.header-description {
+	.hero-lead--paragraph {
 		font-size: 1.125rem;
 		color: var(--color-gray-dark);
 		max-width: 600px;
 		margin-bottom: var(--spacing-md);
 	}
-
-	.header-features {
+	.hero-side {
+		/* border-left: 1px solid var(--color-gray-medium); */
+		font-size: clamp(3rem, 0.8824rem + 5.5882vw, 4rem);
 		display: flex;
-		flex-wrap: wrap;
-		gap: var(--spacing-xs);
+		flex-direction: column;
+		align-items: center;
+		justify-content: flex-start;
+		
+		gap: var(--spacing-sm);
+		.hero-side--title {
+			position: relative;
+			width: 100%;
+			font-family: 'semibold';
+			line-height: 1;
+			border-bottom: 3px solid var(--color-slate-900);
+			
+		}
+	}
+	.hero-features {
+		display: flex;
+		flex-direction: column;
+		/* gap: var(--spacing-xs); */
+		align-items: flex-start;
+		width: 100%;
+
+		/* display: flex;
+		flex-wrap: wrap; */
+		/* gap: var(--spacing-xs); */
+		.feature-tag {
+			font-size: 1.6rem;
+			font-family: 'semibold';
+			/* text-transform: uppercase;
+			letter-spacing: 0.05em;
+			padding: 0.25rem 0.5rem;
+			border: 1px solid var(--color-gray-medium);
+			color: var(--color-gray-dark);
+			margin-right: var(--spacing-xs);
+			margin-bottom: var(--spacing-xs);
+			display: inline-block; */
+		}
 	}
 
 	.feature-tag {
-		font-size: 0.75rem;
+		/* font-size: 0.75rem;
 		text-transform: uppercase;
 		letter-spacing: 0.1em;
 		padding: 0.25rem 0.5rem;
 		border: 1px solid var(--color-gray-medium);
-		color: var(--color-gray-dark);
+		color: var(--color-gray-dark); */
 	}
 
 	.feature-tag.negative {
-		border-color: var(--color-brand);
-		color: var(--color-brand);
+		/* border-color: var(--color-brand);
+		color: var(--color-brand); */
 	}
 
 	/* Buttons */
@@ -1269,7 +1309,6 @@ function getDataTableSummary(): string;`}
 
 	/* Tabs Section */
 	.tabs-section {
-		
 		background: #f8fafc;
 		border-top: 1px solid #e2e8f0;
 	}
