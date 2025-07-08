@@ -267,17 +267,17 @@
 					features.
 				</p>
 				<button
-				class="btn btn-secondary"
-				onclick={() => {
-					showTabs = !showTabs;
-					if (showTabs && !activeTab) {
-						activeTab = 'documentation';
-					}
-				}}
-			>
-				<BookOpen size={16} />
-				{showTabs ? 'Hide' : 'Show'} Documentation & Usage
-			</button>
+					class="btn btn-secondary"
+					onclick={() => {
+						showTabs = !showTabs;
+						if (showTabs && !activeTab) {
+							activeTab = 'documentation';
+						}
+					}}
+				>
+					<BookOpen size={16} />
+					{showTabs ? 'Hide' : 'Show'} Documentation & Usage
+				</button>
 			</div>
 
 			<div class="hero-side">
@@ -290,7 +290,6 @@
 					<span class="feature-tag">Date Parsing</span>
 					<span class="feature-tag">Accessibility</span>
 				</div>
-
 			</div>
 		</div>
 	</div>
@@ -305,7 +304,7 @@
 					{#snippet documentation()}
 						<div class="doc-grid">
 							<!-- Props Reference -->
-							<div class="doc-section">
+							<div class="doc-fullwidth">
 								<h2><ClipboardList size={20} /> Props Reference</h2>
 								<div class="table-container">
 									<table class="props-table">
@@ -395,21 +394,27 @@
 								</div>
 							</div>
 							<!-- Basic Usage -->
-							<div class="doc-section">
-								<h2><Code size={20} /> Basic Usage</h2>
+							<div class="doc-usage">
+								<div class="info">
+									<h2><Code size={20} />Basic Usage</h2>
+									<p>
+										The <code>MultiLineChart</code> component allows you to display multiple lines on
+										a single chart. It supports automatic color assignment, interactive legends, and
+										responsive design.
+									</p>
+								</div>
 								<div class="code-preview">
 									<div class="features-visual">
 										<CodeBlock
 											code={`
-									<MultiLineChart
-										lines={Data}
-										xKey="month"
-										yKey="sales"
-										title="Product Performance"
-										showLegend={true}
-									/>`}
+												<MultiLineChart
+													lines={Data}
+													xKey="month"
+													yKey="sales"
+													title="Product Performance"
+													showLegend={true}
+												/>`}
 											language="svelte"
-											theme="tokyo-night"
 										/>
 									</div>
 								</div>
@@ -431,17 +436,16 @@
 									<div class="features-visual">
 										<CodeBlock
 											code={`
-									<MultiLineChart
-										lines={profitLossData}
-										xKey="month"
-										yKey="profit"
-										title="Profit/Loss Analysis"
-										yTickCount={5}
-										doubleTicks={true}
-									/>
-									`}
+												<MultiLineChart
+													lines={profitLossData}
+													xKey="month"
+													yKey="profit"
+													title="Profit/Loss Analysis"
+													yTickCount={5}
+													doubleTicks={true}
+												/>
+												`}
 											language="svelte"
-											theme="tokyo-night"
 										/>
 									</div>
 								</div>
@@ -529,7 +533,6 @@
 										/>
 										`}
 												language="svelte"
-												theme="tokyo-night"
 											/>
 										</div>
 									</div>
@@ -547,7 +550,6 @@
 									/>
 									`}
 												language="svelte"
-												theme="tokyo-night"
 											/>
 										</div>
 									</div>
@@ -556,16 +558,15 @@
 										<div class="code-preview small">
 											<CodeBlock
 												code={`
-									<MultiLineChart
-										lines={data}
-										xKey="date"
-										yKey="value"
-										yTickCount={8}
-										hasTooltip={false}
-									/>
-									`}
+													<MultiLineChart
+														lines={data}
+														xKey="date"
+														yKey="value"
+														yTickCount={8}
+														hasTooltip={false}
+													/>
+													`}
 												language="svelte"
-												theme="tokyo-night"
 											/>
 										</div>
 									</div>
@@ -574,16 +575,15 @@
 										<div class="code-preview small">
 											<CodeBlock
 												code={`
-									<MultiLineChart
-										lines={data}
-										xKey="date"
-										yKey="value"
-										dateFormat="MMM dd, yyyy"
-										inputDateFormat="dd/MM/yyyy"
-									/>
-									`}
+													<MultiLineChart
+														lines={data}
+														xKey="date"
+														yKey="value"
+														dateFormat="MMM dd, yyyy"
+														inputDateFormat="dd/MM/yyyy"
+													/>
+													`}
 												language="svelte"
-												theme="tokyo-night"
 											/>
 										</div>
 									</div>
@@ -700,7 +700,6 @@
 										'Chart cleared, all lines visible';
 										'Data table opened';`}
 												language="javascript"
-												theme="tokyo-night"
 											/>
 										</div>
 									</div>
@@ -737,7 +736,6 @@
 										</thead>
 										</table>`}
 												language="html"
-												theme="tokyo-night"
 											/>
 										</div>
 									</div>
@@ -787,15 +785,14 @@
 										<div class="code-preview">
 											<CodeBlock
 												code={`// Screen reader announcements
-function announceToScreenReader(message: string);
+														function announceToScreenReader(message: string);
 
-// Chart description generation
-function generateChartDescription(): string;
+														// Chart description generation
+														function generateChartDescription(): string;
 
-// Data table summary
-function getDataTableSummary(): string;`}
+														// Data table summary
+														function getDataTableSummary(): string;`}
 												language="typescript"
-												theme="tokyo-night"
 											/>
 										</div>
 
@@ -803,12 +800,11 @@ function getDataTableSummary(): string;`}
 										<div class="code-preview">
 											<CodeBlock
 												code={`.sr-only                    /* Screen reader only content */
-.chart-keyboard-handler     /* Keyboard navigation handler */
-.data-table-toggle         /* Data table toggle button */
-.data-table-container      /* Data table wrapper */
-.chart-container           /* Chart container */`}
+														.chart-keyboard-handler     /* Keyboard navigation handler */
+														.data-table-toggle         /* Data table toggle button */
+														.data-table-container      /* Data table wrapper */
+														.chart-container           /* Chart container */`}
 												language="css"
-												theme="tokyo-night"
 											/>
 										</div>
 
@@ -816,15 +812,14 @@ function getDataTableSummary(): string;`}
 										<div class="code-preview">
 											<CodeBlock
 												code={`<svg role="img" aria-label="Line chart: Multi Line Chart" aria-describedby="chart-description">
-  <div
-    role="button"
-    aria-label="Toggle highlight for Desktop Sales series"
-    aria-pressed="false"
-    aria-describedby="legend-instructions"
-  ></div>
-</svg>`}
+														<div
+															role="button"
+															aria-label="Toggle highlight for Desktop Sales series"
+															aria-pressed="false"
+															aria-describedby="legend-instructions"
+														></div>
+														</svg>`}
 												language="html"
-												theme="tokyo-night"
 											/>
 										</div>
 									</div>
@@ -879,7 +874,6 @@ function getDataTableSummary(): string;`}
 											<CodeBlock
 												code={`<MultiLineChart {lines} title="Sales Performance" showLegend={true} />`}
 												language="svelte"
-												theme="tokyo-night"
 											/>
 										</div>
 
@@ -887,9 +881,8 @@ function getDataTableSummary(): string;`}
 										<div class="code-preview">
 											<CodeBlock
 												code={`<MultiLineChart {lines} title="Performance Metrics" showLegend={true} />
-<!-- Data table toggle appears automatically -->`}
+													<!-- Data table toggle appears automatically -->`}
 												language="svelte"
-												theme="tokyo-night"
 											/>
 										</div>
 									</div>
@@ -1230,7 +1223,7 @@ function getDataTableSummary(): string;`}
 		flex-direction: column;
 		align-items: center;
 		justify-content: flex-start;
-		
+
 		gap: var(--spacing-sm);
 		.hero-side--title {
 			position: relative;
@@ -1238,7 +1231,6 @@ function getDataTableSummary(): string;`}
 			font-family: 'semibold';
 			line-height: 1;
 			border-bottom: 3px solid var(--color-slate-900);
-			
 		}
 	}
 	.hero-features {
@@ -1306,22 +1298,46 @@ function getDataTableSummary(): string;`}
 	}
 
 	/* Tabs Section */
-
-	/* Tabs Section */
 	.tabs-section {
 		background: #f8fafc;
 		border-top: 1px solid #e2e8f0;
 	}
 
 	.doc-grid {
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-md);
+		width: 100%;
+	}
+
+	.doc-fullwidth {
+		width: 100%;
+	}
+
+	.doc-usage {
 		display: grid;
-		gap: var(--spacing-lg);
+		grid-template-columns: repeat(4, 1fr);
+		gap: var(--spacing-md);
+		width: 100%;
+		padding-block: var(--spacing-xl);
+	}
+
+	.doc-usage .info {
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-xs);
+	}
+
+	.doc-usage .code-preview {
+		grid-column: 3 / -1;
+		background: var(--color-gray-light);
+		padding: var(--spacing-sm);
+		border-radius: 0.25rem;
 	}
 
 	.doc-section {
-		background: var(--color-white);
-		padding: var(--spacing-md);
-		border: 1px solid var(--color-gray-medium);
+		width: 100%;
+		margin-bottom: var(--spacing-md);
 	}
 
 	.doc-section h2 {
@@ -1526,6 +1542,20 @@ function getDataTableSummary(): string;`}
 		}
 
 		.config-grid {
+			grid-template-columns: 1fr;
+		}
+
+		.doc-usage {
+			grid-template-columns: 1fr;
+		}
+
+		.doc-usage .code-preview {
+			grid-column: 1;
+		}
+
+		/* Feature Grid - Swiss Design */
+		.feature-grid {
+			display: grid;
 			grid-template-columns: 1fr;
 		}
 	}
@@ -1943,6 +1973,14 @@ function getDataTableSummary(): string;`}
 	@media (max-width: 768px) {
 		.feature-grid {
 			grid-template-columns: 1fr;
+		}
+
+		.doc-usage {
+			grid-template-columns: 1fr;
+		}
+
+		.doc-usage .code-preview {
+			grid-column: 1;
 		}
 
 		/* .accessibility-grid {
