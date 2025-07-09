@@ -74,7 +74,8 @@ A flexible multi-line chart component built with Svelte 5 that can display up to
 | `yTickCount`      | `number`                 | `5`                  | Number of ticks on Y-axis                                                           |
 | `doubleTicks`     | `boolean`                | `true`               | Automatically double tick count when negative values detected                       |
 | `tension`         | `number`                 | `0.3`                | Curve tension factor for smooth lines (0-1, optimal: 0.3-0.5)                       |
-| `curveType`       | `'smooth' \| 'straight'` | `'straight'`           | Line curve type - 'smooth' uses Catmull-Rom spline, 'straight' uses linear segments |
+| `curveType`       | `'smooth' \| 'straight'` | `'straight'`         | Line curve type - 'smooth' uses Catmull-Rom spline, 'straight' uses linear segments |
+| `showCrosshair`   | `boolean`                | `true`               | Show crosshair lines and multi-value tooltip on hover                               |
 
 ## LineData Interface
 
@@ -159,6 +160,37 @@ The component features an enhanced Catmull-Rom spline implementation for natural
 - **Better 2-point handling**: Creates proper cubic Bezier curves for minimal data
 - **Reduced overshoot**: Prevents unnatural bulges and maintains visual integrity
 - **Configurable tension**: Values from 0-1, with 0.3-0.5 being optimal
+
+### Crosshair and Cursor Lines
+
+Interactive crosshair functionality provides precise value reading across all lines:
+
+```html
+<!-- Default crosshair enabled -->
+<MultiLineChart lines="{salesData}" xKey="month" yKey="sales" showCrosshair="{true}" />
+
+<!-- Crosshair with smooth curves -->
+<MultiLineChart
+	lines="{salesData}"
+	xKey="month"
+	yKey="sales"
+	curveType="smooth"
+	tension="{0.3}"
+	showCrosshair="{true}"
+/>
+
+<!-- Disable crosshair -->
+<MultiLineChart lines="{salesData}" xKey="month" yKey="sales" showCrosshair="{false}" />
+```
+
+**Crosshair Features:**
+
+- **Snap-to-Point**: Vertical line automatically snaps to nearest data point
+- **Multi-Value Tooltip**: Shows all line values at current X position
+- **Visual Indicators**: Colored dots highlight exact data points for each line
+- **Smooth Animations**: Elegant Svelte transitions with staggered value animations
+- **Smart Positioning**: Tooltip automatically repositions to avoid screen edges
+- **Configurable**: Can be disabled via the `showCrosshair` prop
 
 ### Value Labels
 

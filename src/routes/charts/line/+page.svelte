@@ -11,6 +11,7 @@
 		ChartLine,
 		ClipboardList,
 		Code,
+		MousePointer,
 		Settings,
 		Smartphone,
 		Sparkles,
@@ -404,6 +405,12 @@
 												<td><code>0.3</code></td>
 												<td>Curve tension factor for smooth lines (0-1, optimal: 0.3-0.5)</td>
 											</tr>
+											<tr>
+												<td><code>showCrosshair</code></td>
+												<td><code>boolean</code></td>
+												<td><code>true</code></td>
+												<td>Show crosshair lines and multi-value tooltip on hover</td>
+											</tr>
 										</tbody>
 									</table>
 								</div>
@@ -430,6 +437,7 @@
 													showLegend={true}
 													curveType="smooth"
 													tension={0.3}
+													showCrosshair={true}
 												/>`}
 											language="svelte"
 										/>
@@ -522,6 +530,16 @@
 										<p>
 											Advanced smooth curves using optimized Catmull-Rom spline interpolation with
 											configurable curve types and tension control for natural-looking lines.
+										</p>
+									</div>
+									<div class="feature-card">
+										<div class="feature-icon">
+											<MousePointer size={24} />
+										</div>
+										<h4>Crosshair Lines</h4>
+										<p>
+											Interactive crosshair with snap-to-point functionality and multi-value tooltip
+											for precise data reading across all lines.
 										</p>
 									</div>
 									<div class="feature-card">
@@ -651,6 +669,21 @@
 											/>
 										</div>
 									</div>
+									<div class="config-item">
+										<h4><MousePointer size={18} /> Crosshair Control</h4>
+										<div class="code-preview small">
+											<CodeBlock
+												code={`
+													<!-- Enable crosshair (default) -->
+													<MultiLineChart showCrosshair={true} />
+													
+													<!-- Disable crosshair -->
+													<MultiLineChart showCrosshair={false} />
+													`}
+												language="svelte"
+											/>
+										</div>
+									</div>
 								</div>
 							</div>
 
@@ -722,6 +755,71 @@
 												smoothness
 											</li>
 										</ul>
+									</div>
+								</div>
+							</div>
+
+							<!-- Crosshair and Cursor Lines -->
+							<div class="doc-section">
+								<h2><Target size={20} /> Crosshair and Cursor Lines</h2>
+
+								<div class="crosshair-overview">
+									<p>
+										The MultiLineChart component includes interactive crosshair functionality that
+										provides precise value reading and enhanced user experience when exploring data
+										points.
+									</p>
+								</div>
+
+								<div class="crosshair-features">
+									<h3><MousePointer size={18} /> Crosshair Features</h3>
+									<div class="crosshair-subsection">
+										<ul class="crosshair-list">
+											<li>
+												<strong>Snap-to-Point:</strong> Vertical line automatically snaps to nearest
+												data point for precise readings
+											</li>
+											<li>
+												<strong>Multi-Value Tooltip:</strong> Displays all line values at the current
+												X position in a single tooltip
+											</li>
+											<li>
+												<strong>Visual Indicators:</strong> Colored dots highlight exact data points
+												for each line
+											</li>
+											<li>
+												<strong>Smooth Animations:</strong> Responsive crosshair lines with elegant Svelte
+												transitions and staggered value animations
+											</li>
+											<li>
+												<strong>Smart Positioning:</strong> Tooltip automatically repositions to avoid
+												screen edges with smooth transitions
+											</li>
+											<li>
+												<strong>Configurable:</strong> Can be disabled via the
+												<code>showCrosshair</code> prop
+											</li>
+										</ul>
+									</div>
+								</div>
+
+								<div class="crosshair-usage">
+									<h3><Code size={18} /> Usage</h3>
+									<div class="code-preview">
+										<CodeBlock
+											code={`
+												<MultiLineChart
+													lines={multiLineData}
+													xKey="date"
+													yKey="value"
+													title="Sales Performance"
+													showCrosshair={true}
+													curveType="smooth"
+													tension={0.3}
+												/>
+											`}
+											language="svelte"
+										/>
 									</div>
 								</div>
 							</div>
@@ -1092,6 +1190,7 @@
 						showLegend={true}
 						height={300}
 						yTickCount={4}
+						showCrosshair = {true}
 					/>
 				</div>
 
@@ -1127,6 +1226,7 @@
 						showLegend={true}
 						showValues={true}
 						hasTooltip={false}
+						showCrosshair={true}
 						height={350}
 					/>
 				</div>
@@ -1162,6 +1262,7 @@
 						title={`Product Performance - ${profitMetrics.find((m) => m.value === selectedProfitMetric)?.label}`}
 						showLegend={true}
 						showValues={true}
+						showCrosshair={true}
 						height={350}
 						yTickCount={5}
 						doubleTicks={true}
@@ -1192,8 +1293,8 @@
 								yKey="profit"
 								title="ABRACADABRA"
 								showLegend={true}
+								showCrosshair={true}
 								height={280}
-								
 							/>
 						</div>
 						<div class="comparison-item">
@@ -1204,6 +1305,7 @@
 								yKey="profit"
 								title=""
 								showLegend={false}
+								showCrosshair={true}
 								height={280}
 								doubleTicks={true}
 							/>

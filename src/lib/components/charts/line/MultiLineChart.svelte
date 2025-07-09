@@ -22,6 +22,19 @@
 		color: string;
 	}
 
+	interface CrosshairData {
+		x: number;
+		y: number;
+		xLabel: string;
+		values: Array<{
+			lineId: string;
+			lineLabel: string;
+			value: any;
+			color: string;
+			y: number;
+		}>;
+	}
+
 	// Props with explicit typing
 	let {
 		lines = [],
@@ -37,7 +50,8 @@
 		yTickCount = 5,
 		doubleTicks = false,
 		tension = 0.3,
-		curveType = 'straight' as 'straight' | 'smooth'
+		curveType = 'straight' as 'straight' | 'smooth',
+		showCrosshair = false
 	} = $props<{
 		lines?: LineData[];
 		xKey?: string;
@@ -53,6 +67,7 @@
 		doubleTicks?: boolean;
 		tension?: number;
 		curveType?: 'straight' | 'smooth';
+		showCrosshair?: boolean;
 	}>();
 
 	// Internal state
@@ -67,6 +82,10 @@
 	let focusedDataPoint = $state<{ lineId: string; dataIndex: number } | null>(null);
 	let announcements = $state<string>('');
 	let showDataTable = $state(false);
+	let crosshairVisible = $state(false);
+	let crosshairData = $state<CrosshairData | null>(null);
+	let mouseX = $state(0);
+	let mouseY = $state(0);
 
 	// Accessibility helpers
 	function announceToScreenReader(message: string) {
@@ -112,8 +131,9 @@
 
 	// Color palette for lines (fallback if colors not provided)
 	const defaultColors = [
-		'#3b82f6', // blue
+		'#000000', // black
 		'#ef4444', // red
+		'#3b82f6', // blue
 		'#10b981', // green
 		'#f59e0b', // yellow
 		'#8b5cf6' // purple
@@ -641,6 +661,86 @@
 			}
 		});
 
+		// Add crosshair elements if enabled
+		if (showCrosshair) {
+			// Create crosshair group
+			const crosshairGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+			crosshairGroup.setAttribute('class', 'crosshair-group');
+			crosshairGroup.setAttribute('opacity', '0');
+
+			// Vertical crosshair line
+			const verticalLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+			verticalLine.setAttribute('class', 'crosshair-vertical');
+			verticalLine.setAttribute('x1', '0');
+			verticalLine.setAttribute('y1', String(margin.top));
+			verticalLine.setAttribute('x2', '0');
+			verticalLine.setAttribute('y2', String(margin.top + chartHeight));
+			verticalLine.setAttribute('stroke', '#6b7280');
+			verticalLine.setAttribute('stroke-width', '1');
+			verticalLine.setAttribute('stroke-dasharray', '4,4');
+			verticalLine.setAttribute('opacity', '0.7');
+			crosshairGroup.appendChild(verticalLine);
+
+			// Horizontal crosshair line
+			const horizontalLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+			horizontalLine.setAttribute('class', 'crosshair-horizontal');
+			horizontalLine.setAttribute('x1', String(margin.left));
+			horizontalLine.setAttribute('y1', '0');
+			horizontalLine.setAttribute('x2', String(margin.left + width));
+			horizontalLine.setAttribute('y2', '0');
+			horizontalLine.setAttribute('stroke', '#6b7280');
+			horizontalLine.setAttribute('stroke-width', '1');
+			horizontalLine.setAttribute('stroke-dasharray', '4,4');
+			horizontalLine.setAttribute('opacity', '0.7');
+			crosshairGroup.appendChild(horizontalLine);
+
+			// Add crosshair points for each line
+			lines.forEach((lineData: LineData, lineIndex: number) => {
+				const color = lineData.color || defaultColors[lineIndex % defaultColors.length];
+				const crosshairPoint = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+				crosshairPoint.setAttribute('class', `crosshair-point-${lineData.id}`);
+				crosshairPoint.setAttribute('r', '4');
+				crosshairPoint.setAttribute('fill', color);
+				crosshairPoint.setAttribute('stroke', '#ffffff');
+				crosshairPoint.setAttribute('stroke-width', '2');
+				crosshairPoint.setAttribute('opacity', '0.9');
+				crosshairGroup.appendChild(crosshairPoint);
+			});
+
+			mainG.appendChild(crosshairGroup);
+
+			// Add invisible overlay for mouse events
+			const overlay = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+			overlay.setAttribute('class', 'mouse-overlay');
+			overlay.setAttribute('x', String(margin.left));
+			overlay.setAttribute('y', String(margin.top));
+			overlay.setAttribute('width', String(width));
+			overlay.setAttribute('height', String(chartHeight));
+			overlay.setAttribute('fill', 'transparent');
+			overlay.setAttribute('pointer-events', 'all');
+
+			// Store references for mouse event handling
+			overlay.addEventListener('mousemove', (e) =>
+				handleMouseMove(e, allXValues, xScale, yScale, yMinWithPadding, yMaxWithPadding)
+			);
+			overlay.addEventListener('mouseenter', () => {
+				crosshairVisible = true;
+				const crosshairGroup = chart.querySelector('.crosshair-group');
+				if (crosshairGroup) {
+					crosshairGroup.setAttribute('opacity', '1');
+				}
+			});
+			overlay.addEventListener('mouseleave', () => {
+				crosshairVisible = false;
+				const crosshairGroup = chart.querySelector('.crosshair-group');
+				if (crosshairGroup) {
+					crosshairGroup.setAttribute('opacity', '0');
+				}
+			});
+
+			mainG.appendChild(overlay);
+		}
+
 		// Add chart title
 		const titleElem = document.createElementNS('http://www.w3.org/2000/svg', 'text');
 		titleElem.setAttribute('x', String(margin.left + width / 2));
@@ -670,6 +770,110 @@
 		}
 	}
 
+	// Handle mouse move for crosshair
+	function handleMouseMove(
+		e: MouseEvent,
+		allXValues: string[],
+		xScale: (idx: number) => number,
+		yScale: (val: number) => number,
+		yMinWithPadding: number,
+		yMaxWithPadding: number
+	) {
+		if (!showCrosshair || !chart) return;
+
+		const rect = chart.getBoundingClientRect();
+		const mouseX = e.clientX - rect.left;
+		const mouseY = e.clientY - rect.top;
+
+		// Find the nearest x index
+		let nearestXIndex = 0;
+		let minDistance = Infinity;
+
+		for (let i = 0; i < allXValues.length; i++) {
+			const distance = Math.abs(mouseX - xScale(i));
+			if (distance < minDistance) {
+				minDistance = distance;
+				nearestXIndex = i;
+			}
+		}
+
+		const snapX = xScale(nearestXIndex);
+		const currentXValue = allXValues[nearestXIndex];
+
+		// Update crosshair lines
+		const crosshairGroup = chart.querySelector('.crosshair-group');
+		if (crosshairGroup) {
+			const verticalLine = crosshairGroup.querySelector('.crosshair-vertical');
+			const horizontalLine = crosshairGroup.querySelector('.crosshair-horizontal');
+
+			if (verticalLine) {
+				verticalLine.setAttribute('x1', String(snapX));
+				verticalLine.setAttribute('x2', String(snapX));
+			}
+			if (horizontalLine) {
+				horizontalLine.setAttribute('y1', String(mouseY));
+				horizontalLine.setAttribute('y2', String(mouseY));
+			}
+		}
+
+		// Update crosshair data with values for all lines at this x position
+		const values: Array<{
+			lineId: string;
+			lineLabel: string;
+			value: any;
+			color: string;
+			y: number;
+		}> = [];
+
+		lines.forEach((lineData: LineData, lineIndex: number) => {
+			const color = lineData.color || defaultColors[lineIndex % defaultColors.length];
+			const dataPoint = lineData.data.find(
+				(d: Record<string, any>) => String(d[xKey]) === currentXValue
+			);
+
+			if (dataPoint) {
+				const yValue = Number(dataPoint[yKey]);
+				const yPosition = yScale(yValue);
+
+				// Format the value for display
+				let formattedValue: string;
+				if (Math.abs(yValue) >= 1000000) {
+					formattedValue = `${(yValue / 1000000).toFixed(1)}M`;
+				} else if (Math.abs(yValue) >= 1000) {
+					formattedValue = `${(yValue / 1000).toFixed(1)}k`;
+				} else {
+					formattedValue = yValue.toString();
+				}
+
+				values.push({
+					lineId: lineData.id,
+					lineLabel: lineData.label,
+					value: formattedValue,
+					color,
+					y: yPosition
+				});
+
+				// Update crosshair point position
+				const crosshairPoint = chart.querySelector(`.crosshair-point-${lineData.id}`);
+				if (crosshairPoint) {
+					crosshairPoint.setAttribute('cx', String(snapX));
+					crosshairPoint.setAttribute('cy', String(yPosition));
+				}
+			}
+		});
+
+		// Format x label
+		const parsedDate = parseDate(currentXValue);
+		const xLabel = parsedDate ? formatDateForDisplay(currentXValue) : currentXValue;
+
+		crosshairData = {
+			x: snapX,
+			y: mouseY,
+			xLabel,
+			values
+		};
+	}
+
 	// Use onMount to ensure DOM is ready
 	onMount(() => {
 		mounted = true;
@@ -696,7 +900,7 @@
 	// Watch for prop changes
 	$effect(() => {
 		// Re-render when any of these props change
-		const _ = [tension, curveType, xKey, yKey, title, showLegend, height];
+		const _ = [tension, curveType, xKey, yKey, title, showLegend, height, showCrosshair];
 
 		if (mounted) {
 			renderChart();
@@ -901,6 +1105,41 @@
 		</div>
 	{/if}
 
+	{#if crosshairVisible && crosshairData && showCrosshair}
+		{@const tooltipX = crosshairData.x}
+		{@const tooltipY = crosshairData.y - 20}
+		{@const shouldFlipX = tooltipX > width - 120}
+		{@const shouldFlipY = tooltipY < 80}
+		<div
+			class="crosshair-tooltip"
+			style="left: {tooltipX}px; top: {shouldFlipY
+				? tooltipY + 40
+				: tooltipY}px; transform: translate({shouldFlipX ? '-100%' : '-50%'}, {shouldFlipY
+				? '10px'
+				: '-100%'});"
+			role="tooltip"
+			aria-live="polite"
+		>
+			<div class="crosshair-content">
+				<div class="crosshair-header">
+					{crosshairData.xLabel}
+				</div>
+				<div class="crosshair-values">
+					{#each crosshairData.values as valueData (valueData.lineId)}
+						<div class="crosshair-value-row">
+							<div
+								class="crosshair-color-indicator"
+								style="background-color: {valueData.color}"
+							></div>
+							<span class="crosshair-line-label">{valueData.lineLabel}:</span>
+							<span class="crosshair-value">{valueData.value}</span>
+						</div>
+					{/each}
+				</div>
+			</div>
+		</div>
+	{/if}
+
 	<!-- Data table toggle -->
 	<div class="chart-controls">
 		<button
@@ -1025,6 +1264,22 @@
 		transition: opacity 0.3s ease;
 		pointer-events: none;
 	}
+	:global(.crosshair-group) {
+		transition: opacity 0.2s ease;
+	}
+
+	:global(.crosshair-vertical),
+	:global(.crosshair-horizontal) {
+		transition: all 0.1s ease;
+	}
+
+	:global(.crosshair-point-1),
+	:global(.crosshair-point-2),
+	:global(.crosshair-point-3),
+	:global(.crosshair-point-4),
+	:global(.crosshair-point-5) {
+		transition: all 0.1s ease;
+	}
 
 	.legend {
 		display: flex;
@@ -1140,6 +1395,78 @@
 	.tooltip-value {
 		font-weight: 700;
 		font-size: 13px;
+	}
+
+	/* Crosshair tooltip styles */
+	.crosshair-tooltip {
+		position: absolute;
+		pointer-events: none;
+		z-index: 20;
+		max-width: 240px;
+		margin-bottom: 10px;
+		opacity: 1;
+		transition: opacity 0.15s ease;
+	}
+
+	.crosshair-content {
+		background-color: rgba(0, 0, 0, 0.95);
+		color: white;
+		padding: 10px 14px;
+		border-radius: 8px;
+		font-size: 12px;
+		box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+		backdrop-filter: blur(10px);
+		border: 1px solid rgba(255, 255, 255, 0.15);
+		min-width: 120px;
+	}
+
+	.crosshair-header {
+		font-weight: 600;
+		margin-bottom: 8px;
+		padding-bottom: 6px;
+		border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+		font-size: 13px;
+		text-align: center;
+		color: #ffffff;
+	}
+
+	.crosshair-values {
+		display: flex;
+		flex-direction: column;
+		gap: 5px;
+	}
+
+	.crosshair-value-row {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 2px 0;
+	}
+
+	.crosshair-color-indicator {
+		width: 10px;
+		height: 10px;
+		border-radius: 50%;
+		flex-shrink: 0;
+		border: 1px solid rgba(255, 255, 255, 0.2);
+	}
+
+	.crosshair-line-label {
+		font-weight: 500;
+		flex: 1;
+		min-width: 0;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		color: #e5e7eb;
+	}
+
+	.crosshair-value {
+		font-weight: 700;
+		font-size: 13px;
+		color: #ffffff;
+		text-align: right;
+		flex-shrink: 0;
 	}
 
 	/* Data table styles */
