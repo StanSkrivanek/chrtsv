@@ -389,6 +389,18 @@
 												<td><code>null</code></td>
 												<td>Expected input date format for parsing</td>
 											</tr>
+											<tr>
+												<td><code>smoothLines</code></td>
+												<td><code>boolean</code></td>
+												<td><code>false</code></td>
+												<td>Use Catmull-Rom spline for smooth curved lines</td>
+											</tr>
+											<tr>
+												<td><code>tension</code></td>
+												<td><code>number</code></td>
+												<td><code>0</code></td>
+												<td>Curve tension factor for smooth lines (0 = straight lines, recommended: 0.3)</td>
+											</tr>
 										</tbody>
 									</table>
 								</div>
@@ -497,6 +509,16 @@
 									</div>
 									<div class="feature-card">
 										<div class="feature-icon">
+											<ChartLine size={24} />
+										</div>
+										<h4>Smooth Lines</h4>
+										<p>
+											Optional smooth curved lines using Catmull-Rom spline interpolation for more
+											visually appealing charts.
+										</p>
+									</div>
+									<div class="feature-card">
+										<div class="feature-icon">
 											<Tag size={24} />
 										</div>
 										<h4>Value Labels</h4>
@@ -581,6 +603,22 @@
 														yKey="value"
 														dateFormat="MMM dd, yyyy"
 														inputDateFormat="dd/MM/yyyy"
+													/>
+													`}
+												language="svelte"
+											/>
+										</div>
+									</div>
+									<div class="config-item">
+										<h4><ChartLine size={18} /> Smooth Curved Lines</h4>
+										<div class="code-preview small">
+											<CodeBlock
+												code={`
+													<MultiLineChart
+														lines={data}
+														xKey="date"
+														yKey="value"
+														tension={0.3}  <!-- Values > 0 create smooth curves -->
 													/>
 													`}
 												language="svelte"
@@ -987,12 +1025,14 @@
 						showLegend={true}
 						height={300}
 						yTickCount={4}
+						tension={1}
 					/>
 				</div>
 
 				<div class="example-features">
 					<span class="feature-tag">Date Parsing</span>
 					<span class="feature-tag">Custom Ticks</span>
+					<span class="feature-tag">Smooth Lines</span>
 				</div>
 			</div>
 
@@ -1022,6 +1062,7 @@
 						showValues={true}
 						hasTooltip={false}
 						height={350}
+						tension={1}
 					/>
 				</div>
 
@@ -1069,17 +1110,17 @@
 				</div>
 			</div>
 
-			<!-- Comparison: Standard vs Auto-Doubled Ticks -->
+			<!-- Comparison: Standard vs Smooth Lines -->
 			<div class="example-card">
 				<div class="example-header">
-					<h3>Comparison: Standard vs Auto-Doubled Ticks</h3>
-					<p>Demonstrating the difference between standard and auto-doubled tick configurations</p>
+					<h3>Comparison: Standard vs Smooth Lines</h3>
+					<p>Demonstrating the difference between standard and smooth line styles</p>
 				</div>
 
 				<div class="example-content">
 					<div class="comparison-grid">
 						<div class="comparison-item">
-							<h4>Standard Ticks (5 total)</h4>
+							<h4>Standard Lines</h4>
 							<MultiLineChart
 								lines={profitLossData}
 								xKey="month"
@@ -1088,11 +1129,11 @@
 								showLegend={false}
 								height={280}
 								yTickCount={5}
-								doubleTicks={false}
+								tension={0} 
 							/>
 						</div>
 						<div class="comparison-item">
-							<h4>Auto-Doubled Ticks (10 total)</h4>
+							<h4>Smooth Lines</h4>
 							<MultiLineChart
 								lines={profitLossData}
 								xKey="month"
@@ -1101,7 +1142,8 @@
 								showLegend={false}
 								height={280}
 								yTickCount={5}
-								doubleTicks={true}
+								tension={0.3}
+								
 							/>
 						</div>
 					</div>
@@ -1109,8 +1151,8 @@
 
 				<div class="example-features">
 					<span class="feature-tag">Comparison</span>
-					<span class="feature-tag">Auto Ticks</span>
-					<span class="feature-tag">Granularity</span>
+					<span class="feature-tag">Smooth Lines</span>
+					<span class="feature-tag">Visual Enhancement</span>
 				</div>
 			</div>
 		</div>
@@ -2005,3 +2047,4 @@
 		} */
 	}
 </style>
+

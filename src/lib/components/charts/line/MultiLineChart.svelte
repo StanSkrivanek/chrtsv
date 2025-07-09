@@ -21,7 +21,7 @@
 		lineLabel: string;
 		color: string;
 	}
-	
+
 	// Props with explicit typing
 	let {
 		lines = [],
@@ -35,7 +35,8 @@
 		showValues = false,
 		hasTooltip = true,
 		yTickCount = 5,
-		doubleTicks = true
+		doubleTicks = true,
+		tension = 0.3
 	} = $props<{
 		lines?: LineData[];
 		xKey?: string;
@@ -49,6 +50,7 @@
 		hasTooltip?: boolean;
 		yTickCount?: number;
 		doubleTicks?: boolean;
+		tension?: number;
 	}>();
 
 	// Internal state
@@ -212,6 +214,50 @@
 		return yValues;
 	}
 
+	/**
+	 * Create smooth curve using Catmull-Rom spline interpolation
+	 * @param points Array of coordinate points
+	 * @returns SVG path string
+	 */
+	const createSmoothPath = (points: Array<{ x: number; y: number }>): string => {
+		if (points.length < 2) return '';
+
+		// Start path at first point
+		const path = [`M ${points[0].x.toFixed(2)} ${points[0].y.toFixed(2)}`];
+
+		// For only 2 points, draw a straight line
+		if (points.length === 2) {
+			path.push(`L ${points[1].x.toFixed(2)} ${points[1].y.toFixed(2)}`);
+			return path.join(' ');
+		}
+
+		// Clamp tension to reasonable bounds (0-1)
+		const clampedTension = Math.max(0, Math.min(1, Number(tension) || 0));
+
+		// Generate smooth curve segments
+		for (let i = 0; i < points.length - 1; i++) {
+			// Get control points (using clamped indices for boundary conditions)
+			const p0 = points[Math.max(0, i - 1)];
+			const p1 = points[i];
+			const p2 = points[i + 1];
+			const p3 = points[Math.min(points.length - 1, i + 2)];
+
+			// Calculate Catmull-Rom control points with proper tension scaling
+			// Using standard Catmull-Rom formula with tension parameter
+			const cp1x = p1.x + ((p2.x - p0.x) * clampedTension) / 6;
+			const cp1y = p1.y + ((p2.y - p0.y) * clampedTension) / 6;
+			const cp2x = p2.x - ((p3.x - p1.x) * clampedTension) / 6;
+			const cp2y = p2.y - ((p3.y - p1.y) * clampedTension) / 6;
+
+			// Add cubic Bezier curve segment
+			path.push(
+				`C ${cp1x.toFixed(2)} ${cp1y.toFixed(2)}, ${cp2x.toFixed(2)} ${cp2y.toFixed(2)}, ${p2.x.toFixed(2)} ${p2.y.toFixed(2)}`
+			);
+		}
+
+		return path.join(' ');
+	};
+
 	// Function to re-render chart when data changes
 	function renderChart() {
 		if (!mounted || !chart || lines.length === 0) return;
@@ -328,8 +374,7 @@
 		}
 
 		// Y axis ticks - automatically double tick count for negative values if enabled
-		const effectiveTickCount =
-			hasNegativeValues && doubleTicks ? yTickCount * 2 : yTickCount;
+		const effectiveTickCount = hasNegativeValues && doubleTicks ? yTickCount * 2 : yTickCount;
 		const tickValues = [];
 
 		// Generate regular tick values
@@ -426,11 +471,16 @@
 				}
 			});
 
-			// Create the path
+			// Create the path - use smooth path if tension > 0
 			if (pathPoints.length > 0) {
-				pathData = `M ${pathPoints[0].x} ${pathPoints[0].y}`;
-				for (let i = 1; i < pathPoints.length; i++) {
-					pathData += ` L ${pathPoints[i].x} ${pathPoints[i].y}`;
+				if (Number(tension) > 0) {
+					pathData = createSmoothPath(pathPoints);
+				} else {
+					// Create straight line path
+					pathData = `M ${pathPoints[0].x.toFixed(2)} ${pathPoints[0].y.toFixed(2)}`;
+					for (let i = 1; i < pathPoints.length; i++) {
+						pathData += ` L ${pathPoints[i].x.toFixed(2)} ${pathPoints[i].y.toFixed(2)}`;
+					}
 				}
 			}
 
@@ -636,11 +686,8 @@
 
 	// Watch for prop changes
 	$effect(() => {
-		// const _ = xKey;
-		// const __ = yKey;
-		// const ___ = title;
-		// const ____ = showLegend;
-		// const _____ = height;
+		// Re-render when any of these props change
+		const _ = [tension, xKey, yKey, title, showLegend, height];
 
 		if (mounted) {
 			renderChart();
