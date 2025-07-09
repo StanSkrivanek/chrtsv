@@ -13,16 +13,13 @@
 		Code,
 		MousePointer,
 		Settings,
-		Smartphone,
 		Sparkles,
-		Tag,
 		Target,
-		TrendingDown,
 		Users
 	} from 'lucide-svelte';
 
 	// Tab state
-	let showTabs = $state(false);
+	let showTabs = $state(true);
 	let activeTab = $state('documentation');
 
 	// Tab configuration
@@ -303,9 +300,9 @@
 			<div class="container">
 				<TabComponent {tabs} {activeTab} onTabChange={handleTabChange}>
 					{#snippet documentation()}
-						<div class="doc-grid">
+						<div class="doc__c">
 							<!-- Props Reference -->
-							<div class="doc-fullwidth">
+							<div class="fullwidth">
 								<h2><ClipboardList size={20} /> Props Reference</h2>
 								<div class="table-container">
 									<table class="props-table">
@@ -417,46 +414,43 @@
 							</div>
 							<!-- Basic Usage -->
 							<div class="doc-usage">
-								<div class="info">
-									<h2><Code size={20} />Basic Usage</h2>
-									<p>
+								<div class="title">
+									<!-- <Code size={20} /> -->
+									<p>Basic Usage</p>
+								</div>
+								<dir
+									><p class="paragraph">
 										The <code>MultiLineChart</code> component allows you to display multiple lines on
 										a single chart. It supports automatic color assignment, interactive legends, and
-										responsive design.
-									</p>
-								</div>
+										responsive design
+									</p></dir
+								>
+								<!-- Basic usage -->
 								<div class="code-preview">
-									<div class="features-visual">
-										<CodeBlock
-											code={`
+									<!-- <div class="features-visual"> -->
+									<CodeBlock
+										code={`
 												<MultiLineChart
 													lines={Data}
 													xKey="month"
 													yKey="sales"
 													title="Product Performance"
-													showLegend={true}
-													curveType="smooth"
-													tension={0.3}
-													showCrosshair={true}
 												/>`}
-											language="svelte"
-										/>
-									</div>
+										language="svelte"
+									/>
+									<!-- </div> -->
 								</div>
 							</div>
 
 							<!-- Negative Values Support -->
-							<div class="doc-section">
-								<h2><TrendingDown size={20} /> Negative Values Support</h2>
-								<div class="highlight-box">
-									<h4><Target size={18} /> Automatic Features</h4>
-									<p>
-										When negative values are detected, the component automatically adds a zero
-										reference line and can double the tick count for better granularity around the
-										zero line.
-									</p>
+							<div class="doc-usage">
+								<div class="title">
+									<p>Negative Values</p>
 								</div>
-
+								<p class="paragraph">
+									The component automatically handles negative values by adding a zero reference
+									line
+								</p>
 								<div class="code-preview">
 									<div class="features-visual">
 										<CodeBlock
@@ -466,10 +460,7 @@
 													xKey="month"
 													yKey="profit"
 													title="Profit/Loss Analysis"
-													yTickCount={5}
-													doubleTicks={true}
-													curveType="smooth"
-													tension={0.3}
+												
 												/>
 												`}
 											language="svelte"
@@ -478,8 +469,195 @@
 								</div>
 							</div>
 
+							<!-- Custom Tick Count -->
+							<div class="doc-usage">
+								<div class="title">
+									<p>Tick Count</p>
+								</div>
+								<p class="paragraph">
+									You can specify the number of ticks on the Y-axis using the <code>yTickCount</code
+									>
+									prop. This is useful for controlling the granularity of the chart. You can also use
+									<code>doubleTicks=&#123;true&#125;</code> to automatically double tick density .
+								</p>
+								<div class="code-preview">
+									<div class="features-visual">
+										<CodeBlock
+											code={`
+									<MultiLineChart
+										lines={data}
+										xKey="date"
+										yKey="value"
+										yTickCount={8}
+									/>
+									`}
+											language="svelte"
+										/>
+									</div>
+								</div>
+							</div>
+							<!-- Curved Lines -->
+							<div class="doc-usage">
+								<div class="title">
+									<p>Date Format</p>
+								</div>
+								<p class="paragraph">
+									You can specify the date format for the X-axis using the <code>xTickFormat</code>
+									prop. This is useful for controlling the appearance of the date labels. You can use
+									any valid date-fns format string.
+								</p>
+								<div class="code-preview">
+									<div class="features-visual">
+										<CodeBlock
+											code={`
+													<MultiLineChart
+														lines={data}
+														xKey="date"
+														yKey="value"
+														dateFormat="MMM dd, yyyy"
+														inputDateFormat="dd/MM/yyyy"
+													/>
+													`}
+											language="svelte"
+										/>
+									</div>
+								</div>
+							</div>
+							<div class="doc-usage">
+								<div class="title">
+									<p>Curved Lines</p>
+								</div>
+								<p class="paragraph">
+									The component supports smooth curves using <b>Catmull-Rom</b> spline
+									interpolation. You can control the curve type and tension using the
+									<code>curveType</code>
+									and <code>tension</code>
+									props.
+								</p>
+								<div class="code-preview">
+									<div class="features-visual">
+										<CodeBlock
+											code={`
+												<MultiLineChart
+													lines={data}
+													xKey="date"
+													yKey="value"
+													curveType="smooth"
+													tension={0.4}
+												/>
+												`}
+											language="svelte"
+										/>
+									</div>
+								</div>
+							</div>
+
+							<!-- POINT VALUE LABELS -->
+							<div class="doc-usage">
+								<div class="title">
+									<p>Point Value Labels</p>
+								</div>
+								<p class="paragraph">
+									You can enable point value labels on the chart using the <code
+										>showPointLabels</code
+									> prop. This is useful for displaying the exact values of each data point.
+								</p>
+								<div class="code-preview">
+									<div class="features-visual">
+										<CodeBlock
+											code={`
+							<MultiLineChart
+								lines={data}
+								xKey="date"
+								yKey="value"
+								showPointLabels={true}
+							/>
+						`}
+											language="svelte"
+										/>
+									</div>
+								</div>
+							</div>
+							<!-- CROSSHAIR CONTROL -->
+							<div class="doc-usage">
+								<div class="title">
+									<p>Crosshair Control</p>
+								</div>
+								<p class="paragraph">
+									You can enable the crosshair on the chart using the <code>showCrosshair</code> prop.
+								</p>
+								<div class="code-preview">
+									<CodeBlock
+										code={`
+											<MultiLineChart
+												lines={data}
+												xKey="date"
+												yKey="value"
+												showCrosshair={true}
+											/>
+										`}
+										language="svelte"
+									/>
+								</div>
+							</div>
+							<!-- TOOLTIP -->
+							<div class="doc-usage">
+								<div class="title">
+									<p>Tooltip</p>
+								</div>
+								<p class="paragraph">
+									You can enable tooltips on the chart using the <code>showTooltip</code> prop.
+								</p>
+								<div class="code-preview">
+									<CodeBlock
+										code={`
+											<MultiLineChart
+												lines={data}
+												xKey="date"
+												yKey="value"
+												showTooltip={false}
+											/>
+										`}
+										language="svelte"
+									/>
+								</div>
+							</div>
+
+							<!-- CROSSHAIR CONTROL -->
+							<div class="doc-usage">
+								<div class="title">
+									<p>Crosshair Control</p>
+								</div>
+								<p class="paragraph">
+									You can enable the crosshair on the chart using the <code>showCrosshair</code> prop.
+								</p>
+								<div class="code-preview">
+									<CodeBlock
+										code={`
+											<MultiLineChart
+												lines={data}
+												xKey="date"
+												yKey="value"
+												showCrosshair={true}
+											/>
+										`}
+										language="svelte"
+									/>
+								</div>
+							</div>
+
 							<!-- Key Features -->
-							<div class="doc-section">
+							<!-- <div class="doc-section">
+								<h2><Sparkles size={20} /> Key Features</h2>
+								<div class="feature-grid">
+									<div class="feature-card">
+										<div class="feature-icon">
+											<ChartLine size={24} />
+										</div>
+							</div>
+
+							<!-- Key Features -->
+							<!-- <div class="doc-section">
 								<h2><Sparkles size={20} /> Key Features</h2>
 								<div class="feature-grid">
 									<div class="feature-card">
@@ -496,7 +674,7 @@
 										<div class="feature-icon">
 											<TrendingDown size={24} />
 										</div>
-										<h4>Negative Values Support</h4>
+										<h4>Negative Values</h4>
 										<p>
 											Automatic handling of negative data with zero reference line and enhanced
 											scaling.
@@ -560,132 +738,8 @@
 										</p>
 									</div>
 								</div>
-							</div>
+							</div> -->
 
-							<!-- Advanced Examples -->
-							<div class="doc-section">
-								<h2><Settings size={20} /> Advanced Configuration</h2>
-								<div class="config-grid">
-									<div class="config-item">
-										<h4><Tag size={18} /> Point Value Labels</h4>
-										<div class="code-preview small">
-											<CodeBlock
-												code={`
-										<MultiLineChart
-											lines={data}
-											xKey="date"
-											yKey="value"
-											showValues={true}
-											showLegend={false}
-										/>
-										`}
-												language="svelte"
-											/>
-										</div>
-									</div>
-									<div class="config-item">
-										<h4><Target size={18} /> Custom Tick Count</h4>
-										<div class="code-preview small">
-											<CodeBlock
-												code={`
-									<MultiLineChart
-										lines={data}
-										xKey="date"
-										yKey="value"
-										yTickCount={8}
-										doubleTicks={false}
-									/>
-									`}
-												language="svelte"
-											/>
-										</div>
-									</div>
-									<div class="config-item">
-										<h4><Activity size={18} /> Disable Tooltips</h4>
-										<div class="code-preview small">
-											<CodeBlock
-												code={`
-													<MultiLineChart
-														lines={data}
-														xKey="date"
-														yKey="value"
-														yTickCount={8}
-														hasTooltip={false}
-													/>
-													`}
-												language="svelte"
-											/>
-										</div>
-									</div>
-									<div class="config-item">
-										<h4><ChartLine size={18} /> Custom Date Format</h4>
-										<div class="code-preview small">
-											<CodeBlock
-												code={`
-													<MultiLineChart
-														lines={data}
-														xKey="date"
-														yKey="value"
-														dateFormat="MMM dd, yyyy"
-														inputDateFormat="dd/MM/yyyy"
-													/>
-													`}
-												language="svelte"
-											/>
-										</div>
-									</div>
-									<div class="config-item">
-										<h4><ChartLine size={18} /> Smooth Curved Lines</h4>
-										<div class="code-preview small">
-											<CodeBlock
-												code={`
-													<MultiLineChart
-														lines={data}
-														xKey="date"
-														yKey="value"
-														curveType="smooth"
-														tension={0.3}  <!-- Optimal tension for smooth curves -->
-													/>
-													`}
-												language="svelte"
-											/>
-										</div>
-									</div>
-									<div class="config-item">
-										<h4><Settings size={18} /> Curve Type Control</h4>
-										<div class="code-preview small">
-											<CodeBlock
-												code={`
-													<!-- Straight line segments -->
-													<MultiLineChart curveType="straight" />
-													
-													<!-- Smooth curves with default tension -->
-													<MultiLineChart curveType="smooth" />
-													
-													<!-- Custom tension (0-1, optimal: 0.3-0.5) -->
-													<MultiLineChart curveType="smooth" tension={0.4} />
-													`}
-												language="svelte"
-											/>
-										</div>
-									</div>
-									<div class="config-item">
-										<h4><MousePointer size={18} /> Crosshair Control</h4>
-										<div class="code-preview small">
-											<CodeBlock
-												code={`
-													<!-- Enable crosshair (default) -->
-													<MultiLineChart showCrosshair={true} />
-													
-													<!-- Disable crosshair -->
-													<MultiLineChart showCrosshair={false} />
-													`}
-												language="svelte"
-											/>
-										</div>
-									</div>
-								</div>
-							</div>
 
 							<!-- LineData Interface -->
 							<!-- <div class="doc-section">
@@ -1190,7 +1244,7 @@
 						showLegend={true}
 						height={300}
 						yTickCount={4}
-						showCrosshair = {true}
+						showCrosshair={true}
 					/>
 				</div>
 
@@ -1263,9 +1317,7 @@
 						showLegend={true}
 						showValues={true}
 						showCrosshair={true}
-						height={350}
-						yTickCount={5}
-						doubleTicks={true}
+						height={400}
 					/>
 				</div>
 
@@ -1505,43 +1557,60 @@
 
 	/* Tabs Section */
 	.tabs-section {
-		background: #f8fafc;
+		/* background: #f8fafc; */
 		border-top: 1px solid #e2e8f0;
 	}
 
-	.doc-grid {
-		display: flex;
-		flex-direction: column;
-		gap: var(--spacing-md);
-		width: 100%;
+	.doc__c {
+		/* display: ; */
+		/* flex-direction: column; */
+		/* gap: var(--spacing-md); */
+		/* width: 100%; */
 	}
 
-	.doc-fullwidth {
+	.fullwidth {
 		width: 100%;
 	}
-
+	/* Documentation usage grid */
 	.doc-usage {
 		display: grid;
 		grid-template-columns: repeat(4, 1fr);
 		gap: var(--spacing-md);
 		width: 100%;
-		padding-block: var(--spacing-xl);
+		margin-block: var(--spacing-xl);
+		min-height: 300px;
+		.title p {
+			padding-top: var(--spacing-sm);
+			margin-bottom: var(--spacing-md);
+			font-family: 'semibold';
+			color: var(--color-slate-900);
+			font-size: 2rem;
+			border-top: 3px solid var(--color-rose-500);
+		}
+		.paragraph {
+			padding-top: var(--spacing-sm);
+			margin-bottom: var(--spacing-md);
+			font-size: 1.2rem;
+			line-height: 1.4;
+			color: var(--color-slate-900);
+			border-top: 3px solid var(--color-gray-medium);
+			code {
+				background: var(--color-slate-100);
+				padding: 0.25rem 0.5rem;
+				font-family: var(--font-mono);
+				font-size: 1rem;
+				color: var(--color-rose-600);
+			}
+		}
+		.code-preview {
+			grid-column: 4 / -1;
+			background: inherit;
+			/* padding: var(--spacing-sm); */
+			border-radius: 0.25rem;
+		}
 	}
 
-	.doc-usage .info {
-		display: flex;
-		flex-direction: column;
-		gap: var(--spacing-xs);
-	}
-
-	.doc-usage .code-preview {
-		grid-column: 3 / -1;
-		background: var(--color-gray-light);
-		padding: var(--spacing-sm);
-		border-radius: 0.25rem;
-	}
-
-	.doc-section {
+	.doc-usage .doc-section {
 		width: 100%;
 		margin-bottom: var(--spacing-md);
 	}
@@ -1742,7 +1811,7 @@
 		font-style: italic;
 	} */
 
-	@media (max-width: 768px) {
+	@media (max-width: 1024px) {
 		.comparison-grid {
 			grid-template-columns: 1fr;
 		}
