@@ -52,27 +52,29 @@ A flexible multi-line chart component built with Svelte 5 that can display up to
 	xKey="month"
 	yKey="sales"
 	title="Product Performance"
-	showLegend={true}
-	height={450}
+	showLegend="{true}"
+	height="{450}"
 />
 ```
 
 ## Props
 
-| Prop                      | Type             | Default              | Description                                                   |
-| ------------------------- | ---------------- | -------------------- | ------------------------------------------------------------- |
-| `lines`                   | `LineData[]`     | `[]`                 | Array of line data objects (max 5 lines)                      |
-| `xKey`                    | `string`         | `'date'`             | Key to use for x-axis values                                  |
-| `yKey`                    | `string`         | `'value'`            | Key to use for y-axis values                                  |
-| `title`                   | `string`         | `'Multi Line Chart'` | Chart title                                                   |
-| `showLegend`              | `boolean`        | `true`               | Whether to show the legend                                    |
-| `height`                  | `number`         | `400`                | Chart height in pixels                                        |
-| `dateFormat`              | `string`         | `'MMM dd'`           | Date format for display (using date-fns format)               |
-| `inputDateFormat`         | `string \| null` | `null`               | Expected input date format for parsing                        |
-| `showValues`              | `boolean`        | `false`              | Show value labels above each data point                       |
-| `hasTooltip`              | `boolean`        | `true`               | Enable/disable tooltips on hover                              |
-| `yTickCount`              | `number`         | `5`                  | Number of ticks on Y-axis                                     |
-| `doubleTicksForNegatives` | `boolean`        | `true`               | Automatically double tick count when negative values detected |
+| Prop              | Type                     | Default              | Description                                                                         |
+| ----------------- | ------------------------ | -------------------- | ----------------------------------------------------------------------------------- |
+| `lines`           | `LineData[]`             | `[]`                 | Array of line data objects (max 5 lines)                                            |
+| `xKey`            | `string`                 | `'date'`             | Key to use for x-axis values                                                        |
+| `yKey`            | `string`                 | `'value'`            | Key to use for y-axis values                                                        |
+| `title`           | `string`                 | `'Multi Line Chart'` | Chart title                                                                         |
+| `showLegend`      | `boolean`                | `true`               | Whether to show the legend                                                          |
+| `height`          | `number`                 | `400`                | Chart height in pixels                                                              |
+| `dateFormat`      | `string`                 | `'MMM dd'`           | Date format for display (using date-fns format)                                     |
+| `inputDateFormat` | `string \| null`         | `null`               | Expected input date format for parsing                                              |
+| `showValues`      | `boolean`                | `false`              | Show value labels above each data point                                             |
+| `hasTooltip`      | `boolean`                | `true`               | Enable/disable tooltips on hover                                                    |
+| `yTickCount`      | `number`                 | `5`                  | Number of ticks on Y-axis                                                           |
+| `doubleTicks`     | `boolean`                | `true`               | Automatically double tick count when negative values detected                       |
+| `tension`         | `number`                 | `0.3`                | Curve tension factor for smooth lines (0-1, optimal: 0.3-0.5)                       |
+| `curveType`       | `'smooth' \| 'straight'` | `'straight'`           | Line curve type - 'smooth' uses Catmull-Rom spline, 'straight' uses linear segments |
 
 ## LineData Interface
 
@@ -120,12 +122,12 @@ The component automatically handles negative values with enhanced features:
 </script>
 
 <MultiLineChart
-	lines={profitLossData}
+	lines="{profitLossData}"
 	xKey="month"
 	yKey="profit"
 	title="Profit/Loss Analysis"
-	yTickCount={5}
-	doubleTicksForNegatives={true}
+	yTickCount="{5}"
+	doubleTicksForNegatives="{true}"
 />
 ```
 
@@ -136,18 +138,40 @@ The component automatically handles negative values with enhanced features:
 - **Smart scaling**: Proper Y-axis scaling with negative padding
 - **Bold zero tick**: Zero tick is highlighted in bold
 
+### Smooth Line Curves
+
+The component features an enhanced Catmull-Rom spline implementation for natural-looking curves:
+
+```html
+<!-- Smooth curves with default tension -->
+<MultiLineChart lines="{salesData}" xKey="month" yKey="sales" curveType="smooth" />
+
+<!-- Custom tension (0-1, optimal: 0.3-0.5) -->
+<MultiLineChart lines="{salesData}" xKey="month" yKey="sales" curveType="smooth" tension="{0.4}" />
+
+<!-- Straight line segments -->
+<MultiLineChart lines="{salesData}" xKey="month" yKey="sales" curveType="straight" />
+```
+
+**Curve Features:**
+
+- **Optimized algorithm**: Uses tension \* 0.5 for more natural curves
+- **Better 2-point handling**: Creates proper cubic Bezier curves for minimal data
+- **Reduced overshoot**: Prevents unnatural bulges and maintains visual integrity
+- **Configurable tension**: Values from 0-1, with 0.3-0.5 being optimal
+
 ### Value Labels
 
 Show values directly on the chart:
 
 ```html
 <MultiLineChart
-	lines={salesData}
+	lines="{salesData}"
 	xKey="month"
 	yKey="sales"
 	title="Sales with Value Labels"
-	showValues={true}
-	showLegend={true}
+	showValues="{true}"
+	showLegend="{true}"
 />
 ```
 
@@ -157,10 +181,10 @@ Control tooltip behavior:
 
 ```html
 <!-- Enable tooltips (default) -->
-<MultiLineChart lines={data} hasTooltip={true} />
+<MultiLineChart lines="{data}" hasTooltip="{true}" />
 
 <!-- Disable tooltips -->
-<MultiLineChart lines={data} hasTooltip={false} />
+<MultiLineChart lines="{data}" hasTooltip="{false}" />
 ```
 
 ### Custom Tick Configuration
@@ -169,13 +193,13 @@ Control Y-axis tick density:
 
 ```html
 <!-- Sparse ticks for simple data -->
-<MultiLineChart lines={data} yTickCount={3} />
+<MultiLineChart lines="{data}" yTickCount="{3}" />
 
 <!-- Dense ticks for detailed analysis -->
-<MultiLineChart lines={data} yTickCount={8} />
+<MultiLineChart lines="{data}" yTickCount="{8}" />
 
 <!-- Disable auto-doubling for negative values -->
-<MultiLineChart lines={profitData} yTickCount={5} doubleTicksForNegatives={false} />
+<MultiLineChart lines="{profitData}" yTickCount="{5}" doubleTicksForNegatives="{false}" />
 ```
 
 ## Example with Different Metrics
@@ -199,19 +223,19 @@ Control Y-axis tick density:
 	];
 </script>
 
-<select bind:value={selectedMetric}>
+<select bind:value="{selectedMetric}">
 	<option value="sales">Sales ($)</option>
 	<option value="revenue">Revenue ($)</option>
 	<option value="units_sold">Units Sold</option>
 </select>
 
 <MultiLineChart
-	lines={multiLineData}
+	lines="{multiLineData}"
 	xKey="month"
-	yKey={selectedMetric}
+	yKey="{selectedMetric}"
 	title="Product Performance - {selectedMetric}"
-	showLegend={true}
-	height={450}
+	showLegend="{true}"
+	height="{450}"
 />
 ```
 
@@ -239,12 +263,12 @@ Control Y-axis tick density:
 </script>
 
 <MultiLineChart
-	lines={serverData}
+	lines="{serverData}"
 	xKey="date"
 	yKey="value"
 	title="Server Data with ISO Dates"
 	dateFormat="MMM dd, yyyy"
-	height={400}
+	height="{400}"
 />
 ```
 
@@ -268,13 +292,13 @@ Control Y-axis tick density:
 </script>
 
 <MultiLineChart
-	lines={customFormatData}
+	lines="{customFormatData}"
 	xKey="date"
 	yKey="value"
 	title="Custom Date Format"
 	inputDateFormat="dd/MM/yyyy"
 	dateFormat="MMM dd"
-	height={400}
+	height="{400}"
 />
 ```
 

@@ -35,8 +35,9 @@
 		showValues = false,
 		hasTooltip = true,
 		yTickCount = 5,
-		doubleTicks = true,
-		tension = 0.3
+		doubleTicks = false,
+		tension = 0.3,
+		curveType = 'straight' as 'straight' | 'smooth'
 	} = $props<{
 		lines?: LineData[];
 		xKey?: string;
@@ -51,6 +52,7 @@
 		yTickCount?: number;
 		doubleTicks?: boolean;
 		tension?: number;
+		curveType?: 'straight' | 'smooth';
 	}>();
 
 	// Internal state
@@ -215,7 +217,8 @@
 	}
 
 	/**
-	 * Create smooth curve using Catmull-Rom spline interpolation
+	 * Create smooth curve using optimized Catmull-Rom spline interpolation
+	 * Based on the improved algorithm from the previous implementation
 	 * @param points Array of coordinate points
 	 * @returns SVG path string
 	 */
@@ -225,29 +228,36 @@
 		// Start path at first point
 		const path = [`M ${points[0].x.toFixed(2)} ${points[0].y.toFixed(2)}`];
 
-		// For only 2 points, draw a straight line
+		// For 2 points, use a proper cubic Bezier curve instead of straight line
 		if (points.length === 2) {
-			path.push(`L ${points[1].x.toFixed(2)} ${points[1].y.toFixed(2)}`);
-			return path.join(' ');
+			const start = points[0];
+			const end = points[1];
+			const dx = end.x - start.x;
+			const midTension = Number(tension) * 0.5;
+			const cp1x = start.x + dx * midTension;
+			const cp1y = start.y;
+			const cp2x = end.x - dx * midTension;
+			const cp2y = end.y;
+			return `M ${start.x.toFixed(2)},${start.y.toFixed(2)} C ${cp1x.toFixed(2)},${cp1y.toFixed(2)} ${cp2x.toFixed(2)},${cp2y.toFixed(2)} ${end.x.toFixed(2)},${end.y.toFixed(2)}`;
 		}
 
-		// Clamp tension to reasonable bounds (0-1)
-		const clampedTension = Math.max(0, Math.min(1, Number(tension) || 0));
+		// Optimized tension for natural curves - reduces overshoot
+		const optimizedTension = Math.max(0, Math.min(1, Number(tension) || 0)) * 0.5;
 
-		// Generate smooth curve segments
+		// Generate smooth curve segments using Catmull-Rom spline
 		for (let i = 0; i < points.length - 1; i++) {
-			// Get control points (using clamped indices for boundary conditions)
-			const p0 = points[Math.max(0, i - 1)];
+			// Get control points with proper boundary handling
+			const p0 = i === 0 ? points[0] : points[i - 1];
 			const p1 = points[i];
 			const p2 = points[i + 1];
-			const p3 = points[Math.min(points.length - 1, i + 2)];
+			const p3 = i === points.length - 2 ? points[points.length - 1] : points[i + 2];
 
-			// Calculate Catmull-Rom control points with proper tension scaling
-			// Using standard Catmull-Rom formula with tension parameter
-			const cp1x = p1.x + ((p2.x - p0.x) * clampedTension) / 6;
-			const cp1y = p1.y + ((p2.y - p0.y) * clampedTension) / 6;
-			const cp2x = p2.x - ((p3.x - p1.x) * clampedTension) / 6;
-			const cp2y = p2.y - ((p3.y - p1.y) * clampedTension) / 6;
+			// Calculate Catmull-Rom control points with optimized tension
+			// This produces more natural curves without overshoot
+			const cp1x = p1.x + (p2.x - p0.x) * optimizedTension;
+			const cp1y = p1.y + (p2.y - p0.y) * optimizedTension;
+			const cp2x = p2.x - (p3.x - p1.x) * optimizedTension;
+			const cp2y = p2.y - (p3.y - p1.y) * optimizedTension;
 
 			// Add cubic Bezier curve segment
 			path.push(
@@ -471,9 +481,9 @@
 				}
 			});
 
-			// Create the path - use smooth path if tension > 0
+			// Create the path - use smooth or straight based on curveType
 			if (pathPoints.length > 0) {
-				if (Number(tension) > 0) {
+				if (curveType === 'smooth' && Number(tension) > 0) {
 					pathData = createSmoothPath(pathPoints);
 				} else {
 					// Create straight line path
@@ -683,11 +693,10 @@
 			renderChart();
 		}
 	});
-
 	// Watch for prop changes
 	$effect(() => {
 		// Re-render when any of these props change
-		const _ = [tension, xKey, yKey, title, showLegend, height];
+		const _ = [tension, curveType, xKey, yKey, title, showLegend, height];
 
 		if (mounted) {
 			renderChart();

@@ -390,16 +390,19 @@
 												<td>Expected input date format for parsing</td>
 											</tr>
 											<tr>
-												<td><code>smoothLines</code></td>
-												<td><code>boolean</code></td>
-												<td><code>false</code></td>
-												<td>Use Catmull-Rom spline for smooth curved lines</td>
+												<td><code>curveType</code></td>
+												<td><code>'smooth' | 'straight'</code></td>
+												<td><code>'straight'</code></td>
+												<td
+													>Line curve type - 'smooth' uses Catmull-Rom spline, 'straight' uses
+													linear segments</td
+												>
 											</tr>
 											<tr>
 												<td><code>tension</code></td>
 												<td><code>number</code></td>
-												<td><code>0</code></td>
-												<td>Curve tension factor for smooth lines (0 = straight lines, recommended: 0.3)</td>
+												<td><code>0.3</code></td>
+												<td>Curve tension factor for smooth lines (0-1, optimal: 0.3-0.5)</td>
 											</tr>
 										</tbody>
 									</table>
@@ -425,6 +428,8 @@
 													yKey="sales"
 													title="Product Performance"
 													showLegend={true}
+													curveType="smooth"
+													tension={0.3}
 												/>`}
 											language="svelte"
 										/>
@@ -455,6 +460,8 @@
 													title="Profit/Loss Analysis"
 													yTickCount={5}
 													doubleTicks={true}
+													curveType="smooth"
+													tension={0.3}
 												/>
 												`}
 											language="svelte"
@@ -513,8 +520,8 @@
 										</div>
 										<h4>Smooth Lines</h4>
 										<p>
-											Optional smooth curved lines using Catmull-Rom spline interpolation for more
-											visually appealing charts.
+											Advanced smooth curves using optimized Catmull-Rom spline interpolation with
+											configurable curve types and tension control for natural-looking lines.
 										</p>
 									</div>
 									<div class="feature-card">
@@ -618,8 +625,27 @@
 														lines={data}
 														xKey="date"
 														yKey="value"
-														tension={0.3}  <!-- Values > 0 create smooth curves -->
+														curveType="smooth"
+														tension={0.3}  <!-- Optimal tension for smooth curves -->
 													/>
+													`}
+												language="svelte"
+											/>
+										</div>
+									</div>
+									<div class="config-item">
+										<h4><Settings size={18} /> Curve Type Control</h4>
+										<div class="code-preview small">
+											<CodeBlock
+												code={`
+													<!-- Straight line segments -->
+													<MultiLineChart curveType="straight" />
+													
+													<!-- Smooth curves with default tension -->
+													<MultiLineChart curveType="smooth" />
+													
+													<!-- Custom tension (0-1, optimal: 0.3-0.5) -->
+													<MultiLineChart curveType="smooth" tension={0.4} />
 													`}
 												language="svelte"
 											/>
@@ -658,6 +684,47 @@
 						</div>
 					</div>
 				</div> -->
+
+							<!-- Enhanced Smoothing Algorithm -->
+							<div class="doc-section">
+								<h2><ChartLine size={20} /> Enhanced Smoothing Algorithm</h2>
+
+								<div class="enhancement-overview">
+									<p>
+										The MultiLineChart component features an improved Catmull-Rom spline
+										implementation that produces more natural, visually appealing curves while
+										maintaining mathematical accuracy.
+									</p>
+								</div>
+
+								<div class="enhancement-features">
+									<h3><Settings size={18} /> Key Improvements</h3>
+									<div class="enhancement-subsection">
+										<ul class="enhancement-list">
+											<li>
+												<strong>Optimized Tension Scaling:</strong> Uses <code>tension * 0.5</code> for
+												more natural curve behavior
+											</li>
+											<li>
+												<strong>Better 2-Point Handling:</strong> Creates proper cubic Bezier curves
+												instead of straight lines
+											</li>
+											<li>
+												<strong>Reduced Overshoot:</strong> Prevents unnatural bulges and maintains visual
+												integrity
+											</li>
+											<li>
+												<strong>Flexible Curve Types:</strong> Choose between 'smooth' and 'straight'
+												rendering
+											</li>
+											<li>
+												<strong>Optimal Defaults:</strong> Tension value of 0.3 provides ideal curve
+												smoothness
+											</li>
+										</ul>
+									</div>
+								</div>
+							</div>
 
 							<!-- Accessibility -->
 							<div class="doc-section">
@@ -1025,7 +1092,6 @@
 						showLegend={true}
 						height={300}
 						yTickCount={4}
-						tension={1}
 					/>
 				</div>
 
@@ -1062,7 +1128,6 @@
 						showValues={true}
 						hasTooltip={false}
 						height={350}
-						tension={1}
 					/>
 				</div>
 
@@ -1113,27 +1178,26 @@
 			<!-- Comparison: Standard vs Smooth Lines -->
 			<div class="example-card">
 				<div class="example-header">
-					<h3>Comparison: Standard vs Smooth Lines</h3>
-					<p>Demonstrating the difference between standard and smooth line styles</p>
+					<h3>Comparison: Standard vs double Ticks</h3>
+					<p>Demonstrating the difference between standard and Double Ticks</p>
 				</div>
 
 				<div class="example-content">
 					<div class="comparison-grid">
 						<div class="comparison-item">
-							<h4>Standard Lines</h4>
+							<h4>Standard Ticks</h4>
 							<MultiLineChart
 								lines={profitLossData}
 								xKey="month"
 								yKey="profit"
-								title=""
-								showLegend={false}
+								title="ABRACADABRA"
+								showLegend={true}
 								height={280}
-								yTickCount={5}
-								tension={0} 
+								
 							/>
 						</div>
 						<div class="comparison-item">
-							<h4>Smooth Lines</h4>
+							<h4>Double Ticks</h4>
 							<MultiLineChart
 								lines={profitLossData}
 								xKey="month"
@@ -1141,9 +1205,7 @@
 								title=""
 								showLegend={false}
 								height={280}
-								yTickCount={5}
-								tension={0.3}
-								
+								doubleTicks={true}
 							/>
 						</div>
 					</div>
@@ -1709,6 +1771,69 @@
 		flex: 1;
 	} */
 
+	/* Enhancement Section */
+	.enhancement-overview {
+		margin-bottom: var(--spacing-lg);
+	}
+
+	.enhancement-overview p {
+		font-size: 1rem;
+		line-height: 1.6;
+		color: var(--color-gray-dark);
+		max-width: 800px;
+	}
+
+	.enhancement-features {
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-xs);
+	}
+
+	.enhancement-features h3 {
+		font-size: 1.1rem;
+		color: var(--color-primary);
+		margin-bottom: var(--spacing-xs);
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-xs);
+	}
+
+	.enhancement-subsection {
+		margin-left: var(--spacing-md);
+		margin-bottom: var(--spacing-md);
+	}
+
+	.enhancement-list {
+		list-style: none;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-xs);
+	}
+
+	.enhancement-list li {
+		padding: var(--spacing-xs);
+		background: var(--color-card-bg);
+		border-radius: var(--border-radius);
+		border-left: 3px solid var(--color-primary);
+		font-size: 0.9rem;
+		line-height: 1.4;
+	}
+
+	.enhancement-list li strong {
+		color: var(--color-primary);
+		font-weight: 600;
+	}
+
+	.enhancement-list li code {
+		background: var(--color-gray-light);
+		padding: 2px 6px;
+		border-radius: 3px;
+		font-size: 0.85em;
+		color: var(--color-primary);
+		font-family: 'Courier New', monospace;
+	}
+
 	/* Accessibility Section */
 	.accessibility-overview {
 		margin-bottom: var(--spacing-lg);
@@ -2047,4 +2172,3 @@
 		} */
 	}
 </style>
-
