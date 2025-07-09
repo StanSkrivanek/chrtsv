@@ -14,13 +14,15 @@
 		activeTab = '',
 		onTabChange = () => {},
 		documentation,
-		usage
+		usage,
+		accessibility
 	}: {
 		tabs: Tab[];
 		activeTab: string;
 		onTabChange: (tabId: string) => void;
 		documentation?: Snippet;
 		usage?: Snippet;
+		accessibility?: Snippet;
 	} = $props();
 
 	function handleTabClick(tabId: string) {
@@ -76,6 +78,8 @@
 						{@render documentation()}
 					{:else if tab.id === 'usage' && usage}
 						{@render usage()}
+					{:else if tab.id === 'accessibility' && accessibility}
+						{@render accessibility()}
 					{/if}
 				{/if}
 			</div>

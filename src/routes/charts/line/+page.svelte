@@ -25,7 +25,8 @@
 	// Tab configuration
 	const tabs = [
 		{ id: 'documentation', label: 'Documentation', icon: BookOpen },
-		{ id: 'usage', label: 'Usage Example', icon: Code }
+		{ id: 'usage', label: 'Usage Example', icon: Code },
+		{ id: 'accessibility', label: 'Accessibility', icon: Accessibility }
 	];
 
 	function handleTabChange(tabId: string) {
@@ -360,8 +361,11 @@
 											<tr>
 												<td><code>hasTooltip</code></td>
 												<td><code>boolean</code></td>
-												<td><code>true</code></td>
-												<td>Enable/disable tooltips on hover</td>
+												<td><code>false</code></td>
+												<td
+													>Enable tooltips. Works with crosshair for multi-value or standalone for
+													single-point tooltips</td
+												>
 											</tr>
 											<tr>
 												<td><code>yTickCount</code></td>
@@ -405,8 +409,11 @@
 											<tr>
 												<td><code>showCrosshair</code></td>
 												<td><code>boolean</code></td>
-												<td><code>true</code></td>
-												<td>Show crosshair lines and multi-value tooltip on hover</td>
+												<td><code>false</code></td>
+												<td
+													>Show crosshair lines on hover. Combine with hasTooltip for multi-value
+													tooltips</td
+												>
 											</tr>
 										</tbody>
 									</table>
@@ -739,7 +746,6 @@
 									</div>
 								</div>
 							</div> -->
-
 
 							<!-- LineData Interface -->
 							<!-- <div class="doc-section">
@@ -1218,6 +1224,232 @@
 							description="Simple example showing how to create a multi-line chart with two data series"
 						/>
 					{/snippet}
+
+					{#snippet accessibility()}
+						<div class="accessibility-content">
+							<!-- Swiss Design Header -->
+							<div class="swiss-header">
+								<div class="swiss-grid">
+									<div class="swiss-title">
+										<h2><Accessibility size={24} /> Accessibility Features</h2>
+										<p class="swiss-subtitle">
+											WCAG 2.1 AA Compliant • Universal Design • Swiss Design Principles
+										</p>
+									</div>
+									<div class="swiss-badge">
+										<span class="accessibility-badge">AA</span>
+									</div>
+								</div>
+							</div>
+
+							<!-- Key Features Grid -->
+							<div class="accessibility-grid">
+								<div class="accessibility-card keyboard">
+									<div class="card-header">
+										<MousePointer size={20} />
+										<h3>Keyboard Navigation</h3>
+									</div>
+									<div class="card-content">
+										<ul>
+											<li><kbd>Tab</kbd> Navigate interactive elements</li>
+											<li><kbd>Enter</kbd> / <kbd>Space</kbd> Toggle line highlighting</li>
+											<li><kbd>Escape</kbd> Clear all highlights</li>
+										</ul>
+									</div>
+								</div>
+
+								<div class="accessibility-card screen-reader">
+									<div class="card-header">
+										<Users size={20} />
+										<h3>Screen Reader Support</h3>
+									</div>
+									<div class="card-content">
+										<ul>
+											<li>Comprehensive ARIA labels and descriptions</li>
+											<li>Live announcements for state changes</li>
+											<li>Semantic HTML structure</li>
+											<li>Alternative data table access</li>
+										</ul>
+									</div>
+								</div>
+
+								<div class="accessibility-card visual">
+									<div class="card-header">
+										<Target size={20} />
+										<h3>Visual Accessibility</h3>
+									</div>
+									<div class="card-content">
+										<ul>
+											<li>High contrast color schemes</li>
+											<li>Clear focus indicators</li>
+											<li>Scalable up to 200% zoom</li>
+											<li>Information not color-dependent</li>
+										</ul>
+									</div>
+								</div>
+
+								<div class="accessibility-card standards">
+									<div class="card-header">
+										<Settings size={20} />
+										<h3>WCAG Compliance</h3>
+									</div>
+									<div class="card-content">
+										<ul>
+											<li><strong>Perceivable:</strong> Alt text, contrast, resizable</li>
+											<li><strong>Operable:</strong> Keyboard accessible, no seizures</li>
+											<li><strong>Understandable:</strong> Clear language, predictable</li>
+											<li><strong>Robust:</strong> Compatible with assistive tech</li>
+										</ul>
+									</div>
+								</div>
+							</div>
+
+							<!-- Swiss Design Implementation -->
+							<div class="swiss-section">
+								<h3><Sparkles size={20} /> Swiss Design Implementation</h3>
+								<div class="swiss-principles">
+									<div class="principle">
+										<h4>Typography</h4>
+										<p>
+											Clean, readable fonts with optimal hierarchy and spacing following Swiss
+											typography principles.
+										</p>
+									</div>
+									<div class="principle">
+										<h4>Grid System</h4>
+										<p>
+											Structured layout using mathematical proportions and clear visual
+											organization.
+										</p>
+									</div>
+									<div class="principle">
+										<h4>Minimal Design</h4>
+										<p>
+											Focus on functionality with clean aesthetics and purposeful use of whitespace.
+										</p>
+									</div>
+									<div class="principle">
+										<h4>Color Theory</h4>
+										<p>
+											Accessible color palettes with sufficient contrast ratios and meaningful color
+											usage.
+										</p>
+									</div>
+								</div>
+							</div>
+
+							<!-- Interactive Demo -->
+							<div class="accessibility-demo">
+								<h3><Activity size={20} /> Try Accessibility Features</h3>
+								<div class="demo-instructions">
+									<div class="instruction-group">
+										<h4>Keyboard Navigation</h4>
+										<p>
+											Use <kbd>Tab</kbd> to navigate to the chart legend below, then try
+											<kbd>Enter</kbd>
+											or <kbd>Space</kbd> to highlight different data series. Press
+											<kbd>Escape</kbd> to reset.
+										</p>
+									</div>
+									<div class="instruction-group">
+										<h4>Screen Reader Testing</h4>
+										<p>
+											Enable your screen reader to hear detailed descriptions of chart data,
+											navigation instructions, and live updates as you interact with the chart.
+										</p>
+									</div>
+								</div>
+
+								<!-- Demo Chart -->
+								<div class="accessibility-chart-demo">
+									<MultiLineChart
+										lines={productData}
+										xKey="month"
+										yKey="sales"
+										title="Accessibility Demo - Product Sales by Month"
+										showLegend={true}
+										height={300}
+										showCrosshair={true}
+										curveType="smooth"
+									/>
+								</div>
+							</div>
+
+							<!-- Code Examples -->
+							<div class="code-examples">
+								<h3><Code size={20} /> Accessibility Code Examples</h3>
+
+								<div class="code-example">
+									<h4>Basic Accessible Implementation</h4>
+									<CodeBlock
+										language="svelte"
+										code={`<MultiLineChart
+  lines={salesData}
+  title="Monthly Sales Performance"
+  showLegend={true}
+  xKey="month"
+  yKey="sales"
+  height={400}
+/>
+<!-- Accessibility features are built-in automatically -->`}
+									/>
+								</div>
+
+								<div class="code-example">
+									<h4>ARIA Integration Example</h4>
+									<CodeBlock
+										language="svelte"
+										code={`<!-- The component automatically generates:
+- aria-label="Interactive chart: Monthly Sales Performance"
+- aria-describedby="chart-description"
+- role="img" for the SVG
+- Proper focus management
+- Live region announcements -->
+
+<MultiLineChart
+  {lines}
+  title="Revenue Trends"
+  showLegend={true}
+/>`}
+									/>
+								</div>
+							</div>
+
+							<!-- Testing Information -->
+							<div class="testing-info">
+								<h3><ChartLine size={20} /> Testing & Validation</h3>
+								<div class="testing-grid">
+									<div class="testing-item">
+										<h4>Screen Readers Tested</h4>
+										<ul>
+											<li>NVDA (Windows)</li>
+											<li>JAWS (Windows)</li>
+											<li>VoiceOver (macOS/iOS)</li>
+											<li>TalkBack (Android)</li>
+										</ul>
+									</div>
+									<div class="testing-item">
+										<h4>Browser Compatibility</h4>
+										<ul>
+											<li>Chrome (Windows/macOS)</li>
+											<li>Firefox (Windows/macOS)</li>
+											<li>Safari (macOS/iOS)</li>
+											<li>Edge (Windows)</li>
+										</ul>
+									</div>
+									<div class="testing-item">
+										<h4>Standards Compliance</h4>
+										<ul>
+											<li>WCAG 2.1 AA</li>
+											<li>Section 508</li>
+											<li>EN 301 549</li>
+											<li>ADA Compliance</li>
+										</ul>
+									</div>
+								</div>
+							</div>
+						</div>
+					{/snippet}
 				</TabComponent>
 			</div>
 		</section>
@@ -1244,7 +1476,8 @@
 						showLegend={true}
 						height={300}
 						yTickCount={4}
-						showCrosshair={true}
+						
+						hasTooltip={true}
 					/>
 				</div>
 
@@ -1315,8 +1548,9 @@
 						yKey={selectedProfitMetric}
 						title={`Product Performance - ${profitMetrics.find((m) => m.value === selectedProfitMetric)?.label}`}
 						showLegend={true}
-						showValues={true}
+						
 						showCrosshair={true}
+						hasTooltip={true}
 						height={400}
 					/>
 				</div>
@@ -1369,6 +1603,87 @@
 					<span class="feature-tag">Comparison</span>
 					<span class="feature-tag">Smooth Lines</span>
 					<span class="feature-tag">Visual Enhancement</span>
+				</div>
+			</div>
+
+			<!-- Tooltip and Crosshair Combinations -->
+			<div class="example-card">
+				<div class="example-header">
+					<h3>Tooltip Only (hasTooltip=true, showCrosshair=false)</h3>
+					<p>Individual point tooltips on hover without crosshair lines</p>
+				</div>
+
+				<div class="example-content">
+					<MultiLineChart
+						lines={productData}
+						xKey="month"
+						yKey="sales"
+						title="Point Tooltips Only"
+						showLegend={true}
+						hasTooltip={true}
+						showCrosshair={false}
+						height={300}
+					/>
+				</div>
+
+				<div class="example-features">
+					<span class="feature-tag">Point Tooltips</span>
+					<span class="feature-tag">No Crosshair</span>
+					<span class="feature-tag">Hover Interaction</span>
+				</div>
+			</div>
+
+			<!-- Crosshair Only -->
+			<div class="example-card">
+				<div class="example-header">
+					<h3>Crosshair Only (hasTooltip=false, showCrosshair=true)</h3>
+					<p>Crosshair lines without tooltips for visual guidance only</p>
+				</div>
+
+				<div class="example-content">
+					<MultiLineChart
+						lines={productData}
+						xKey="month"
+						yKey="sales"
+						title="Crosshair Lines Only"
+						showLegend={true}
+						hasTooltip={false}
+						showCrosshair={true}
+						height={300}
+					/>
+				</div>
+
+				<div class="example-features">
+					<span class="feature-tag">Crosshair Lines</span>
+					<span class="feature-tag">No Tooltips</span>
+					<span class="feature-tag">Visual Guide</span>
+				</div>
+			</div>
+
+			<!-- Combined Crosshair + Tooltip -->
+			<div class="example-card">
+				<div class="example-header">
+					<h3>Combined (hasTooltip=true, showCrosshair=true)</h3>
+					<p>Crosshair lines with multi-value tooltip showing all line values</p>
+				</div>
+
+				<div class="example-content">
+					<MultiLineChart
+						lines={productData}
+						xKey="month"
+						yKey="sales"
+						title="Crosshair with Multi-Value Tooltip"
+						showLegend={true}
+						hasTooltip={true}
+						showCrosshair={true}
+						height={300}
+					/>
+				</div>
+
+				<div class="example-features">
+					<span class="feature-tag">Crosshair + Tooltip</span>
+					<span class="feature-tag">Multi-Value</span>
+					<span class="feature-tag">Full Interaction</span>
 				</div>
 			</div>
 		</div>
@@ -2341,5 +2656,359 @@
 		/* .wcag-icon {
 			align-self: center;
 		} */
+	}
+
+	/* Swiss Design - Accessibility Tab Styles */
+	.accessibility-content {
+		max-width: 100%;
+		margin: 0;
+		font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+	}
+
+	.swiss-header {
+		background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+		border-left: 4px solid #3b82f6;
+		margin-bottom: 2rem;
+		border-radius: 0 8px 8px 0;
+	}
+
+	.swiss-grid {
+		display: grid;
+		grid-template-columns: 1fr auto;
+		align-items: center;
+		padding: 1.5rem;
+		gap: 1rem;
+	}
+
+	.swiss-title h2 {
+		margin: 0 0 0.25rem 0;
+		font-size: 1.75rem;
+		font-weight: 300;
+		color: #1e293b;
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+	}
+
+	.swiss-subtitle {
+		margin: 0;
+		font-size: 0.875rem;
+		color: #64748b;
+		font-weight: 400;
+		letter-spacing: 0.025em;
+	}
+
+	.swiss-badge {
+		background: #3b82f6;
+		border-radius: 50%;
+		width: 60px;
+		height: 60px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.accessibility-badge {
+		color: white;
+		font-weight: 700;
+		font-size: 1.25rem;
+		letter-spacing: 0.05em;
+	}
+
+	.accessibility-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+		gap: 1.5rem;
+		margin-bottom: 3rem;
+	}
+
+	.accessibility-card {
+		background: white;
+		border: 1px solid #e2e8f0;
+		border-radius: 12px;
+		padding: 1.5rem;
+		transition: all 0.2s ease;
+		position: relative;
+		overflow: hidden;
+	}
+
+	.accessibility-card::before {
+		content: '';
+		position: absolute;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 3px;
+		background: var(--card-accent, #e2e8f0);
+	}
+
+	.accessibility-card.keyboard::before {
+		--card-accent: #3b82f6;
+	}
+	.accessibility-card.screen-reader::before {
+		--card-accent: #10b981;
+	}
+	.accessibility-card.visual::before {
+		--card-accent: #f59e0b;
+	}
+	.accessibility-card.standards::before {
+		--card-accent: #8b5cf6;
+	}
+
+	.accessibility-card:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+	}
+
+	.card-header {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		margin-bottom: 1rem;
+	}
+
+	.card-header h3 {
+		margin: 0;
+		font-size: 1.125rem;
+		font-weight: 500;
+		color: #1e293b;
+	}
+
+	.card-content ul {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.card-content li {
+		padding: 0.5rem 0;
+		border-bottom: 1px solid #f1f5f9;
+		color: #475569;
+		font-size: 0.875rem;
+		line-height: 1.5;
+	}
+
+	.card-content li:last-child {
+		border-bottom: none;
+	}
+
+	.card-content kbd {
+		background: #f1f5f9;
+		border: 1px solid #cbd5e1;
+		border-radius: 4px;
+		padding: 2px 6px;
+		font-family: 'SF Mono', Monaco, monospace;
+		font-size: 0.75rem;
+		font-weight: 500;
+		color: #374151;
+	}
+
+	.swiss-section {
+		background: #fefefe;
+		border: 1px solid #e2e8f0;
+		border-radius: 12px;
+		padding: 2rem;
+		margin-bottom: 3rem;
+	}
+
+	.swiss-section h3 {
+		margin: 0 0 1.5rem 0;
+		font-size: 1.25rem;
+		font-weight: 500;
+		color: #1e293b;
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+	}
+
+	.swiss-principles {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+		gap: 1.5rem;
+	}
+
+	.principle {
+		padding: 1rem;
+		background: #f8fafc;
+		border-radius: 8px;
+		border-left: 3px solid #3b82f6;
+	}
+
+	.principle h4 {
+		margin: 0 0 0.5rem 0;
+		font-size: 1rem;
+		font-weight: 600;
+		color: #1e293b;
+	}
+
+	.principle p {
+		margin: 0;
+		font-size: 0.875rem;
+		color: #64748b;
+		line-height: 1.6;
+	}
+
+	.accessibility-demo {
+		background: white;
+		border: 1px solid #e2e8f0;
+		border-radius: 12px;
+		padding: 2rem;
+		margin-bottom: 3rem;
+	}
+
+	.accessibility-demo h3 {
+		margin: 0 0 1.5rem 0;
+		font-size: 1.25rem;
+		font-weight: 500;
+		color: #1e293b;
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+	}
+
+	.demo-instructions {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+		gap: 1.5rem;
+		margin-bottom: 2rem;
+	}
+
+	.instruction-group {
+		padding: 1rem;
+		background: #f8fafc;
+		border-radius: 8px;
+		border-left: 3px solid #10b981;
+	}
+
+	.instruction-group h4 {
+		margin: 0 0 0.5rem 0;
+		font-size: 1rem;
+		font-weight: 600;
+		color: #1e293b;
+	}
+
+	.instruction-group p {
+		margin: 0;
+		font-size: 0.875rem;
+		color: #64748b;
+		line-height: 1.6;
+	}
+
+	.accessibility-chart-demo {
+		margin-top: 1.5rem;
+		padding: 1.5rem;
+		background: #fefefe;
+		border: 1px solid #e2e8f0;
+		border-radius: 8px;
+	}
+
+	.code-examples {
+		background: white;
+		border: 1px solid #e2e8f0;
+		border-radius: 12px;
+		padding: 2rem;
+		margin-bottom: 3rem;
+	}
+
+	.code-examples h3 {
+		margin: 0 0 1.5rem 0;
+		font-size: 1.25rem;
+		font-weight: 500;
+		color: #1e293b;
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+	}
+
+	.code-example {
+		margin-bottom: 2rem;
+	}
+
+	.code-example:last-child {
+		margin-bottom: 0;
+	}
+
+	.code-example h4 {
+		margin: 0 0 1rem 0;
+		font-size: 1rem;
+		font-weight: 600;
+		color: #374151;
+	}
+
+	.testing-info {
+		background: white;
+		border: 1px solid #e2e8f0;
+		border-radius: 12px;
+		padding: 2rem;
+	}
+
+	.testing-info h3 {
+		margin: 0 0 1.5rem 0;
+		font-size: 1.25rem;
+		font-weight: 500;
+		color: #1e293b;
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+	}
+
+	.testing-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+		gap: 1.5rem;
+	}
+
+	.testing-item {
+		padding: 1rem;
+		background: #f8fafc;
+		border-radius: 8px;
+		border-left: 3px solid #8b5cf6;
+	}
+
+	.testing-item h4 {
+		margin: 0 0 0.75rem 0;
+		font-size: 1rem;
+		font-weight: 600;
+		color: #1e293b;
+	}
+
+	.testing-item ul {
+		margin: 0;
+		padding: 0 0 0 1rem;
+		color: #64748b;
+		font-size: 0.875rem;
+		line-height: 1.6;
+	}
+
+	.testing-item li {
+		margin-bottom: 0.25rem;
+	}
+
+	/* Responsive Design */
+	@media (max-width: 768px) {
+		.swiss-grid {
+			grid-template-columns: 1fr;
+			text-align: center;
+		}
+
+		.accessibility-grid {
+			grid-template-columns: 1fr;
+		}
+
+		.swiss-principles {
+			grid-template-columns: 1fr;
+		}
+
+		.demo-instructions {
+			grid-template-columns: 1fr;
+		}
+
+		.testing-grid {
+			grid-template-columns: 1fr;
+		}
+
+		.swiss-title h2 {
+			font-size: 1.5rem;
+		}
 	}
 </style>

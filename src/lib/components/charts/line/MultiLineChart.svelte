@@ -3,7 +3,7 @@
 	import { format, isValid, parse, parseISO } from 'date-fns';
 	import { onMount } from 'svelte';
 	import { cubicInOut } from 'svelte/easing';
-	import { fade, fly, scale } from 'svelte/transition';
+	import { fade, scale } from 'svelte/transition';
 
 	// Type definitions
 	interface LineData {
@@ -46,7 +46,7 @@
 		dateFormat = 'MMM dd',
 		inputDateFormat = null,
 		showValues = false,
-		hasTooltip = true,
+		hasTooltip = false,
 		yTickCount = 5,
 		doubleTicks = false,
 		tension = 0.3,
@@ -86,6 +86,15 @@
 	let crosshairData = $state<CrosshairData | null>(null);
 	let mouseX = $state(0);
 	let mouseY = $state(0);
+
+	// Derived state using Svelte 5 runes for tooltip logic
+	const shouldShowPointTooltip = $derived(
+		hasTooltip && !showCrosshair && tooltipVisible && tooltipData !== null
+	);
+	const shouldShowCrosshairTooltip = $derived(
+		showCrosshair && hasTooltip && crosshairVisible && crosshairData !== null
+	);
+	const shouldShowCrosshairLines = $derived(showCrosshair && crosshairVisible);
 
 	// Accessibility helpers
 	function announceToScreenReader(message: string) {
@@ -581,28 +590,45 @@
 					// Add interaction only if hasTooltip is true
 					if (hasTooltip) {
 						circle.addEventListener('mouseenter', () => {
-							const xValue = String(dataPoint[xKey]);
-							const parsedDate = parseDate(xValue);
-							const displayLabel = parsedDate ? formatDateForDisplay(xValue) : xValue;
+							// Only show individual point tooltip when crosshair is disabled
+							if (!showCrosshair) {
+								const xValue = String(dataPoint[xKey]);
+								const parsedDate = parseDate(xValue);
+								const displayLabel = parsedDate ? formatDateForDisplay(xValue) : xValue;
 
-							tooltipData = {
-								x,
-								y,
-								value: dataPoint[yKey],
-								label: displayLabel,
-								lineLabel: lineData.label,
-								color
-							};
-							tooltipVisible = true;
+								// Format the value for display
+								const yValue = Number(dataPoint[yKey]);
+								let formattedValue: string;
+								if (Math.abs(yValue) >= 1000000) {
+									formattedValue = `${(yValue / 1000000).toFixed(1)}M`;
+								} else if (Math.abs(yValue) >= 1000) {
+									formattedValue = `${(yValue / 1000).toFixed(1)}k`;
+								} else {
+									formattedValue = yValue.toString();
+								}
+
+								tooltipData = {
+									x,
+									y,
+									value: formattedValue,
+									label: displayLabel,
+									lineLabel: lineData.label,
+									color
+								};
+								tooltipVisible = true;
+							}
+
+							// Always show hover effect regardless of crosshair setting
 							hoveredLine = lineData.id;
-
-							// Simple hover effect
 							circle.setAttribute('r', '6');
 							circle.setAttribute('fill', color);
 						});
 
 						circle.addEventListener('mouseleave', () => {
-							tooltipVisible = false;
+							// Only hide tooltip if we're not using crosshair
+							if (!showCrosshair) {
+								tooltipVisible = false;
+							}
 							hoveredLine = null;
 
 							// Restore circle style
@@ -725,9 +751,11 @@
 			);
 			overlay.addEventListener('mouseenter', () => {
 				crosshairVisible = true;
-				const crosshairGroup = chart.querySelector('.crosshair-group');
-				if (crosshairGroup) {
-					crosshairGroup.setAttribute('opacity', '1');
+				if (shouldShowCrosshairLines) {
+					const crosshairGroup = chart.querySelector('.crosshair-group');
+					if (crosshairGroup) {
+						crosshairGroup.setAttribute('opacity', '1');
+					}
 				}
 			});
 			overlay.addEventListener('mouseleave', () => {
@@ -1085,27 +1113,42 @@
 		</div>
 	{/if}
 
-	{#if tooltipVisible && tooltipData && hasTooltip}
+	<!-- Tooltip for hasTooltip only (single point hover) -->
+	{#if shouldShowPointTooltip && tooltipData}
+		{@const tooltipX = tooltipData.x}
+		{@const tooltipY = tooltipData.y - 20}
+		{@const shouldFlipX = tooltipX > width - 120}
+		{@const shouldFlipY = tooltipY < 80}
 		<div
-			class="tooltip"
-			style="left: {tooltipData.x}px; top: {tooltipData.y - 24}px;"
+			class="crosshair-tooltip"
+			style="left: {tooltipX}px; top: {shouldFlipY
+				? tooltipY + 40
+				: tooltipY}px; transform: translate({shouldFlipX ? '-100%' : '-50%'}, {shouldFlipY
+				? '10px'
+				: '-100%'});"
 			role="tooltip"
 			aria-live="polite"
-			transition:fly={{ y: -10, duration: 200, easing: cubicInOut }}
 		>
-			<div class="tooltip-content">
-				<div class="tooltip-header" style="color: #FFF">
-					{tooltipData.lineLabel}
+			<div class="crosshair-content">
+				<div class="crosshair-header">
+					{tooltipData.label}
 				</div>
-				<div class="tooltip-body">
-					<span class="tooltip-label">{tooltipData.label}</span>
-					<span class="tooltip-value">{tooltipData.value}</span>
+				<div class="crosshair-values">
+					<div class="crosshair-value-row">
+						<div
+							class="crosshair-color-indicator"
+							style="background-color: {tooltipData.color}"
+						></div>
+						<span class="crosshair-line-label">{tooltipData.lineLabel}:</span>
+						<span class="crosshair-value">{tooltipData.value}</span>
+					</div>
 				</div>
 			</div>
 		</div>
 	{/if}
 
-	{#if crosshairVisible && crosshairData && showCrosshair}
+	<!-- Crosshair tooltip for showCrosshair + hasTooltip (multi-line hover) -->
+	{#if shouldShowCrosshairTooltip && crosshairData}
 		{@const tooltipX = crosshairData.x}
 		{@const tooltipY = crosshairData.y - 20}
 		{@const shouldFlipX = tooltipX > width - 120}
@@ -1352,49 +1395,6 @@
 
 	.legend-item:hover .legend-label {
 		color: #1f2937;
-	}
-
-	.tooltip {
-		position: absolute;
-		transform: translate(-50%, -100%);
-		pointer-events: none;
-		z-index: 10;
-	}
-
-	.tooltip-content {
-		background-color: oklch(0.279 0.041 260.031);
-		color: white;
-		padding: 8px 12px;
-		border-radius: 6px;
-		font-size: 12px;
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-		min-width: 100px;
-		backdrop-filter: blur(8px);
-		border: 1px solid rgba(255, 255, 255, 0.1);
-		transition: all 0.2s ease;
-	}
-
-	.tooltip-header {
-		font-weight: 600;
-		margin-bottom: 4px;
-		font-size: 13px;
-		transition: color 0.2s ease;
-	}
-
-	.tooltip-body {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-	}
-
-	.tooltip-label {
-		font-weight: 500;
-		margin-right: 8px;
-	}
-
-	.tooltip-value {
-		font-weight: 700;
-		font-size: 13px;
 	}
 
 	/* Crosshair tooltip styles */
