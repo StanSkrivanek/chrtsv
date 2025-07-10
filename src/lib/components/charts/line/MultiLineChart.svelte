@@ -4,17 +4,17 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { cubicInOut } from 'svelte/easing';
 	import { fade, scale } from 'svelte/transition';
-	import { PathGenerator } from './utils/PathGenerator.js';
-	import { ChartDataManager } from './utils/ChartDataManager.js';
-	import { PerformanceMonitor } from './utils/PerformanceMonitor.js';
-	import { throttle, memoize } from './utils/helpers.js';
+	import { PathGenerator } from '$lib/components/charts/utils/PathGenerator';
+	import { ChartDataManager } from '$lib/components/charts/utils/ChartManager';
+	import { PerformanceMonitor } from '$lib/components/charts/utils/PerformanceMonitor';
+	import { throttle, memoize } from '$lib/components/charts/utils/helpers';
 	import type { 
 		LineData, 
 		TooltipData, 
 		CrosshairData, 
 		ChartPerformanceConfig,
 		ProcessedChartData 
-	} from './types/chart.types.js';
+	} from '$lib/components/charts/types/chart.types.ts';
 
 	// Props with explicit typing
 	let {
@@ -687,9 +687,9 @@
 				{height}
 				role="img"
 				aria-label="Line chart: {title}"
-				on:mousemove={throttledMouseMove}
-				on:mouseleave={() => { crosshairVisible = false; }}
-				on:mouseenter={() => { crosshairVisible = true; }}
+				onmousemove={throttledMouseMove}
+				onmouseleave={() => { crosshairVisible = false; }}
+				onmouseenter={() => { crosshairVisible = true; }}
 			></canvas>
 		{:else}
 			<!-- SVG for smaller datasets -->
@@ -700,9 +700,9 @@
 				{height}
 				role="img"
 				aria-label="Line chart: {title}"
-				on:mousemove={throttledMouseMove}
-				on:mouseleave={() => { crosshairVisible = false; }}
-				on:mouseenter={() => { crosshairVisible = true; }}
+				onmousemove={throttledMouseMove}
+				onmouseleave={() => { crosshairVisible = false; }}
+				onmouseenter={() => { crosshairVisible = true; }}
 			>
 				{#if chartData && linePaths.length > 0}
 					<g>
@@ -803,8 +803,8 @@
 											class="data-point"
 											role={hasTooltip ? 'button' : undefined}
 											tabindex={hasTooltip ? 0 : undefined}
-											on:mouseenter={(e) => handlePointHover(e, lineData, point, i)}
-											on:mouseleave={handlePointLeave}
+											onmouseenter={(e) => handlePointHover(e, lineData, point, i)}
+											onmouseleave={handlePointLeave}
 											style="transition: opacity 0.3s ease, transform 0.2s ease; cursor: {hasTooltip ? 'pointer' : 'default'};"
 										/>
 										
