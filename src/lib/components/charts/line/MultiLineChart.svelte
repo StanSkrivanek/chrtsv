@@ -1,39 +1,20 @@
+// File: src/lib/components/charts/MultiLineChart.svelte
 <script lang="ts">
-	// Import only what we need
 	import { format, isValid, parse, parseISO } from 'date-fns';
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { cubicInOut } from 'svelte/easing';
 	import { fade, scale } from 'svelte/transition';
-
-	// Type definitions
-	interface LineData {
-		id: string;
-		label: string;
-		data: Array<Record<string, any>>;
-		color: string;
-	}
-
-	interface TooltipData {
-		x: number;
-		y: number;
-		value: any;
-		label: string;
-		lineLabel: string;
-		color: string;
-	}
-
-	interface CrosshairData {
-		x: number;
-		y: number;
-		xLabel: string;
-		values: Array<{
-			lineId: string;
-			lineLabel: string;
-			value: any;
-			color: string;
-			y: number;
-		}>;
-	}
+	import { PathGenerator } from './utils/PathGenerator.js';
+	import { ChartDataManager } from './utils/ChartDataManager.js';
+	import { PerformanceMonitor } from './utils/PerformanceMonitor.js';
+	import { throttle, memoize } from './utils/helpers.js';
+	import type { 
+		LineData, 
+		TooltipData, 
+		CrosshairData, 
+		ChartPerformanceConfig,
+		ProcessedChartData 
+	} from './types/chart.types.js';
 
 	// Props with explicit typing
 	let {
@@ -51,7 +32,8 @@
 		doubleTicks = false,
 		tension = 0.3,
 		curveType = 'straight' as 'straight' | 'smooth',
-		showCrosshair = false
+		showCrosshair = false,
+		performanceConfig = {}
 	} = $props<{
 		lines?: LineData[];
 		xKey?: string;
@@ -68,18 +50,37 @@
 		tension?: number;
 		curveType?: 'straight' | 'smooth';
 		showCrosshair?: boolean;
+		performanceConfig?: Partial<ChartPerformanceConfig>;
 	}>();
+
+	// Performance configuration with defaults
+	const config: ChartPerformanceConfig = {
+		svgMaxPoints: 1000,
+		animationMaxPoints: 500,
+		tooltipMaxPoints: 2000,
+		enableMemoization: true,
+		enableWebWorkers: true,
+		enableDataSampling: true,
+		mouseMoveThrottle: 16,
+		resizeDebounce: 150,
+		maxCacheEntries: 50,
+		enablePathCache: true,
+		devicePixelRatio: typeof window !== 'undefined' ? window.devicePixelRatio : 1,
+		canvasSmoothing: true,
+		...performanceConfig
+	};
 
 	// Internal state
 	let chart: SVGElement;
+	let canvasElement: HTMLCanvasElement;
 	let mounted = $state(false);
+	let isVisible = $state(true);
 	let width = $state(0);
 	let chartHeight = $state(0);
 	let tooltipVisible = $state(false);
 	let tooltipData = $state<TooltipData | null>(null);
 	let hoveredLine = $state<string | null>(null);
 	let linesDrawn = $state(false);
-	let focusedDataPoint = $state<{ lineId: string; dataIndex: number } | null>(null);
 	let announcements = $state<string>('');
 	let showDataTable = $state(false);
 	let crosshairVisible = $state(false);
@@ -87,7 +88,194 @@
 	let mouseX = $state(0);
 	let mouseY = $state(0);
 
-	// Derived state using Svelte 5 runes for tooltip logic
+	// Managers and utilities
+	const dataManager = ChartDataManager.getInstance();
+	const performanceMonitor = new PerformanceMonitor();
+	let canvasContext: CanvasRenderingContext2D | null = null;
+
+	// Chart dimensions
+	const margin = { top: 20, right: 20, bottom: 40, left: 60 };
+
+	// Color palette for lines
+	const defaultColors = [
+		'#000000', '#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'
+	];
+
+	// Calculate total data points for performance decisions
+	const totalDataPoints = $derived(
+		lines.reduce((sum, line) => sum + line.data.length, 0)
+	);
+
+	// Performance mode determination
+	const performanceMode = $derived(() => {
+		if (totalDataPoints > config.svgMaxPoints) return 'canvas';
+		if (totalDataPoints > config.animationMaxPoints) return 'svg-no-animation';
+		return 'svg-full';
+	});
+
+	// Memoized helper functions
+	const memoizedGetAllXValues = config.enableMemoization ? memoize((lines: LineData[], xKey: string) => {
+		const xValues: string[] = [];
+		const seen = new Set<string>();
+
+		if (lines.length > 0) {
+			lines[0].data.forEach((d: Record<string, any>) => {
+				const value = String(d[xKey]);
+				if (!seen.has(value)) {
+					seen.add(value);
+					xValues.push(value);
+				}
+			});
+		}
+
+		lines.forEach((line: LineData) => {
+			line.data.forEach((d: Record<string, any>) => {
+				const value = String(d[xKey]);
+				if (!seen.has(value)) {
+					seen.add(value);
+					xValues.push(value);
+				}
+			});
+		});
+
+		const firstValue = xValues[0];
+		if (firstValue && parseDate(firstValue)) {
+			return xValues.sort((a, b) => {
+				const dateA = parseDate(a);
+				const dateB = parseDate(b);
+				if (dateA && dateB) {
+					return dateA.getTime() - dateB.getTime();
+				}
+				return 0;
+			});
+		}
+
+		return xValues;
+	}) : (lines: LineData[], xKey: string) => {
+		// Non-memoized version for fallback
+		const xValues: string[] = [];
+		const seen = new Set<string>();
+		// ... same logic without memoization
+		return xValues;
+	};
+
+	const memoizedGetAllYValues = config.enableMemoization ? memoize((lines: LineData[], yKey: string) => {
+		const yValues: number[] = [];
+		lines.forEach((line: LineData) => {
+			line.data.forEach((d: Record<string, any>) => {
+				yValues.push(Number(d[yKey]));
+			});
+		});
+		return yValues;
+	}) : (lines: LineData[], yKey: string) => {
+		const yValues: number[] = [];
+		lines.forEach((line: LineData) => {
+			line.data.forEach((d: Record<string, any>) => {
+				yValues.push(Number(d[yKey]));
+			});
+		});
+		return yValues;
+	};
+
+	// Data sampling for large datasets
+	const sampledLines = $derived.by(() => {
+		if (performanceMode === 'canvas' || !config.enableDataSampling) {
+			return lines;
+		}
+
+		return lines.map(line => {
+			if (line.data.length <= 100) return line;
+
+			const sampleRate = Math.ceil(line.data.length / 100);
+			const sampledData = line.data.filter((_, index) => 
+				index === 0 || 
+				index === line.data.length - 1 || 
+				index % sampleRate === 0
+			);
+
+			return { ...line, data: sampledData };
+		});
+	});
+
+	// Main chart data calculation
+	const chartData = $derived.by((): ProcessedChartData | null => {
+		if (!lines.length || !mounted) return null;
+
+		const startTime = performanceMonitor.startRender();
+		
+		const cacheKey = `${JSON.stringify(sampledLines)}_${xKey}_${yKey}_${width}_${chartHeight}`;
+		let cached = dataManager.getCachedData(cacheKey);
+		
+		if (cached) {
+			performanceMonitor.endRender(startTime);
+			return cached;
+		}
+
+		const allXValues = memoizedGetAllXValues(sampledLines, xKey);
+		const allYValues = memoizedGetAllYValues(sampledLines, yKey);
+		
+		if (!allXValues.length || !allYValues.length) {
+			performanceMonitor.endRender(startTime);
+			return null;
+		}
+
+		const yMin = Math.min(...allYValues);
+		const yMax = Math.max(...allYValues);
+		const yRange = yMax - yMin;
+		const yPadding = yRange * 0.1;
+		const yMinWithPadding = yMin - yPadding;
+		const yMaxWithPadding = yMax + yPadding;
+
+		const result: ProcessedChartData = {
+			allXValues,
+			allYValues,
+			yMin: yMinWithPadding,
+			yMax: yMaxWithPadding,
+			xScale: (idx: number) => margin.left + (idx / Math.max(1, allXValues.length - 1)) * width,
+			yScale: (val: number) => margin.top + chartHeight - ((val - yMinWithPadding) / (yMaxWithPadding - yMinWithPadding)) * chartHeight,
+			hasNegativeValues: yMin < 0,
+			yTicks: generateYTicks(yMinWithPadding, yMaxWithPadding)
+		};
+
+		dataManager.setCachedData(cacheKey, result);
+		performanceMonitor.endRender(startTime);
+		return result;
+	});
+
+	// Line paths calculation
+	const linePaths = $derived.by(() => {
+		if (!chartData) return [];
+		
+		return sampledLines.map((lineData, index) => {
+			const color = lineData.color || defaultColors[index % defaultColors.length];
+			const points: Array<{ x: number; y: number }> = [];
+			
+			chartData.allXValues.forEach((xValue, xIndex) => {
+				const dataPoint = lineData.data.find(d => String(d[xKey]) === xValue);
+				if (dataPoint) {
+					points.push({
+						x: chartData.xScale(xIndex),
+						y: chartData.yScale(Number(dataPoint[yKey]))
+					});
+				}
+			});
+			
+			const pathData = curveType === 'smooth' && tension > 0 
+				? PathGenerator.createSmoothPath(points, tension)
+				: PathGenerator.createStraightPath(points);
+			
+			return {
+				id: lineData.id,
+				label: lineData.label,
+				color,
+				pathData,
+				points,
+				data: lineData.data
+			};
+		});
+	});
+
+	// Derived state for tooltip logic
 	const shouldShowPointTooltip = $derived(
 		hasTooltip && !showCrosshair && tooltipVisible && tooltipData !== null
 	);
@@ -96,13 +284,68 @@
 	);
 	const shouldShowCrosshairLines = $derived(showCrosshair && crosshairVisible);
 
-	// Accessibility helpers
+	// Helper functions
+	function parseDate(dateString: string): Date | null {
+		if (!dateString) return null;
+
+		if (inputDateFormat) {
+			try {
+				const parsed = parse(dateString, inputDateFormat, new Date());
+				if (isValid(parsed)) return parsed;
+			} catch (e) {}
+		}
+
+		try {
+			const parsed = parseISO(dateString);
+			if (isValid(parsed)) return parsed;
+		} catch (e) {}
+
+		try {
+			const parsed = new Date(dateString);
+			if (isValid(parsed)) return parsed;
+		} catch (e) {}
+
+		return null;
+	}
+
+	function formatDateForDisplay(dateString: string): string {
+		const date = parseDate(dateString);
+		if (date) {
+			return format(date, dateFormat);
+		}
+		return String(dateString).substring(0, 10);
+	}
+
+	function formatYValue(value: number): string {
+		if (Math.abs(value) >= 1000000) {
+			return `${(value / 1000000).toFixed(1)}M`;
+		} else if (Math.abs(value) >= 1000) {
+			return `${(value / 1000).toFixed(1)}k`;
+		} else {
+			return value.toFixed(1);
+		}
+	}
+
+	function generateYTicks(yMin: number, yMax: number): number[] {
+		const hasNegativeValues = yMin < 0;
+		const effectiveTickCount = hasNegativeValues && doubleTicks ? yTickCount * 2 : yTickCount;
+		const tickValues = new Set<number>();
+		
+		for (let i = 0; i <= effectiveTickCount; i++) {
+			const value = yMin + (i / effectiveTickCount) * (yMax - yMin);
+			tickValues.add(Number(value.toFixed(2)));
+		}
+		
+		if (hasNegativeValues && yMin < 0 && yMax > 0) {
+			tickValues.add(0);
+		}
+		
+		return Array.from(tickValues).sort((a, b) => b - a);
+	}
+
 	function announceToScreenReader(message: string) {
 		announcements = message;
-		// Clear after a delay to prevent stale announcements
-		setTimeout(() => {
-			announcements = '';
-		}, 1000);
+		setTimeout(() => { announcements = ''; }, 1000);
 	}
 
 	function generateChartDescription(): string {
@@ -117,901 +360,301 @@
 		return `Line chart with ${lineCount} data series and ${dataPointCount} data points${hasNegativeValues ? ', including negative values' : ''}. Use Tab to navigate legend items, Enter or Space to highlight lines, and Escape to clear highlights.`;
 	}
 
-	function getDataTableSummary(): string {
-		if (!lines || lines.length === 0) return '';
+	// Canvas rendering functions
+	function renderCanvas() {
+		if (!canvasElement || !canvasContext || performanceMode !== 'canvas' || !chartData) return;
 
-		const totalPoints = lines.reduce((sum: number, line: LineData) => sum + line.data.length, 0);
-		const minValue = Math.min(
-			...lines.flatMap((line: LineData) =>
-				line.data.map((point: Record<string, any>) => Number(point[yKey]))
-			)
-		);
-		const maxValue = Math.max(
-			...lines.flatMap((line: LineData) =>
-				line.data.map((point: Record<string, any>) => Number(point[yKey]))
-			)
-		);
+		const dpr = config.devicePixelRatio;
+		const rect = canvasElement.getBoundingClientRect();
+		
+		canvasElement.width = rect.width * dpr;
+		canvasElement.height = rect.height * dpr;
+		canvasContext.scale(dpr, dpr);
 
-		return `Data table summary: ${lines.length} series, ${totalPoints} total data points, values range from ${minValue} to ${maxValue}`;
-	}
-
-	// Chart dimensions
-	const margin = { top: 20, right: 20, bottom: 40, left: 60 };
-
-	// Color palette for lines (fallback if colors not provided)
-	const defaultColors = [
-		'#000000', // black
-		'#ef4444', // red
-		'#3b82f6', // blue
-		'#10b981', // green
-		'#f59e0b', // yellow
-		'#8b5cf6' // purple
-	];
-
-	// Helper function to parse dates from various formats
-	function parseDate(dateString: string): Date | null {
-		if (!dateString) return null;
-
-		// Try parsing with provided input format first
-		if (inputDateFormat) {
-			try {
-				const parsed = parse(dateString, inputDateFormat, new Date());
-				if (isValid(parsed)) return parsed;
-			} catch (e) {
-				// Continue to other parsing methods
-			}
+		if (config.canvasSmoothing) {
+			canvasContext.imageSmoothingEnabled = true;
+			canvasContext.imageSmoothingQuality = 'high';
 		}
 
-		// Try parsing ISO format
-		try {
-			const parsed = parseISO(dateString);
-			if (isValid(parsed)) return parsed;
-		} catch (e) {
-			// Continue to other parsing methods
-		}
+		canvasContext.clearRect(0, 0, rect.width, rect.height);
 
-		// Try parsing with native Date constructor
-		try {
-			const parsed = new Date(dateString);
-			if (isValid(parsed)) return parsed;
-		} catch (e) {
-			// Continue
-		}
+		drawCanvasAxes(canvasContext, chartData, rect.width, rect.height);
 
-		return null;
-	}
-
-	// Helper function to format dates for display
-	function formatDateForDisplay(dateString: string): string {
-		const date = parseDate(dateString);
-		if (date) {
-			return format(date, dateFormat);
-		}
-		// Fallback to original string if parsing fails
-		return String(dateString).substring(0, 10);
-	}
-
-	// Function to get all unique x values across all lines
-	function getAllXValues(): string[] {
-		const xValues: string[] = [];
-		const seen = new Set<string>();
-
-		// Get the first line to establish the order
-		if (lines.length > 0) {
-			lines[0].data.forEach((d: Record<string, any>) => {
-				const value = String(d[xKey]);
-				if (!seen.has(value)) {
-					seen.add(value);
-					xValues.push(value);
-				}
-			});
-		}
-
-		// Add any additional unique values from other lines
-		lines.forEach((line: LineData) => {
-			line.data.forEach((d: Record<string, any>) => {
-				const value = String(d[xKey]);
-				if (!seen.has(value)) {
-					seen.add(value);
-					xValues.push(value);
-				}
-			});
-		});
-
-		// Sort dates chronologically if they are dates
-		const firstValue = xValues[0];
-		if (firstValue && parseDate(firstValue)) {
-			return xValues.sort((a, b) => {
-				const dateA = parseDate(a);
-				const dateB = parseDate(b);
-				if (dateA && dateB) {
-					return dateA.getTime() - dateB.getTime();
-				}
-				return 0;
-			});
-		}
-
-		return xValues;
-	}
-
-	// Function to get all y values for scaling
-	function getAllYValues(): number[] {
-		const yValues: number[] = [];
-		lines.forEach((line: LineData) => {
-			line.data.forEach((d: Record<string, any>) => {
-				yValues.push(Number(d[yKey]));
-			});
-		});
-		return yValues;
-	}
-
-	/**
-	 * Create smooth curve using optimized Catmull-Rom spline interpolation
-	 * Based on the improved algorithm from the previous implementation
-	 * @param points Array of coordinate points
-	 * @returns SVG path string
-	 */
-	const createSmoothPath = (points: Array<{ x: number; y: number }>): string => {
-		if (points.length < 2) return '';
-
-		// Start path at first point
-		const path = [`M ${points[0].x.toFixed(2)} ${points[0].y.toFixed(2)}`];
-
-		// For 2 points, use a proper cubic Bezier curve instead of straight line
-		if (points.length === 2) {
-			const start = points[0];
-			const end = points[1];
-			const dx = end.x - start.x;
-			const midTension = Number(tension) * 0.5;
-			const cp1x = start.x + dx * midTension;
-			const cp1y = start.y;
-			const cp2x = end.x - dx * midTension;
-			const cp2y = end.y;
-			return `M ${start.x.toFixed(2)},${start.y.toFixed(2)} C ${cp1x.toFixed(2)},${cp1y.toFixed(2)} ${cp2x.toFixed(2)},${cp2y.toFixed(2)} ${end.x.toFixed(2)},${end.y.toFixed(2)}`;
-		}
-
-		// Optimized tension for natural curves - reduces overshoot
-		const optimizedTension = Math.max(0, Math.min(1, Number(tension) || 0)) * 0.5;
-
-		// Generate smooth curve segments using Catmull-Rom spline
-		for (let i = 0; i < points.length - 1; i++) {
-			// Get control points with proper boundary handling
-			const p0 = i === 0 ? points[0] : points[i - 1];
-			const p1 = points[i];
-			const p2 = points[i + 1];
-			const p3 = i === points.length - 2 ? points[points.length - 1] : points[i + 2];
-
-			// Calculate Catmull-Rom control points with optimized tension
-			// This produces more natural curves without overshoot
-			const cp1x = p1.x + (p2.x - p0.x) * optimizedTension;
-			const cp1y = p1.y + (p2.y - p0.y) * optimizedTension;
-			const cp2x = p2.x - (p3.x - p1.x) * optimizedTension;
-			const cp2y = p2.y - (p3.y - p1.y) * optimizedTension;
-
-			// Add cubic Bezier curve segment
-			path.push(
-				`C ${cp1x.toFixed(2)} ${cp1y.toFixed(2)}, ${cp2x.toFixed(2)} ${cp2y.toFixed(2)}, ${p2.x.toFixed(2)} ${p2.y.toFixed(2)}`
-			);
-		}
-
-		return path.join(' ');
-	};
-
-	// Function to re-render chart when data changes
-	function renderChart() {
-		if (!mounted || !chart || lines.length === 0) return;
-
-		// Clear previous chart
-		while (chart.firstChild) {
-			chart.removeChild(chart.firstChild);
-		}
-
-		// Calculate dimensions
-		const svgWidth = chart.clientWidth;
-		const svgHeight = height;
-		width = svgWidth - margin.left - margin.right;
-		chartHeight = svgHeight - margin.top - margin.bottom;
-
-		// Get all unique x values and y values
-		const allXValues = getAllXValues();
-		const allYValues = getAllYValues();
-
-		if (allXValues.length === 0 || allYValues.length === 0) return;
-
-		const xMin = 0;
-		const xMax = allXValues.length - 1;
-		const yMin = Math.min(...allYValues);
-		const yMax = Math.max(...allYValues);
-
-		// Handle padding for negative values properly
-		const yRange = yMax - yMin;
-		const yPadding = yRange * 0.1;
-		const yMinWithPadding = yMin - yPadding;
-		const yMaxWithPadding = yMax + yPadding;
-		const hasNegativeValues = yMin < 0;
-
-		// Scale functions
-		const xScale = (idx: number) => margin.left + (idx / Math.max(1, xMax)) * width;
-		const yScale = (val: number) =>
-			margin.top +
-			chartHeight -
-			((val - yMinWithPadding) / (yMaxWithPadding - yMinWithPadding)) * chartHeight;
-
-		// Create SVG elements
-		const mainG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-
-		// Create axes
-		const xAxis = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-		xAxis.setAttribute('class', 'x-axis');
-		xAxis.setAttribute('transform', `translate(0, ${margin.top + chartHeight})`);
-
-		// X axis line
-		const xAxisLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-		xAxisLine.setAttribute('x1', String(margin.left));
-		xAxisLine.setAttribute('y1', '0');
-		xAxisLine.setAttribute('x2', String(margin.left + width));
-		xAxisLine.setAttribute('y2', '0');
-		xAxisLine.setAttribute('stroke', '#94a3b8');
-		xAxis.appendChild(xAxisLine);
-
-		// X axis ticks - show 5-7 ticks depending on data size
-		const tickInterval = Math.max(1, Math.ceil(allXValues.length / Math.min(7, allXValues.length)));
-		for (let i = 0; i < allXValues.length; i += tickInterval) {
-			const tick = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-			tick.setAttribute('transform', `translate(${xScale(i)}, 0)`);
-
-			const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-			line.setAttribute('y2', '6');
-			line.setAttribute('stroke', '#94a3b8');
-			tick.appendChild(line);
-
-			const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-			text.setAttribute('y', '20');
-			text.setAttribute('text-anchor', 'middle');
-			text.setAttribute('fill', '#64748b');
-			text.setAttribute('font-size', '12px');
-
-			// Format date labels using date-fns
-			const value = allXValues[i];
-			const parsedDate = parseDate(value);
-			if (parsedDate) {
-				text.textContent = formatDateForDisplay(value);
-			} else {
-				text.textContent = String(value).substring(0, 10); // Truncate long labels
-			}
-
-			tick.appendChild(text);
-			xAxis.appendChild(tick);
-		}
-
-		// Y axis
-		const yAxis = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-		yAxis.setAttribute('class', 'y-axis');
-		yAxis.setAttribute('transform', `translate(${margin.left}, 0)`);
-
-		// Y axis line
-		const yAxisLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-		yAxisLine.setAttribute('x1', '0');
-		yAxisLine.setAttribute('y1', String(margin.top));
-		yAxisLine.setAttribute('x2', '0');
-		yAxisLine.setAttribute('y2', String(margin.top + chartHeight));
-		yAxisLine.setAttribute('stroke', '#94a3b8');
-		yAxis.appendChild(yAxisLine);
-
-		// Add zero line if there are negative values
-		if (hasNegativeValues && yMinWithPadding < 0 && yMaxWithPadding > 0) {
-			const zeroY = yScale(0);
-			const zeroLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-			zeroLine.setAttribute('x1', '0');
-			zeroLine.setAttribute('y1', String(zeroY));
-			zeroLine.setAttribute('x2', String(width));
-			zeroLine.setAttribute('y2', String(zeroY));
-			zeroLine.setAttribute('stroke', '#6b7280');
-			zeroLine.setAttribute('stroke-width', '1');
-			zeroLine.setAttribute('opacity', '0.8');
-			yAxis.appendChild(zeroLine);
-		}
-
-		// Y axis ticks - automatically double tick count for negative values if enabled
-		const effectiveTickCount = hasNegativeValues && doubleTicks ? yTickCount * 2 : yTickCount;
-		const tickValues = [];
-
-		// Generate regular tick values
-		for (let i = 0; i <= effectiveTickCount; i++) {
-			const value =
-				yMinWithPadding + (i / effectiveTickCount) * (yMaxWithPadding - yMinWithPadding);
-			tickValues.push(value);
-		}
-
-		// Always add zero tick if we have negative values (might be redundant but ensures it's there)
-		if (hasNegativeValues && yMinWithPadding < 0 && yMaxWithPadding > 0) {
-			tickValues.push(0);
-		}
-
-		// Sort tick values and remove duplicates (with small tolerance for floating point)
-		const uniqueTickValues = tickValues
-			.filter((value, index, array) => {
-				// Keep value if it's the first occurrence or sufficiently different from previous values
-				return !array
-					.slice(0, index)
-					.some(
-						(prevValue) => Math.abs(value - prevValue) < (yMaxWithPadding - yMinWithPadding) * 0.02
-					);
-			})
-			.sort((a, b) => b - a);
-
-		uniqueTickValues.forEach((value) => {
-			const yPos = yScale(value);
-
-			const tick = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-			tick.setAttribute('transform', `translate(0, ${yPos})`);
-
-			const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-			line.setAttribute('x2', '-6');
-			line.setAttribute('stroke', '#94a3b8');
-			tick.appendChild(line);
-
-			// Add grid lines
-			const gridLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-			gridLine.setAttribute('x1', '0');
-			gridLine.setAttribute('y1', '0');
-			gridLine.setAttribute('x2', String(width));
-			gridLine.setAttribute('y2', '0');
-			gridLine.setAttribute('stroke', '#e2e8f0');
-			gridLine.setAttribute('stroke-dasharray', '4,4');
-			tick.appendChild(gridLine);
-
-			const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-			text.setAttribute('x', '-10');
-			text.setAttribute('y', '4');
-			text.setAttribute('text-anchor', 'end');
-			text.setAttribute('fill', '#64748b');
-			text.setAttribute('font-size', '12px');
-
-			// Special styling for zero tick
-			if (value === 0) {
-				text.setAttribute('fill', '#374151');
-				text.setAttribute('font-weight', 'bold');
-			}
-
-			// Format numbers - handle negative values
-			if (Math.abs(value) >= 1000000) {
-				text.textContent = `${(value / 1000000).toFixed(1)}M`;
-			} else if (Math.abs(value) >= 1000) {
-				text.textContent = `${(value / 1000).toFixed(1)}k`;
-			} else {
-				text.textContent = value.toFixed(1);
-			}
-
-			tick.appendChild(text);
-			yAxis.appendChild(tick);
-		});
-
-		// Create lines for each dataset
-		lines.forEach((lineData: LineData, lineIndex: number) => {
-			const color = lineData.color || defaultColors[lineIndex % defaultColors.length];
+		linePaths.forEach((lineData, index) => {
 			const isHovered = hoveredLine === lineData.id;
 			const isOtherHovered = hoveredLine !== null && hoveredLine !== lineData.id;
-
-			// Create line path
-			const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-			let pathData = '';
-
-			// Build path by matching x values
-			const pathPoints: Array<{ x: number; y: number }> = [];
-			allXValues.forEach((xValue, xIndex) => {
-				const dataPoint = lineData.data.find(
-					(d: Record<string, any>) => String(d[xKey]) === xValue
-				);
-				if (dataPoint) {
-					const x = xScale(xIndex);
-					const y = yScale(Number(dataPoint[yKey]));
-					pathPoints.push({ x, y });
-				}
+			
+			drawCanvasLine(canvasContext!, lineData, chartData, {
+				strokeWidth: isHovered ? 3 : 2,
+				opacity: isOtherHovered ? 0.3 : 1
 			});
+		});
+	}
 
-			// Create the path - use smooth or straight based on curveType
-			if (pathPoints.length > 0) {
-				if (curveType === 'smooth' && Number(tension) > 0) {
-					pathData = createSmoothPath(pathPoints);
+	function drawCanvasLine(
+		ctx: CanvasRenderingContext2D,
+		lineData: any,
+		chartData: ProcessedChartData,
+		style: { strokeWidth: number; opacity: number }
+	) {
+		ctx.strokeStyle = lineData.color;
+		ctx.lineWidth = style.strokeWidth;
+		ctx.globalAlpha = style.opacity;
+		ctx.beginPath();
+
+		let firstPoint = true;
+		chartData.allXValues.forEach((xValue: string, xIndex: number) => {
+			const dataPoint = lineData.data.find((d: any) => String(d[xKey]) === xValue);
+			if (dataPoint) {
+				const x = chartData.xScale(xIndex);
+				const y = chartData.yScale(Number(dataPoint[yKey]));
+				
+				if (firstPoint) {
+					ctx.moveTo(x, y);
+					firstPoint = false;
 				} else {
-					// Create straight line path
-					pathData = `M ${pathPoints[0].x.toFixed(2)} ${pathPoints[0].y.toFixed(2)}`;
-					for (let i = 1; i < pathPoints.length; i++) {
-						pathData += ` L ${pathPoints[i].x.toFixed(2)} ${pathPoints[i].y.toFixed(2)}`;
-					}
+					ctx.lineTo(x, y);
 				}
-			}
-
-			line.setAttribute('d', pathData);
-			line.setAttribute('fill', 'none');
-			line.setAttribute('stroke', color);
-			line.setAttribute('stroke-width', isHovered ? '3' : '2');
-			line.setAttribute('opacity', isOtherHovered ? '0.3' : '1');
-			line.setAttribute('class', `line-${lineData.id}`);
-
-			// Add smooth transitions for hover effects only
-			line.style.transition = 'stroke-width 0.3s ease, opacity 0.3s ease';
-
-			// Add line drawing animation only on initial load
-			if (!linesDrawn) {
-				const pathLength = line.getTotalLength();
-				line.style.strokeDasharray = pathLength.toString();
-				line.style.strokeDashoffset = pathLength.toString();
-
-				// Animate line drawing
-				setTimeout(() => {
-					line.style.transition =
-						'stroke-dashoffset 1s ease-in-out, stroke-width 0.3s ease, opacity 0.3s ease';
-					line.style.strokeDashoffset = '0';
-				}, lineIndex * 200);
-			}
-
-			// Add dots at data points
-			const dots = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-			dots.setAttribute('class', `data-points-${lineData.id}`);
-
-			// Add value labels group if showValues is true
-			const valueLabels = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-			valueLabels.setAttribute('class', `value-labels-${lineData.id}`);
-
-			allXValues.forEach((xValue, xIndex) => {
-				const dataPoint = lineData.data.find(
-					(d: Record<string, any>) => String(d[xKey]) === xValue
-				);
-				if (dataPoint) {
-					const x = xScale(xIndex);
-					const y = yScale(Number(dataPoint[yKey]));
-
-					const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-					circle.setAttribute('cx', String(x));
-					circle.setAttribute('cy', String(y));
-					circle.setAttribute('r', '4');
-					circle.setAttribute('fill', '#ffffff');
-					circle.setAttribute('stroke', color);
-					circle.setAttribute('stroke-width', '2');
-					circle.setAttribute('opacity', isOtherHovered ? '0.3' : '1');
-					circle.setAttribute('class', 'data-point');
-
-					// Add smooth transitions for dots
-					circle.style.transition = 'opacity 0.3s ease, transform 0.2s ease';
-
-					// Initial scale animation only on first load
-					if (!linesDrawn) {
-						circle.style.transform = 'scale(0)';
-						setTimeout(
-							() => {
-								circle.style.transform = 'scale(1)';
-							},
-							lineIndex * 200 + xIndex * 50
-						);
-					}
-
-					// Add interaction only if hasTooltip is true
-					if (hasTooltip) {
-						circle.addEventListener('mouseenter', () => {
-							// Only show individual point tooltip when crosshair is disabled
-							if (!showCrosshair) {
-								const xValue = String(dataPoint[xKey]);
-								const parsedDate = parseDate(xValue);
-								const displayLabel = parsedDate ? formatDateForDisplay(xValue) : xValue;
-
-								// Format the value for display
-								const yValue = Number(dataPoint[yKey]);
-								let formattedValue: string;
-								if (Math.abs(yValue) >= 1000000) {
-									formattedValue = `${(yValue / 1000000).toFixed(1)}M`;
-								} else if (Math.abs(yValue) >= 1000) {
-									formattedValue = `${(yValue / 1000).toFixed(1)}k`;
-								} else {
-									formattedValue = yValue.toString();
-								}
-
-								tooltipData = {
-									x,
-									y,
-									value: formattedValue,
-									label: displayLabel,
-									lineLabel: lineData.label,
-									color
-								};
-								tooltipVisible = true;
-							}
-
-							// Always show hover effect regardless of crosshair setting
-							hoveredLine = lineData.id;
-							circle.setAttribute('r', '6');
-							circle.setAttribute('fill', color);
-						});
-
-						circle.addEventListener('mouseleave', () => {
-							// Only hide tooltip if we're not using crosshair
-							if (!showCrosshair) {
-								tooltipVisible = false;
-							}
-							hoveredLine = null;
-
-							// Restore circle style
-							circle.setAttribute('r', '4');
-							circle.setAttribute('fill', '#ffffff');
-						});
-					}
-
-					dots.appendChild(circle);
-
-					// Add value labels if showValues is true
-					if (showValues) {
-						const valueLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-						valueLabel.setAttribute('x', String(x));
-						valueLabel.setAttribute('y', String(y - 10));
-						valueLabel.setAttribute('text-anchor', 'middle');
-						valueLabel.setAttribute('fill', color);
-						valueLabel.setAttribute('font-size', '11px');
-						valueLabel.setAttribute('font-weight', '600');
-						valueLabel.setAttribute('opacity', isOtherHovered ? '0.3' : '1');
-						valueLabel.setAttribute('class', 'value-label');
-
-						// Format the value
-						const value = Number(dataPoint[yKey]);
-						if (value >= 1000000) {
-							valueLabel.textContent = `${(value / 1000000).toFixed(1)}M`;
-						} else if (value >= 1000) {
-							valueLabel.textContent = `${(value / 1000).toFixed(1)}k`;
-						} else {
-							valueLabel.textContent = value.toString();
-						}
-
-						// Add smooth transitions for value labels
-						valueLabel.style.transition = 'opacity 0.3s ease';
-
-						// Initial fade-in animation only on first load
-						if (!linesDrawn) {
-							valueLabel.style.opacity = '0';
-							setTimeout(
-								() => {
-									valueLabel.style.opacity = isOtherHovered ? '0.3' : '1';
-								},
-								lineIndex * 200 + xIndex * 50 + 100
-							);
-						}
-
-						valueLabels.appendChild(valueLabel);
-					}
-				}
-			});
-
-			mainG.appendChild(line);
-			mainG.appendChild(dots);
-			if (showValues) {
-				mainG.appendChild(valueLabels);
 			}
 		});
 
-		// Add crosshair elements if enabled
-		if (showCrosshair) {
-			// Create crosshair group
-			const crosshairGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-			crosshairGroup.setAttribute('class', 'crosshair-group');
-			crosshairGroup.setAttribute('opacity', '0');
+		ctx.stroke();
+		ctx.globalAlpha = 1;
 
-			// Vertical crosshair line
-			const verticalLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-			verticalLine.setAttribute('class', 'crosshair-vertical');
-			verticalLine.setAttribute('x1', '0');
-			verticalLine.setAttribute('y1', String(margin.top));
-			verticalLine.setAttribute('x2', '0');
-			verticalLine.setAttribute('y2', String(margin.top + chartHeight));
-			verticalLine.setAttribute('stroke', '#6b7280');
-			verticalLine.setAttribute('stroke-width', '1');
-			verticalLine.setAttribute('stroke-dasharray', '4,4');
-			verticalLine.setAttribute('opacity', '0.7');
-			crosshairGroup.appendChild(verticalLine);
-
-			// Horizontal crosshair line
-			const horizontalLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-			horizontalLine.setAttribute('class', 'crosshair-horizontal');
-			horizontalLine.setAttribute('x1', String(margin.left));
-			horizontalLine.setAttribute('y1', '0');
-			horizontalLine.setAttribute('x2', String(margin.left + width));
-			horizontalLine.setAttribute('y2', '0');
-			horizontalLine.setAttribute('stroke', '#6b7280');
-			horizontalLine.setAttribute('stroke-width', '1');
-			horizontalLine.setAttribute('stroke-dasharray', '4,4');
-			horizontalLine.setAttribute('opacity', '0.7');
-			crosshairGroup.appendChild(horizontalLine);
-
-			// Add crosshair points for each line
-			lines.forEach((lineData: LineData, lineIndex: number) => {
-				const color = lineData.color || defaultColors[lineIndex % defaultColors.length];
-				const crosshairPoint = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-				crosshairPoint.setAttribute('class', `crosshair-point-${lineData.id}`);
-				crosshairPoint.setAttribute('r', '4');
-				crosshairPoint.setAttribute('fill', color);
-				crosshairPoint.setAttribute('stroke', '#ffffff');
-				crosshairPoint.setAttribute('stroke-width', '2');
-				crosshairPoint.setAttribute('opacity', '0.9');
-				crosshairGroup.appendChild(crosshairPoint);
-			});
-
-			mainG.appendChild(crosshairGroup);
-
-			// Add invisible overlay for mouse events
-			const overlay = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-			overlay.setAttribute('class', 'mouse-overlay');
-			overlay.setAttribute('x', String(margin.left));
-			overlay.setAttribute('y', String(margin.top));
-			overlay.setAttribute('width', String(width));
-			overlay.setAttribute('height', String(chartHeight));
-			overlay.setAttribute('fill', 'transparent');
-			overlay.setAttribute('pointer-events', 'all');
-
-			// Store references for mouse event handling
-			overlay.addEventListener('mousemove', (e) =>
-				handleMouseMove(e, allXValues, xScale, yScale, yMinWithPadding, yMaxWithPadding)
-			);
-			overlay.addEventListener('mouseenter', () => {
-				crosshairVisible = true;
-				if (shouldShowCrosshairLines) {
-					const crosshairGroup = chart.querySelector('.crosshair-group');
-					if (crosshairGroup) {
-						crosshairGroup.setAttribute('opacity', '1');
-					}
-				}
-			});
-			overlay.addEventListener('mouseleave', () => {
-				crosshairVisible = false;
-				const crosshairGroup = chart.querySelector('.crosshair-group');
-				if (crosshairGroup) {
-					crosshairGroup.setAttribute('opacity', '0');
-				}
-			});
-
-			mainG.appendChild(overlay);
-		}
-
-		// Add chart title
-		const titleElem = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-		titleElem.setAttribute('x', String(margin.left + width / 2));
-		titleElem.setAttribute('y', String(margin.top - 5));
-		titleElem.setAttribute('text-anchor', 'middle');
-		titleElem.setAttribute('fill', '#1e293b');
-		titleElem.setAttribute('font-size', '16px');
-		titleElem.setAttribute('font-weight', 'bold');
-		titleElem.setAttribute('id', 'chart-title-svg');
-		titleElem.setAttribute('aria-hidden', 'true'); // Hidden since we have a separate title for screen readers
-		titleElem.textContent = title;
-
-		// Add everything to the chart
-		mainG.appendChild(xAxis);
-		mainG.appendChild(yAxis);
-		chart.appendChild(mainG);
-		chart.appendChild(titleElem);
-
-		// Mark lines as drawn after initial animation
-		if (!linesDrawn) {
-			setTimeout(
-				() => {
-					linesDrawn = true;
-				},
-				lines.length * 200 + 500
-			);
-		}
+		// Draw points
+		chartData.allXValues.forEach((xValue: string, xIndex: number) => {
+			const dataPoint = lineData.data.find((d: any) => String(d[xKey]) === xValue);
+			if (dataPoint) {
+				const x = chartData.xScale(xIndex);
+				const y = chartData.yScale(Number(dataPoint[yKey]));
+				
+				ctx.beginPath();
+				ctx.arc(x, y, 4, 0, 2 * Math.PI);
+				ctx.fillStyle = '#ffffff';
+				ctx.fill();
+				ctx.strokeStyle = lineData.color;
+				ctx.lineWidth = 2;
+				ctx.stroke();
+			}
+		});
 	}
 
-	// Handle mouse move for crosshair
-	function handleMouseMove(
-		e: MouseEvent,
-		allXValues: string[],
-		xScale: (idx: number) => number,
-		yScale: (val: number) => number,
-		yMinWithPadding: number,
-		yMaxWithPadding: number
+	function drawCanvasAxes(
+		ctx: CanvasRenderingContext2D,
+		chartData: ProcessedChartData,
+		width: number,
+		height: number
 	) {
-		if (!showCrosshair || !chart) return;
+		ctx.strokeStyle = '#94a3b8';
+		ctx.lineWidth = 1;
 
-		const rect = chart.getBoundingClientRect();
-		const mouseX = e.clientX - rect.left;
-		const mouseY = e.clientY - rect.top;
+		// X-axis
+		ctx.beginPath();
+		ctx.moveTo(margin.left, margin.top + chartHeight);
+		ctx.lineTo(margin.left + width - margin.left - margin.right, margin.top + chartHeight);
+		ctx.stroke();
 
-		// Find the nearest x index
+		// Y-axis
+		ctx.beginPath();
+		ctx.moveTo(margin.left, margin.top);
+		ctx.lineTo(margin.left, margin.top + chartHeight);
+		ctx.stroke();
+
+		// Labels
+		ctx.fillStyle = '#64748b';
+		ctx.font = '12px -apple-system, BlinkMacSystemFont, sans-serif';
+
+		// X-axis labels
+		const tickInterval = Math.max(1, Math.ceil(chartData.allXValues.length / 7));
+		for (let i = 0; i < chartData.allXValues.length; i += tickInterval) {
+			const x = chartData.xScale(i);
+			const label = formatDateForDisplay(chartData.allXValues[i]);
+			
+			ctx.textAlign = 'center';
+			ctx.fillText(label, x, margin.top + chartHeight + 20);
+		}
+
+		// Y-axis labels and grid
+		chartData.yTicks.forEach(tickValue => {
+			const y = chartData.yScale(tickValue);
+			
+			// Grid line
+			ctx.strokeStyle = '#e2e8f0';
+			ctx.setLineDash([4, 4]);
+			ctx.beginPath();
+			ctx.moveTo(margin.left, y);
+			ctx.lineTo(margin.left + width - margin.left - margin.right, y);
+			ctx.stroke();
+			ctx.setLineDash([]);
+
+			// Label
+			ctx.fillStyle = tickValue === 0 ? '#374151' : '#64748b';
+			ctx.textAlign = 'right';
+			ctx.fillText(formatYValue(tickValue), margin.left - 10, y + 4);
+		});
+	}
+
+	// Event handlers
+	const throttledMouseMove = throttle((e: MouseEvent) => {
+		if (!showCrosshair || !chartData) return;
+		
+		const rect = chart?.getBoundingClientRect() || canvasElement?.getBoundingClientRect();
+		if (!rect) return;
+
+		mouseX = e.clientX - rect.left;
+		mouseY = e.clientY - rect.top;
+
+		if (mouseX >= margin.left && mouseX <= margin.left + width &&
+			mouseY >= margin.top && mouseY <= margin.top + chartHeight) {
+			updateCrosshair(mouseX, mouseY);
+		}
+	}, config.mouseMoveThrottle);
+
+	function updateCrosshair(x: number, y: number) {
+		if (!chartData) return;
+
 		let nearestXIndex = 0;
 		let minDistance = Infinity;
 
-		for (let i = 0; i < allXValues.length; i++) {
-			const distance = Math.abs(mouseX - xScale(i));
+		for (let i = 0; i < chartData.allXValues.length; i++) {
+			const distance = Math.abs(x - chartData.xScale(i));
 			if (distance < minDistance) {
 				minDistance = distance;
 				nearestXIndex = i;
 			}
 		}
 
-		const snapX = xScale(nearestXIndex);
-		const currentXValue = allXValues[nearestXIndex];
-
-		// Update crosshair lines
-		const crosshairGroup = chart.querySelector('.crosshair-group');
-		if (crosshairGroup) {
-			const verticalLine = crosshairGroup.querySelector('.crosshair-vertical');
-			const horizontalLine = crosshairGroup.querySelector('.crosshair-horizontal');
-
-			if (verticalLine) {
-				verticalLine.setAttribute('x1', String(snapX));
-				verticalLine.setAttribute('x2', String(snapX));
-			}
-			if (horizontalLine) {
-				horizontalLine.setAttribute('y1', String(mouseY));
-				horizontalLine.setAttribute('y2', String(mouseY));
-			}
-		}
-
-		// Update crosshair data with values for all lines at this x position
-		const values: Array<{
-			lineId: string;
-			lineLabel: string;
-			value: any;
-			color: string;
-			y: number;
-		}> = [];
-
-		lines.forEach((lineData: LineData, lineIndex: number) => {
-			const color = lineData.color || defaultColors[lineIndex % defaultColors.length];
-			const dataPoint = lineData.data.find(
-				(d: Record<string, any>) => String(d[xKey]) === currentXValue
-			);
-
-			if (dataPoint) {
-				const yValue = Number(dataPoint[yKey]);
-				const yPosition = yScale(yValue);
-
-				// Format the value for display
-				let formattedValue: string;
-				if (Math.abs(yValue) >= 1000000) {
-					formattedValue = `${(yValue / 1000000).toFixed(1)}M`;
-				} else if (Math.abs(yValue) >= 1000) {
-					formattedValue = `${(yValue / 1000).toFixed(1)}k`;
-				} else {
-					formattedValue = yValue.toString();
-				}
-
-				values.push({
-					lineId: lineData.id,
-					lineLabel: lineData.label,
-					value: formattedValue,
-					color,
-					y: yPosition
-				});
-
-				// Update crosshair point position
-				const crosshairPoint = chart.querySelector(`.crosshair-point-${lineData.id}`);
-				if (crosshairPoint) {
-					crosshairPoint.setAttribute('cx', String(snapX));
-					crosshairPoint.setAttribute('cy', String(yPosition));
-				}
-			}
-		});
-
-		// Format x label
+		const currentXValue = chartData.allXValues[nearestXIndex];
 		const parsedDate = parseDate(currentXValue);
 		const xLabel = parsedDate ? formatDateForDisplay(currentXValue) : currentXValue;
 
+		const values = linePaths.map(lineData => {
+			const dataPoint = lineData.data.find(d => String(d[xKey]) === currentXValue);
+			if (dataPoint) {
+				const yValue = Number(dataPoint[yKey]);
+				return {
+					lineId: lineData.id,
+					lineLabel: lineData.label,
+					value: formatYValue(yValue),
+					color: lineData.color,
+					y: chartData.yScale(yValue)
+				};
+			}
+			return null;
+		}).filter(Boolean);
+
 		crosshairData = {
-			x: snapX,
-			y: mouseY,
+			x: chartData.xScale(nearestXIndex),
+			y,
 			xLabel,
 			values
 		};
 	}
 
-	// Use onMount to ensure DOM is ready
+	function handlePointHover(e: MouseEvent, lineData: any, point: any, index: number) {
+		if (!showCrosshair && hasTooltip) {
+			const dataPoint = lineData.data[index];
+			const xValue = String(dataPoint[xKey]);
+			const parsedDate = parseDate(xValue);
+			const displayLabel = parsedDate ? formatDateForDisplay(xValue) : xValue;
+			const yValue = Number(dataPoint[yKey]);
+
+			tooltipData = {
+				x: point.x,
+				y: point.y,
+				value: formatYValue(yValue),
+				label: displayLabel,
+				lineLabel: lineData.label,
+				color: lineData.color
+			};
+			tooltipVisible = true;
+		}
+		hoveredLine = lineData.id;
+	}
+
+	function handlePointLeave() {
+		if (!showCrosshair) {
+			tooltipVisible = false;
+		}
+		hoveredLine = null;
+	}
+
+	// Throttled resize handler
+	const throttledResize = throttle(() => {
+		if (chart && isVisible) {
+			const newWidth = chart.clientWidth - margin.left - margin.right;
+			const newHeight = height - margin.top - margin.bottom;
+			
+			if (newWidth !== width || newHeight !== chartHeight) {
+				width = newWidth;
+				chartHeight = newHeight;
+				dataManager.clearCache();
+				
+				if (performanceMode === 'canvas') {
+					renderCanvas();
+				}
+			}
+		}
+	}, config.resizeDebounce);
+
+	// Lifecycle
 	onMount(() => {
 		mounted = true;
-		renderChart();
+		
+		if (!chart && !canvasElement) return;
 
-		// Add resize handler
+		const element = chart || canvasElement;
+		
+		// Initial dimensions
+		width = element.clientWidth - margin.left - margin.right;
+		chartHeight = height - margin.top - margin.bottom;
+
+		// Setup canvas if needed
+		if (performanceMode === 'canvas' && canvasElement) {
+			canvasContext = canvasElement.getContext('2d');
+			renderCanvas();
+		}
+
+		// Intersection observer for visibility
+		const intersectionObserver = new IntersectionObserver(
+			(entries) => { isVisible = entries[0].isIntersecting; },
+			{ threshold: 0.1 }
+		);
+
+		// Resize observer
 		const resizeObserver = new ResizeObserver(() => {
-			renderChart();
+			if (isVisible) throttledResize();
 		});
 
-		resizeObserver.observe(chart);
+		intersectionObserver.observe(element);
+		resizeObserver.observe(element);
 
 		return () => {
+			intersectionObserver.disconnect();
 			resizeObserver.disconnect();
 		};
 	});
 
-	// Watch for data changes
-	$effect(() => {
-		if (lines && mounted) {
-			renderChart();
-		}
+	onDestroy(() => {
+		dataManager.clearCache();
+		PathGenerator.clearCache();
 	});
-	// Watch for prop changes
-	$effect(() => {
-		// Re-render when any of these props change
-		const _ = [tension, curveType, xKey, yKey, title, showLegend, height, showCrosshair];
 
-		if (mounted) {
-			renderChart();
+	// Effects
+	$effect(() => {
+		if (performanceMode === 'canvas' && canvasElement && canvasContext) {
+			renderCanvas();
 		}
 	});
 
-	// Watch for hover state changes - only update opacity and stroke width
 	$effect(() => {
-		if (hoveredLine !== null && mounted && chart) {
-			const allLines = chart.querySelectorAll('path[class*="line-"]');
-			const allDots = chart.querySelectorAll('.data-point');
-			const allValueLabels = chart.querySelectorAll('.value-label');
-
-			allLines.forEach((line: Element) => {
-				const pathElement = line as SVGPathElement;
-				const lineId = pathElement.getAttribute('class')?.match(/line-(\w+)/)?.[1];
-
-				if (lineId === hoveredLine) {
-					pathElement.setAttribute('stroke-width', '3');
-					pathElement.setAttribute('opacity', '1');
-				} else {
-					pathElement.setAttribute('stroke-width', '2');
-					pathElement.setAttribute('opacity', '0.3');
-				}
-			});
-
-			allDots.forEach((dot: Element) => {
-				const circleElement = dot as SVGCircleElement;
-				const parentElement = circleElement.parentElement as SVGElement | null;
-				const isHoveredLineDot = parentElement
-					?.getAttribute('class')
-					?.includes(`data-points-${hoveredLine}`);
-
-				if (!isHoveredLineDot) {
-					circleElement.setAttribute('opacity', '0.3');
-				} else {
-					circleElement.setAttribute('opacity', '1');
-				}
-			});
-
-			// Update value labels opacity if showValues is true
-			if (showValues) {
-				allValueLabels.forEach((label: Element) => {
-					const labelElement = label as SVGTextElement;
-					const parentElement = labelElement.parentElement as SVGElement | null;
-					const isHoveredLineLabel = parentElement
-						?.getAttribute('class')
-						?.includes(`value-labels-${hoveredLine}`);
-
-					if (!isHoveredLineLabel) {
-						labelElement.setAttribute('opacity', '0.3');
-					} else {
-						labelElement.setAttribute('opacity', '1');
-					}
-				});
-			}
-		} else if (hoveredLine === null && mounted && chart) {
-			// Restore all elements
-			const allLines = chart.querySelectorAll('path[class*="line-"]');
-			const allDots = chart.querySelectorAll('.data-point');
-			const allValueLabels = chart.querySelectorAll('.value-label');
-
-			allLines.forEach((line: Element) => {
-				const pathElement = line as SVGPathElement;
-				pathElement.setAttribute('stroke-width', '2');
-				pathElement.setAttribute('opacity', '1');
-			});
-
-			allDots.forEach((dot: Element) => {
-				const circleElement = dot as SVGCircleElement;
-				circleElement.setAttribute('opacity', '1');
-			});
-
-			if (showValues) {
-				allValueLabels.forEach((label: Element) => {
-					const labelElement = label as SVGTextElement;
-					labelElement.setAttribute('opacity', '1');
-				});
-			}
+		if (lines && mounted && performanceMode !== 'canvas') {
+			// SVG mode - reactive rendering happens automatically
 		}
 	});
 </script>
 
+<!-- Template -->
 <div class="multi-line-chart-container">
 	<!-- Screen reader announcements -->
 	<div class="sr-only" aria-live="polite" aria-atomic="true">
@@ -1023,26 +666,221 @@
 		{generateChartDescription()}
 	</div>
 
-	<!-- Main chart -->
-	<div class="chart-container">
-		<svg
-			bind:this={chart}
-			class="multi-line-chart"
-			width="100%"
-			{height}
-			role="img"
-			aria-label="Line chart: {title}"
-			aria-describedby="chart-description"
-		></svg>
+	<!-- Performance notice -->
+	{#if performanceMode === 'canvas'}
+		<div class="performance-notice">
+			<small>
+				Large dataset detected ({totalDataPoints.toLocaleString()} points). 
+				Using optimized Canvas rendering.
+			</small>
+		</div>
+	{/if}
 
-		<!-- Hidden interactive element for keyboard navigation -->
+	<!-- Main chart container -->
+	<div class="chart-container">
+		{#if performanceMode === 'canvas'}
+			<!-- Canvas for large datasets -->
+			<canvas
+				bind:this={canvasElement}
+				class="chart-canvas"
+				width="100%"
+				{height}
+				role="img"
+				aria-label="Line chart: {title}"
+				on:mousemove={throttledMouseMove}
+				on:mouseleave={() => { crosshairVisible = false; }}
+				on:mouseenter={() => { crosshairVisible = true; }}
+			></canvas>
+		{:else}
+			<!-- SVG for smaller datasets -->
+			<svg
+				bind:this={chart}
+				class="multi-line-chart"
+				width="100%"
+				{height}
+				role="img"
+				aria-label="Line chart: {title}"
+				on:mousemove={throttledMouseMove}
+				on:mouseleave={() => { crosshairVisible = false; }}
+				on:mouseenter={() => { crosshairVisible = true; }}
+			>
+				{#if chartData && linePaths.length > 0}
+					<g>
+						<!-- Title -->
+						<text
+							x={margin.left + width / 2}
+							y={margin.top - 5}
+							text-anchor="middle"
+							fill="#1e293b"
+							font-size="16px"
+							font-weight="bold"
+						>
+							{title}
+						</text>
+
+						<!-- X Axis -->
+						<g class="x-axis" transform="translate(0, {margin.top + chartHeight})">
+							<line 
+								x1={margin.left} 
+								y1="0" 
+								x2={margin.left + width} 
+								y2="0" 
+								stroke="#94a3b8" 
+							/>
+							
+							{#each chartData.allXValues as xValue, i}
+								{#if i % Math.max(1, Math.ceil(chartData.allXValues.length / 7)) === 0}
+									<g transform="translate({chartData.xScale(i)}, 0)">
+										<line y2="6" stroke="#94a3b8" />
+										<text y="20" text-anchor="middle" fill="#64748b" font-size="12px">
+											{formatDateForDisplay(xValue)}
+										</text>
+									</g>
+								{/if}
+							{/each}
+						</g>
+
+						<!-- Y Axis -->
+						<g class="y-axis" transform="translate({margin.left}, 0)">
+							<line 
+								x1="0" 
+								y1={margin.top} 
+								x2="0" 
+								y2={margin.top + chartHeight} 
+								stroke="#94a3b8" 
+							/>
+							
+							{#each chartData.yTicks as tickValue}
+								<g transform="translate(0, {chartData.yScale(tickValue)})">
+									<line x2="-6" stroke="#94a3b8" />
+									<line 
+										x1="0" 
+										y1="0" 
+										x2={width} 
+										y2="0" 
+										stroke="#e2e8f0" 
+										stroke-dasharray="4,4" 
+									/>
+									<text 
+										x="-10" 
+										y="4" 
+										text-anchor="end" 
+										fill={tickValue === 0 ? '#374151' : '#64748b'}
+										font-size="12px"
+										font-weight={tickValue === 0 ? 'bold' : 'normal'}
+									>
+										{formatYValue(tickValue)}
+									</text>
+								</g>
+							{/each}
+						</g>
+
+						<!-- Lines and points -->
+						{#each linePaths as lineData (lineData.id)}
+							<g class="line-group">
+								<!-- Line path -->
+								<path
+									d={lineData.pathData}
+									fill="none"
+									stroke={lineData.color}
+									stroke-width={hoveredLine === lineData.id ? 3 : 2}
+									opacity={hoveredLine && hoveredLine !== lineData.id ? 0.3 : 1}
+									class="line-{lineData.id}"
+									style="transition: stroke-width 0.3s ease, opacity 0.3s ease;"
+								/>
+								
+								<!-- Data points -->
+								<g class="data-points-{lineData.id}">
+									{#each lineData.points as point, i}
+										<circle
+											cx={point.x}
+											cy={point.y}
+											r="4"
+											fill="#ffffff"
+											stroke={lineData.color}
+											stroke-width="2"
+											opacity={hoveredLine && hoveredLine !== lineData.id ? 0.3 : 1}
+											class="data-point"
+											role={hasTooltip ? 'button' : undefined}
+											tabindex={hasTooltip ? 0 : undefined}
+											on:mouseenter={(e) => handlePointHover(e, lineData, point, i)}
+											on:mouseleave={handlePointLeave}
+											style="transition: opacity 0.3s ease, transform 0.2s ease; cursor: {hasTooltip ? 'pointer' : 'default'};"
+										/>
+										
+										{#if showValues}
+											<text
+												x={point.x}
+												y={point.y - 10}
+												text-anchor="middle"
+												fill={lineData.color}
+												font-size="11px"
+												font-weight="600"
+												opacity={hoveredLine && hoveredLine !== lineData.id ? 0.3 : 1}
+												class="value-label"
+												style="pointer-events: none; transition: opacity 0.3s ease;"
+											>
+												{formatYValue(Number(lineData.data.find(d => chartData.allXValues.indexOf(String(d[xKey])) === i)?.[yKey] || 0))}
+											</text>
+										{/if}
+									{/each}
+								</g>
+							</g>
+						{/each}
+
+						<!-- Crosshair lines -->
+						{#if shouldShowCrosshairLines && crosshairData}
+							<g class="crosshair-group" opacity="1">
+								<!-- Vertical line -->
+								<line
+									x1={crosshairData.x}
+									y1={margin.top}
+									x2={crosshairData.x}
+									y2={margin.top + chartHeight}
+									stroke="#6b7280"
+									stroke-width="1"
+									stroke-dasharray="4,4"
+									opacity="0.7"
+								/>
+								
+								<!-- Horizontal line -->
+								<line
+									x1={margin.left}
+									y1={crosshairData.y}
+									x2={margin.left + width}
+									y2={crosshairData.y}
+									stroke="#6b7280"
+									stroke-width="1"
+									stroke-dasharray="4,4"
+									opacity="0.7"
+								/>
+
+								<!-- Crosshair points -->
+								{#each crosshairData.values as valueData}
+									<circle
+										cx={crosshairData.x}
+										cy={valueData.y}
+										r="4"
+										fill={valueData.color}
+										stroke="#ffffff"
+										stroke-width="2"
+										opacity="0.9"
+									/>
+								{/each}
+							</g>
+						{/if}
+					</g>
+				{/if}
+			</svg>
+		{/if}
+
+		<!-- Hidden keyboard navigation element -->
 		<button
 			class="chart-keyboard-handler sr-only"
 			aria-label="Chart keyboard controls. Press Escape to clear highlights."
 			onkeydown={(e) => {
 				if (e.key === 'Escape') {
 					hoveredLine = null;
-					focusedDataPoint = null;
 					announceToScreenReader('Chart cleared, all lines visible');
 				}
 			}}
@@ -1054,6 +892,7 @@
 	<!-- Hidden chart title for screen readers -->
 	<h2 id="chart-title" class="sr-only">{title}</h2>
 
+	<!-- Legend -->
 	{#if showLegend && lines.length > 0}
 		<div
 			class="legend"
@@ -1074,7 +913,6 @@
 					tabindex="0"
 					aria-label="Toggle highlight for {lineData.label} series"
 					aria-pressed={isHighlighted}
-					aria-describedby="legend-instructions"
 					onmouseenter={() => {
 						hoveredLine = lineData.id;
 						announceToScreenReader(`Highlighting ${lineData.label} series`);
@@ -1096,9 +934,6 @@
 							announceToScreenReader('All series visible');
 						}
 					}}
-					onfocus={() => {
-						// Optional: could announce on focus
-					}}
 					transition:scale={{ duration: 200, delay: index * 50, easing: cubicInOut }}
 				>
 					<div class="legend-color" style="background-color: {color}" aria-hidden="true"></div>
@@ -1107,75 +942,56 @@
 			{/each}
 		</div>
 
-		<!-- Instructions for screen readers -->
 		<div id="legend-instructions" class="sr-only">
 			Press Enter or Space to highlight a data series, Escape to show all series
 		</div>
 	{/if}
 
-	<!-- Tooltip for hasTooltip only (single point hover) -->
+	<!-- Point tooltip -->
 	{#if shouldShowPointTooltip && tooltipData}
 		{@const tooltipX = tooltipData.x}
 		{@const tooltipY = tooltipData.y - 20}
 		{@const shouldFlipX = tooltipX > width - 120}
 		{@const shouldFlipY = tooltipY < 80}
 		<div
-			class="crosshair-tooltip"
-			style="left: {tooltipX}px; top: {shouldFlipY
-				? tooltipY + 40
-				: tooltipY}px; transform: translate({shouldFlipX ? '-100%' : '-50%'}, {shouldFlipY
-				? '10px'
-				: '-100%'});"
+			class="tooltip"
+			style="left: {tooltipX}px; top: {shouldFlipY ? tooltipY + 40 : tooltipY}px; transform: translate({shouldFlipX ? '-100%' : '-50%'}, {shouldFlipY ? '10px' : '-100%'});"
 			role="tooltip"
 			aria-live="polite"
 		>
-			<div class="crosshair-content">
-				<div class="crosshair-header">
-					{tooltipData.label}
-				</div>
-				<div class="crosshair-values">
-					<div class="crosshair-value-row">
-						<div
-							class="crosshair-color-indicator"
-							style="background-color: {tooltipData.color}"
-						></div>
-						<span class="crosshair-line-label">{tooltipData.lineLabel}:</span>
-						<span class="crosshair-value">{tooltipData.value}</span>
+			<div class="tooltip-content">
+				<div class="tooltip-header">{tooltipData.label}</div>
+				<div class="tooltip-values">
+					<div class="tooltip-value-row">
+						<div class="tooltip-color-indicator" style="background-color: {tooltipData.color}"></div>
+						<span class="tooltip-line-label">{tooltipData.lineLabel}:</span>
+						<span class="tooltip-value">{tooltipData.value}</span>
 					</div>
 				</div>
 			</div>
 		</div>
 	{/if}
 
-	<!-- Crosshair tooltip for showCrosshair + hasTooltip (multi-line hover) -->
+	<!-- Crosshair tooltip -->
 	{#if shouldShowCrosshairTooltip && crosshairData}
 		{@const tooltipX = crosshairData.x}
 		{@const tooltipY = crosshairData.y - 20}
 		{@const shouldFlipX = tooltipX > width - 120}
 		{@const shouldFlipY = tooltipY < 80}
 		<div
-			class="crosshair-tooltip"
-			style="left: {tooltipX}px; top: {shouldFlipY
-				? tooltipY + 40
-				: tooltipY}px; transform: translate({shouldFlipX ? '-100%' : '-50%'}, {shouldFlipY
-				? '10px'
-				: '-100%'});"
+			class="tooltip crosshair-tooltip"
+			style="left: {tooltipX}px; top: {shouldFlipY ? tooltipY + 40 : tooltipY}px; transform: translate({shouldFlipX ? '-100%' : '-50%'}, {shouldFlipY ? '10px' : '-100%'});"
 			role="tooltip"
 			aria-live="polite"
 		>
-			<div class="crosshair-content">
-				<div class="crosshair-header">
-					{crosshairData.xLabel}
-				</div>
-				<div class="crosshair-values">
+			<div class="tooltip-content">
+				<div class="tooltip-header">{crosshairData.xLabel}</div>
+				<div class="tooltip-values">
 					{#each crosshairData.values as valueData (valueData.lineId)}
-						<div class="crosshair-value-row">
-							<div
-								class="crosshair-color-indicator"
-								style="background-color: {valueData.color}"
-							></div>
-							<span class="crosshair-line-label">{valueData.lineLabel}:</span>
-							<span class="crosshair-value">{valueData.value}</span>
+						<div class="tooltip-value-row">
+							<div class="tooltip-color-indicator" style="background-color: {valueData.color}"></div>
+							<span class="tooltip-line-label">{valueData.lineLabel}:</span>
+							<span class="tooltip-value">{valueData.value}</span>
 						</div>
 					{/each}
 				</div>
@@ -1206,10 +1022,6 @@
 			aria-label="Chart data in table format"
 			transition:fade={{ duration: 300 }}
 		>
-			<div class="data-table-summary sr-only">
-				{getDataTableSummary()}
-			</div>
-
 			<table class="data-table">
 				<caption class="sr-only">
 					{title} - Detailed data table with {lines.length} data series
@@ -1223,13 +1035,14 @@
 					</tr>
 				</thead>
 				<tbody>
-					{#if lines.length > 0}
-						{#each lines[0].data as _, rowIndex}
+					{#if lines.length > 0 && chartData}
+						{#each chartData.allXValues as xValue}
 							<tr>
-								<th scope="row">{lines[0].data[rowIndex][xKey]}</th>
+								<th scope="row">{formatDateForDisplay(xValue)}</th>
 								{#each lines as lineData}
+									{@const dataPoint = lineData.data.find(d => String(d[xKey]) === xValue)}
 									<td>
-										{lineData.data[rowIndex] ? lineData.data[rowIndex][yKey] : 'N/A'}
+										{dataPoint ? dataPoint[yKey] : 'N/A'}
 									</td>
 								{/each}
 							</tr>
@@ -1266,6 +1079,30 @@
 		width: 100%;
 	}
 
+	.multi-line-chart {
+		width: 100%;
+		min-height: 300px;
+		outline: none;
+	}
+
+	.chart-canvas {
+		width: 100%;
+		cursor: crosshair;
+		border: 1px solid #e2e8f0;
+		border-radius: 4px;
+	}
+
+	.performance-notice {
+		margin-bottom: 8px;
+		padding: 8px 12px;
+		background: #f0f9ff;
+		border: 1px solid #0ea5e9;
+		border-radius: 4px;
+		color: #0369a1;
+		text-align: center;
+		font-size: 12px;
+	}
+
 	.chart-keyboard-handler {
 		position: absolute;
 		top: 0;
@@ -1289,41 +1126,7 @@
 		color: #3b82f6;
 	}
 
-	.multi-line-chart {
-		width: 100%;
-		min-height: 300px;
-		outline: none;
-	}
-
-	/* Smooth transitions for SVG elements */
-	:global(.data-point) {
-		transition:
-			opacity 0.3s ease,
-			transform 0.2s ease;
-		transform-origin: center;
-	}
-
-	:global(.value-label) {
-		transition: opacity 0.3s ease;
-		pointer-events: none;
-	}
-	:global(.crosshair-group) {
-		transition: opacity 0.2s ease;
-	}
-
-	:global(.crosshair-vertical),
-	:global(.crosshair-horizontal) {
-		transition: all 0.1s ease;
-	}
-
-	:global(.crosshair-point-1),
-	:global(.crosshair-point-2),
-	:global(.crosshair-point-3),
-	:global(.crosshair-point-4),
-	:global(.crosshair-point-5) {
-		transition: all 0.1s ease;
-	}
-
+	/* Legend styles */
 	.legend {
 		display: flex;
 		flex-wrap: wrap;
@@ -1376,9 +1179,7 @@
 		border-radius: 50%;
 		border: 2px solid #ffffff;
 		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-		transition:
-			transform 0.2s ease,
-			box-shadow 0.2s ease;
+		transition: transform 0.2s ease, box-shadow 0.2s ease;
 	}
 
 	.legend-item:hover .legend-color {
@@ -1397,8 +1198,8 @@
 		color: #1f2937;
 	}
 
-	/* Crosshair tooltip styles */
-	.crosshair-tooltip {
+	/* Tooltip styles */
+	.tooltip {
 		position: absolute;
 		pointer-events: none;
 		z-index: 20;
@@ -1408,7 +1209,7 @@
 		transition: opacity 0.15s ease;
 	}
 
-	.crosshair-content {
+	.tooltip-content {
 		background-color: rgba(0, 0, 0, 0.95);
 		color: white;
 		padding: 10px 14px;
@@ -1420,7 +1221,7 @@
 		min-width: 120px;
 	}
 
-	.crosshair-header {
+	.tooltip-header {
 		font-weight: 600;
 		margin-bottom: 8px;
 		padding-bottom: 6px;
@@ -1430,20 +1231,20 @@
 		color: #ffffff;
 	}
 
-	.crosshair-values {
+	.tooltip-values {
 		display: flex;
 		flex-direction: column;
 		gap: 5px;
 	}
 
-	.crosshair-value-row {
+	.tooltip-value-row {
 		display: flex;
 		align-items: center;
 		gap: 8px;
 		padding: 2px 0;
 	}
 
-	.crosshair-color-indicator {
+	.tooltip-color-indicator {
 		width: 10px;
 		height: 10px;
 		border-radius: 50%;
@@ -1451,7 +1252,7 @@
 		border: 1px solid rgba(255, 255, 255, 0.2);
 	}
 
-	.crosshair-line-label {
+	.tooltip-line-label {
 		font-weight: 500;
 		flex: 1;
 		min-width: 0;
@@ -1461,7 +1262,7 @@
 		color: #e5e7eb;
 	}
 
-	.crosshair-value {
+	.tooltip-value {
 		font-weight: 700;
 		font-size: 13px;
 		color: #ffffff;
@@ -1477,10 +1278,11 @@
 	}
 
 	.data-table-toggle {
-		background: oklch(65.065% 0.02343 259.237);
+		background: #3b82f6;
 		color: white;
 		border: none;
 		padding: 8px 16px;
+		border-radius: 4px;
 		cursor: pointer;
 		font-size: 14px;
 		font-weight: 500;
@@ -1489,12 +1291,11 @@
 	}
 
 	.data-table-toggle:hover {
-		background: oklch(15.615% 0.0257 25.476);
-		/* transform: translateY(-1px); */
+		background: #2563eb;
 	}
 
 	.data-table-toggle:focus {
-		box-shadow: 0 0 0 2px oklab(62.31% -0.03321 -0.18515 / 0.5);
+		box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
 	}
 
 	.data-table-container {
@@ -1557,6 +1358,12 @@
 		.data-table th,
 		.data-table td {
 			padding: 6px 8px;
+		}
+
+		.tooltip-content {
+			font-size: 11px;
+			padding: 8px 10px;
+			min-width: 100px;
 		}
 	}
 </style>
