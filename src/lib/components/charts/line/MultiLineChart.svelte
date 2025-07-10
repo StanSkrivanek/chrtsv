@@ -1,20 +1,19 @@
-// File: src/lib/components/charts/MultiLineChart.svelte
 <script lang="ts">
+	import type {
+		ChartPerformanceConfig,
+		CrosshairData,
+		LineData,
+		ProcessedChartData,
+		TooltipData
+	} from '$lib/components/charts/types/chart.types.ts';
+	import { ChartDataManager } from '$lib/components/charts/utils/ChartManager';
+	import { PathGenerator } from '$lib/components/charts/utils/PathGenerator';
+	import { PerformanceMonitor } from '$lib/components/charts/utils/PerformanceMonitor';
+	import { memoize, throttle } from '$lib/components/charts/utils/helpers';
 	import { format, isValid, parse, parseISO } from 'date-fns';
-	import { onMount, onDestroy } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import { cubicInOut } from 'svelte/easing';
 	import { fade, scale } from 'svelte/transition';
-	import { PathGenerator } from '$lib/components/charts/utils/PathGenerator';
-	import { ChartDataManager } from '$lib/components/charts/utils/ChartManager';
-	import { PerformanceMonitor } from '$lib/components/charts/utils/PerformanceMonitor';
-	import { throttle, memoize } from '$lib/components/charts/utils/helpers';
-	import type { 
-		LineData, 
-		TooltipData, 
-		CrosshairData, 
-		ChartPerformanceConfig,
-		ProcessedChartData 
-	} from '$lib/components/charts/types/chart.types.ts';
 
 	// Props with explicit typing
 	let {
@@ -97,88 +96,90 @@
 	const margin = { top: 20, right: 20, bottom: 40, left: 60 };
 
 	// Color palette for lines
-	const defaultColors = [
-		'#000000', '#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'
-	];
+	const defaultColors = ['#000000', '#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'];
 
 	// Calculate total data points for performance decisions
 	const totalDataPoints = $derived(
-		lines.reduce((sum: any, line: { data: string | any[]; }) => sum + line.data.length, 0)
+		lines.reduce((sum: any, line: { data: string | any[] }) => sum + line.data.length, 0)
 	);
 
 	// Performance mode determination
-const performanceMode = $derived(() => {
-  if (totalDataPoints > config.svgMaxPoints) return 'canvas';
-  if (totalDataPoints > config.animationMaxPoints) return 'svg-no-animation';
-  return 'svg-full';
-});
+	const performanceMode = $derived(() => {
+		if (totalDataPoints > config.svgMaxPoints) return 'canvas';
+		if (totalDataPoints > config.animationMaxPoints) return 'svg-no-animation';
+		return 'svg-full';
+	});
 
-// Get the actual value to use in comparisons
-const currentPerformanceMode = $derived(performanceMode());
+	// Get the actual value to use in comparisons
+	const currentPerformanceMode = $derived(performanceMode());
 
 	// Memoized helper functions
-	const memoizedGetAllXValues = config.enableMemoization ? memoize((lines: LineData[], xKey: string) => {
-		const xValues: string[] = [];
-		const seen = new Set<string>();
+	const memoizedGetAllXValues = config.enableMemoization
+		? memoize((lines: LineData[], xKey: string) => {
+				const xValues: string[] = [];
+				const seen = new Set<string>();
 
-		if (lines.length > 0) {
-			lines[0].data.forEach((d: Record<string, any>) => {
-				const value = String(d[xKey]);
-				if (!seen.has(value)) {
-					seen.add(value);
-					xValues.push(value);
+				if (lines.length > 0) {
+					lines[0].data.forEach((d: Record<string, any>) => {
+						const value = String(d[xKey]);
+						if (!seen.has(value)) {
+							seen.add(value);
+							xValues.push(value);
+						}
+					});
 				}
-			});
-		}
 
-		lines.forEach((line: LineData) => {
-			line.data.forEach((d: Record<string, any>) => {
-				const value = String(d[xKey]);
-				if (!seen.has(value)) {
-					seen.add(value);
-					xValues.push(value);
+				lines.forEach((line: LineData) => {
+					line.data.forEach((d: Record<string, any>) => {
+						const value = String(d[xKey]);
+						if (!seen.has(value)) {
+							seen.add(value);
+							xValues.push(value);
+						}
+					});
+				});
+
+				const firstValue = xValues[0];
+				if (firstValue && parseDate(firstValue)) {
+					return xValues.sort((a, b) => {
+						const dateA = parseDate(a);
+						const dateB = parseDate(b);
+						if (dateA && dateB) {
+							return dateA.getTime() - dateB.getTime();
+						}
+						return 0;
+					});
 				}
-			});
-		});
 
-		const firstValue = xValues[0];
-		if (firstValue && parseDate(firstValue)) {
-			return xValues.sort((a, b) => {
-				const dateA = parseDate(a);
-				const dateB = parseDate(b);
-				if (dateA && dateB) {
-					return dateA.getTime() - dateB.getTime();
-				}
-				return 0;
-			});
-		}
+				return xValues;
+			})
+		: (lines: LineData[], xKey: string) => {
+				// Non-memoized version for fallback
+				const xValues: string[] = [];
+				const seen = new Set<string>();
+				// ... same logic without memoization
+				return xValues;
+			};
 
-		return xValues;
-	}) : (lines: LineData[], xKey: string) => {
-		// Non-memoized version for fallback
-		const xValues: string[] = [];
-		const seen = new Set<string>();
-		// ... same logic without memoization
-		return xValues;
-	};
-
-	const memoizedGetAllYValues = config.enableMemoization ? memoize((lines: LineData[], yKey: string) => {
-		const yValues: number[] = [];
-		lines.forEach((line: LineData) => {
-			line.data.forEach((d: Record<string, any>) => {
-				yValues.push(Number(d[yKey]));
-			});
-		});
-		return yValues;
-	}) : (lines: LineData[], yKey: string) => {
-		const yValues: number[] = [];
-		lines.forEach((line: LineData) => {
-			line.data.forEach((d: Record<string, any>) => {
-				yValues.push(Number(d[yKey]));
-			});
-		});
-		return yValues;
-	};
+	const memoizedGetAllYValues = config.enableMemoization
+		? memoize((lines: LineData[], yKey: string) => {
+				const yValues: number[] = [];
+				lines.forEach((line: LineData) => {
+					line.data.forEach((d: Record<string, any>) => {
+						yValues.push(Number(d[yKey]));
+					});
+				});
+				return yValues;
+			})
+		: (lines: LineData[], yKey: string) => {
+				const yValues: number[] = [];
+				lines.forEach((line: LineData) => {
+					line.data.forEach((d: Record<string, any>) => {
+						yValues.push(Number(d[yKey]));
+					});
+				});
+				return yValues;
+			};
 
 	// Data sampling for large datasets
 	const sampledLines = $derived.by(() => {
@@ -186,14 +187,12 @@ const currentPerformanceMode = $derived(performanceMode());
 			return lines;
 		}
 
-		return lines.map((line: { data: any[]; }) => {
+		return lines.map((line: { data: any[] }) => {
 			if (line.data.length <= 100) return line;
 
 			const sampleRate = Math.ceil(line.data.length / 100);
-			const sampledData = line.data.filter((_, index) => 
-				index === 0 || 
-				index === line.data.length - 1 || 
-				index % sampleRate === 0
+			const sampledData = line.data.filter(
+				(_, index) => index === 0 || index === line.data.length - 1 || index % sampleRate === 0
 			);
 
 			return { ...line, data: sampledData };
@@ -205,10 +204,10 @@ const currentPerformanceMode = $derived(performanceMode());
 		if (!lines.length || !mounted) return null;
 
 		const startTime = performanceMonitor.startRender();
-		
+
 		const cacheKey = `${JSON.stringify(sampledLines)}_${xKey}_${yKey}_${width}_${chartHeight}`;
 		let cached = dataManager.getCachedData(cacheKey);
-		
+
 		if (cached) {
 			performanceMonitor.endRender(startTime);
 			return cached;
@@ -216,7 +215,7 @@ const currentPerformanceMode = $derived(performanceMode());
 
 		const allXValues = memoizedGetAllXValues(sampledLines, xKey);
 		const allYValues = memoizedGetAllYValues(sampledLines, yKey);
-		
+
 		if (!allXValues.length || !allYValues.length) {
 			performanceMonitor.endRender(startTime);
 			return null;
@@ -235,7 +234,10 @@ const currentPerformanceMode = $derived(performanceMode());
 			yMin: yMinWithPadding,
 			yMax: yMaxWithPadding,
 			xScale: (idx: number) => margin.left + (idx / Math.max(1, allXValues.length - 1)) * width,
-			yScale: (val: number) => margin.top + chartHeight - ((val - yMinWithPadding) / (yMaxWithPadding - yMinWithPadding)) * chartHeight,
+			yScale: (val: number) =>
+				margin.top +
+				chartHeight -
+				((val - yMinWithPadding) / (yMaxWithPadding - yMinWithPadding)) * chartHeight,
 			hasNegativeValues: yMin < 0,
 			yTicks: generateYTicks(yMinWithPadding, yMaxWithPadding)
 		};
@@ -248,34 +250,37 @@ const currentPerformanceMode = $derived(performanceMode());
 	// Line paths calculation
 	const linePaths = $derived.by(() => {
 		if (!chartData) return [];
-		
-		return sampledLines.map((lineData: { color: string; data: any[]; id: any; label: any; }, index: number) => {
-			const color = lineData.color || defaultColors[index % defaultColors.length];
-			const points: Array<{ x: number; y: number }> = [];
-			
-			chartData.allXValues.forEach((xValue, xIndex) => {
-				const dataPoint = lineData.data.find(d => String(d[xKey]) === xValue);
-				if (dataPoint) {
-					points.push({
-						x: chartData.xScale(xIndex),
-						y: chartData.yScale(Number(dataPoint[yKey]))
-					});
-				}
-			});
-			
-			const pathData = curveType === 'smooth' && tension > 0 
-				? PathGenerator.createSmoothPath(points, tension)
-				: PathGenerator.createStraightPath(points);
-			
-			return {
-				id: lineData.id,
-				label: lineData.label,
-				color,
-				pathData,
-				points,
-				data: lineData.data
-			};
-		});
+
+		return sampledLines.map(
+			(lineData: { color: string; data: any[]; id: any; label: any }, index: number) => {
+				const color = lineData.color || defaultColors[index % defaultColors.length];
+				const points: Array<{ x: number; y: number }> = [];
+
+				chartData.allXValues.forEach((xValue, xIndex) => {
+					const dataPoint = lineData.data.find((d) => String(d[xKey]) === xValue);
+					if (dataPoint) {
+						points.push({
+							x: chartData.xScale(xIndex),
+							y: chartData.yScale(Number(dataPoint[yKey]))
+						});
+					}
+				});
+
+				const pathData =
+					curveType === 'smooth' && tension > 0
+						? PathGenerator.createSmoothPath(points, tension)
+						: PathGenerator.createStraightPath(points);
+
+				return {
+					id: lineData.id,
+					label: lineData.label,
+					color,
+					pathData,
+					points,
+					data: lineData.data
+				};
+			}
+		);
 	});
 
 	// Derived state for tooltip logic
@@ -333,22 +338,24 @@ const currentPerformanceMode = $derived(performanceMode());
 		const hasNegativeValues = yMin < 0;
 		const effectiveTickCount = hasNegativeValues && doubleTicks ? yTickCount * 2 : yTickCount;
 		const tickValues = new Set<number>();
-		
+
 		for (let i = 0; i <= effectiveTickCount; i++) {
 			const value = yMin + (i / effectiveTickCount) * (yMax - yMin);
 			tickValues.add(Number(value.toFixed(2)));
 		}
-		
+
 		if (hasNegativeValues && yMin < 0 && yMax > 0) {
 			tickValues.add(0);
 		}
-		
+
 		return Array.from(tickValues).sort((a, b) => b - a);
 	}
 
 	function announceToScreenReader(message: string) {
 		announcements = message;
-		setTimeout(() => { announcements = ''; }, 1000);
+		setTimeout(() => {
+			announcements = '';
+		}, 1000);
 	}
 
 	function generateChartDescription(): string {
@@ -365,11 +372,12 @@ const currentPerformanceMode = $derived(performanceMode());
 
 	// Canvas rendering functions
 	function renderCanvas() {
-		if (!canvasElement || !canvasContext || currentPerformanceMode !== 'canvas' || !chartData) return;
+		if (!canvasElement || !canvasContext || currentPerformanceMode !== 'canvas' || !chartData)
+			return;
 
 		const dpr = config.devicePixelRatio;
 		const rect = canvasElement.getBoundingClientRect();
-		
+
 		canvasElement.width = rect.width * dpr;
 		canvasElement.height = rect.height * dpr;
 		canvasContext.scale(dpr, dpr);
@@ -383,10 +391,10 @@ const currentPerformanceMode = $derived(performanceMode());
 
 		drawCanvasAxes(canvasContext, chartData, rect.width, rect.height);
 
-		linePaths.forEach((lineData: { id: string | null; }, index: any) => {
+		linePaths.forEach((lineData: { id: string | null }, index: any) => {
 			const isHovered = hoveredLine === lineData.id;
 			const isOtherHovered = hoveredLine !== null && hoveredLine !== lineData.id;
-			
+
 			drawCanvasLine(canvasContext!, lineData, chartData, {
 				strokeWidth: isHovered ? 3 : 2,
 				opacity: isOtherHovered ? 0.3 : 1
@@ -411,7 +419,7 @@ const currentPerformanceMode = $derived(performanceMode());
 			if (dataPoint) {
 				const x = chartData.xScale(xIndex);
 				const y = chartData.yScale(Number(dataPoint[yKey]));
-				
+
 				if (firstPoint) {
 					ctx.moveTo(x, y);
 					firstPoint = false;
@@ -430,7 +438,7 @@ const currentPerformanceMode = $derived(performanceMode());
 			if (dataPoint) {
 				const x = chartData.xScale(xIndex);
 				const y = chartData.yScale(Number(dataPoint[yKey]));
-				
+
 				ctx.beginPath();
 				ctx.arc(x, y, 4, 0, 2 * Math.PI);
 				ctx.fillStyle = '#ffffff';
@@ -472,15 +480,15 @@ const currentPerformanceMode = $derived(performanceMode());
 		for (let i = 0; i < chartData.allXValues.length; i += tickInterval) {
 			const x = chartData.xScale(i);
 			const label = formatDateForDisplay(chartData.allXValues[i]);
-			
+
 			ctx.textAlign = 'center';
 			ctx.fillText(label, x, margin.top + chartHeight + 20);
 		}
 
 		// Y-axis labels and grid
-		chartData.yTicks.forEach(tickValue => {
+		chartData.yTicks.forEach((tickValue) => {
 			const y = chartData.yScale(tickValue);
-			
+
 			// Grid line
 			ctx.strokeStyle = '#e2e8f0';
 			ctx.setLineDash([4, 4]);
@@ -500,15 +508,19 @@ const currentPerformanceMode = $derived(performanceMode());
 	// Event handlers
 	const throttledMouseMove = throttle((e: MouseEvent) => {
 		if (!showCrosshair || !chartData) return;
-		
+
 		const rect = chart?.getBoundingClientRect() || canvasElement?.getBoundingClientRect();
 		if (!rect) return;
 
 		mouseX = e.clientX - rect.left;
 		mouseY = e.clientY - rect.top;
 
-		if (mouseX >= margin.left && mouseX <= margin.left + width &&
-			mouseY >= margin.top && mouseY <= margin.top + chartHeight) {
+		if (
+			mouseX >= margin.left &&
+			mouseX <= margin.left + width &&
+			mouseY >= margin.top &&
+			mouseY <= margin.top + chartHeight
+		) {
 			updateCrosshair(mouseX, mouseY);
 		}
 	}, config.mouseMoveThrottle);
@@ -531,20 +543,22 @@ const currentPerformanceMode = $derived(performanceMode());
 		const parsedDate = parseDate(currentXValue);
 		const xLabel = parsedDate ? formatDateForDisplay(currentXValue) : currentXValue;
 
-		const values = linePaths.map((lineData: { data: any[]; id: any; label: any; color: any; }) => {
-			const dataPoint = lineData.data.find(d => String(d[xKey]) === currentXValue);
-			if (dataPoint) {
-				const yValue = Number(dataPoint[yKey]);
-				return {
-					lineId: lineData.id,
-					lineLabel: lineData.label,
-					value: formatYValue(yValue),
-					color: lineData.color,
-					y: chartData.yScale(yValue)
-				};
-			}
-			return null;
-		}).filter(Boolean);
+		const values = linePaths
+			.map((lineData: { data: any[]; id: any; label: any; color: any }) => {
+				const dataPoint = lineData.data.find((d) => String(d[xKey]) === currentXValue);
+				if (dataPoint) {
+					const yValue = Number(dataPoint[yKey]);
+					return {
+						lineId: lineData.id,
+						lineLabel: lineData.label,
+						value: formatYValue(yValue),
+						color: lineData.color,
+						y: chartData.yScale(yValue)
+					};
+				}
+				return null;
+			})
+			.filter(Boolean);
 
 		crosshairData = {
 			x: chartData.xScale(nearestXIndex),
@@ -587,12 +601,12 @@ const currentPerformanceMode = $derived(performanceMode());
 		if (chart && isVisible) {
 			const newWidth = chart.clientWidth - margin.left - margin.right;
 			const newHeight = height - margin.top - margin.bottom;
-			
+
 			if (newWidth !== width || newHeight !== chartHeight) {
 				width = newWidth;
 				chartHeight = newHeight;
 				dataManager.clearCache();
-				
+
 				if (currentPerformanceMode === 'canvas') {
 					renderCanvas();
 				}
@@ -603,12 +617,13 @@ const currentPerformanceMode = $derived(performanceMode());
 	// Lifecycle
 	onMount(() => {
 		mounted = true;
-		
+
 		if (!chart && !canvasElement) return;
 
 		const element = chart || canvasElement;
-		
+
 		// Initial dimensions
+		if (!element) return;
 		width = element.clientWidth - margin.left - margin.right;
 		chartHeight = height - margin.top - margin.bottom;
 
@@ -620,7 +635,9 @@ const currentPerformanceMode = $derived(performanceMode());
 
 		// Intersection observer for visibility
 		const intersectionObserver = new IntersectionObserver(
-			(entries) => { isVisible = entries[0].isIntersecting; },
+			(entries) => {
+				isVisible = entries[0].isIntersecting;
+			},
 			{ threshold: 0.1 }
 		);
 
@@ -645,18 +662,19 @@ const currentPerformanceMode = $derived(performanceMode());
 
 	// Effects
 	$effect(() => {
-		if (performanceMode === 'canvas' && canvasElement && canvasContext) {
+		if (currentPerformanceMode === 'canvas' && canvasElement && canvasContext) {
 			renderCanvas();
 		}
 	});
 
 	$effect(() => {
-		if (lines && mounted && performanceMode !== 'canvas') {
+		if (lines && mounted && currentPerformanceMode !== 'canvas') {
 			// SVG mode - reactive rendering happens automatically
 		}
 	});
 </script>
 
+// File: src/lib/components/charts/MultiLineChart.svelte
 <!-- Template -->
 <div class="multi-line-chart-container">
 	<!-- Screen reader announcements -->
@@ -670,29 +688,31 @@ const currentPerformanceMode = $derived(performanceMode());
 	</div>
 
 	<!-- Performance notice -->
-	{#if performanceMode === 'canvas'}
+	{#if currentPerformanceMode === 'canvas'}
 		<div class="performance-notice">
 			<small>
-				Large dataset detected ({totalDataPoints.toLocaleString()} points). 
-				Using optimized Canvas rendering.
+				Large dataset detected ({totalDataPoints.toLocaleString()} points). Using optimized Canvas rendering.
 			</small>
 		</div>
 	{/if}
 
 	<!-- Main chart container -->
 	<div class="chart-container">
-		{#if performanceMode === 'canvas'}
+		{#if currentPerformanceMode === 'canvas'}
 			<!-- Canvas for large datasets -->
 			<canvas
 				bind:this={canvasElement}
 				class="chart-canvas"
 				width="100%"
 				{height}
-				role="img"
 				aria-label="Line chart: {title}"
 				onmousemove={throttledMouseMove}
-				onmouseleave={() => { crosshairVisible = false; }}
-				onmouseenter={() => { crosshairVisible = true; }}
+				onmouseleave={() => {
+					crosshairVisible = false;
+				}}
+				onmouseenter={() => {
+					crosshairVisible = true;
+				}}
 			></canvas>
 		{:else}
 			<!-- SVG for smaller datasets -->
@@ -704,8 +724,12 @@ const currentPerformanceMode = $derived(performanceMode());
 				role="img"
 				aria-label="Line chart: {title}"
 				onmousemove={throttledMouseMove}
-				onmouseleave={() => { crosshairVisible = false; }}
-				onmouseenter={() => { crosshairVisible = true; }}
+				onmouseleave={() => {
+					crosshairVisible = false;
+				}}
+				onmouseenter={() => {
+					crosshairVisible = true;
+				}}
 			>
 				{#if chartData && linePaths.length > 0}
 					<g>
@@ -723,14 +747,8 @@ const currentPerformanceMode = $derived(performanceMode());
 
 						<!-- X Axis -->
 						<g class="x-axis" transform="translate(0, {margin.top + chartHeight})">
-							<line 
-								x1={margin.left} 
-								y1="0" 
-								x2={margin.left + width} 
-								y2="0" 
-								stroke="#94a3b8" 
-							/>
-							
+							<line x1={margin.left} y1="0" x2={margin.left + width} y2="0" stroke="#94a3b8" />
+
 							{#each chartData.allXValues as xValue, i}
 								{#if i % Math.max(1, Math.ceil(chartData.allXValues.length / 7)) === 0}
 									<g transform="translate({chartData.xScale(i)}, 0)">
@@ -745,29 +763,16 @@ const currentPerformanceMode = $derived(performanceMode());
 
 						<!-- Y Axis -->
 						<g class="y-axis" transform="translate({margin.left}, 0)">
-							<line 
-								x1="0" 
-								y1={margin.top} 
-								x2="0" 
-								y2={margin.top + chartHeight} 
-								stroke="#94a3b8" 
-							/>
-							
+							<line x1="0" y1={margin.top} x2="0" y2={margin.top + chartHeight} stroke="#94a3b8" />
+
 							{#each chartData.yTicks as tickValue}
 								<g transform="translate(0, {chartData.yScale(tickValue)})">
 									<line x2="-6" stroke="#94a3b8" />
-									<line 
-										x1="0" 
-										y1="0" 
-										x2={width} 
-										y2="0" 
-										stroke="#e2e8f0" 
-										stroke-dasharray="4,4" 
-									/>
-									<text 
-										x="-10" 
-										y="4" 
-										text-anchor="end" 
+									<line x1="0" y1="0" x2={width} y2="0" stroke="#e2e8f0" stroke-dasharray="4,4" />
+									<text
+										x="-10"
+										y="4"
+										text-anchor="end"
 										fill={tickValue === 0 ? '#374151' : '#64748b'}
 										font-size="12px"
 										font-weight={tickValue === 0 ? 'bold' : 'normal'}
@@ -791,10 +796,11 @@ const currentPerformanceMode = $derived(performanceMode());
 									class="line-{lineData.id}"
 									style="transition: stroke-width 0.3s ease, opacity 0.3s ease;"
 								/>
-								
+
 								<!-- Data points -->
 								<g class="data-points-{lineData.id}">
 									{#each lineData.points as point, i}
+										<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 										<circle
 											cx={point.x}
 											cy={point.y}
@@ -806,11 +812,15 @@ const currentPerformanceMode = $derived(performanceMode());
 											class="data-point"
 											role={hasTooltip ? 'button' : undefined}
 											tabindex={hasTooltip ? 0 : undefined}
+											aria-describedby={hasTooltip ? 'tooltip-id' : undefined}
 											onmouseenter={(e) => handlePointHover(e, lineData, point, i)}
 											onmouseleave={handlePointLeave}
-											style="transition: opacity 0.3s ease, transform 0.2s ease; cursor: {hasTooltip ? 'pointer' : 'default'};"
+											style="transition: opacity 0.3s ease, transform 0.2s ease; cursor: {hasTooltip
+												? 'pointer'
+												: 'default'};"
+											
 										/>
-										
+
 										{#if showValues}
 											<text
 												x={point.x}
@@ -823,7 +833,13 @@ const currentPerformanceMode = $derived(performanceMode());
 												class="value-label"
 												style="pointer-events: none; transition: opacity 0.3s ease;"
 											>
-												{formatYValue(Number(lineData.data.find(d => chartData.allXValues.indexOf(String(d[xKey])) === i)?.[yKey] || 0))}
+												{formatYValue(
+													Number(
+														lineData.data.find(
+															(d: { [x: string]: any; }) => chartData.allXValues.indexOf(String(d[xKey])) === i
+														)?.[yKey] || 0
+													)
+												)}
 											</text>
 										{/if}
 									{/each}
@@ -845,7 +861,7 @@ const currentPerformanceMode = $derived(performanceMode());
 									stroke-dasharray="4,4"
 									opacity="0.7"
 								/>
-								
+
 								<!-- Horizontal line -->
 								<line
 									x1={margin.left}
@@ -958,7 +974,11 @@ const currentPerformanceMode = $derived(performanceMode());
 		{@const shouldFlipY = tooltipY < 80}
 		<div
 			class="tooltip"
-			style="left: {tooltipX}px; top: {shouldFlipY ? tooltipY + 40 : tooltipY}px; transform: translate({shouldFlipX ? '-100%' : '-50%'}, {shouldFlipY ? '10px' : '-100%'});"
+			style="left: {tooltipX}px; top: {shouldFlipY
+				? tooltipY + 40
+				: tooltipY}px; transform: translate({shouldFlipX ? '-100%' : '-50%'}, {shouldFlipY
+				? '10px'
+				: '-100%'});"
 			role="tooltip"
 			aria-live="polite"
 		>
@@ -966,7 +986,10 @@ const currentPerformanceMode = $derived(performanceMode());
 				<div class="tooltip-header">{tooltipData.label}</div>
 				<div class="tooltip-values">
 					<div class="tooltip-value-row">
-						<div class="tooltip-color-indicator" style="background-color: {tooltipData.color}"></div>
+						<div
+							class="tooltip-color-indicator"
+							style="background-color: {tooltipData.color}"
+						></div>
 						<span class="tooltip-line-label">{tooltipData.lineLabel}:</span>
 						<span class="tooltip-value">{tooltipData.value}</span>
 					</div>
@@ -983,7 +1006,11 @@ const currentPerformanceMode = $derived(performanceMode());
 		{@const shouldFlipY = tooltipY < 80}
 		<div
 			class="tooltip crosshair-tooltip"
-			style="left: {tooltipX}px; top: {shouldFlipY ? tooltipY + 40 : tooltipY}px; transform: translate({shouldFlipX ? '-100%' : '-50%'}, {shouldFlipY ? '10px' : '-100%'});"
+			style="left: {tooltipX}px; top: {shouldFlipY
+				? tooltipY + 40
+				: tooltipY}px; transform: translate({shouldFlipX ? '-100%' : '-50%'}, {shouldFlipY
+				? '10px'
+				: '-100%'});"
 			role="tooltip"
 			aria-live="polite"
 		>
@@ -992,7 +1019,10 @@ const currentPerformanceMode = $derived(performanceMode());
 				<div class="tooltip-values">
 					{#each crosshairData.values as valueData (valueData.lineId)}
 						<div class="tooltip-value-row">
-							<div class="tooltip-color-indicator" style="background-color: {valueData.color}"></div>
+							<div
+								class="tooltip-color-indicator"
+								style="background-color: {valueData.color}"
+							></div>
 							<span class="tooltip-line-label">{valueData.lineLabel}:</span>
 							<span class="tooltip-value">{valueData.value}</span>
 						</div>
@@ -1043,7 +1073,7 @@ const currentPerformanceMode = $derived(performanceMode());
 							<tr>
 								<th scope="row">{formatDateForDisplay(xValue)}</th>
 								{#each lines as lineData}
-									{@const dataPoint = lineData.data.find(d => String(d[xKey]) === xValue)}
+									{@const dataPoint = lineData.data.find((d: { [x: string]: any; }) => String(d[xKey]) === xValue)}
 									<td>
 										{dataPoint ? dataPoint[yKey] : 'N/A'}
 									</td>
@@ -1182,7 +1212,9 @@ const currentPerformanceMode = $derived(performanceMode());
 		border-radius: 50%;
 		border: 2px solid #ffffff;
 		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-		transition: transform 0.2s ease, box-shadow 0.2s ease;
+		transition:
+			transform 0.2s ease,
+			box-shadow 0.2s ease;
 	}
 
 	.legend-item:hover .legend-color {
