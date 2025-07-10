@@ -3,7 +3,7 @@
 /**
  * Throttle function that limits how often a function can be called
  */
-export function throttle<T extends (...args: any[]) => any>(
+export function throttle<T extends (...args: unknown[]) => unknown>(
 	func: T,
 	delay: number
 ): (...args: Parameters<T>) => void {
@@ -32,7 +32,7 @@ export function throttle<T extends (...args: any[]) => any>(
 /**
  * Debounce function that delays execution until after wait time
  */
-export function debounce<T extends (...args: any[]) => any>(
+export function debounce<T extends (...args: unknown[]) => unknown>(
 	func: T,
 	wait: number,
 	immediate: boolean = false
@@ -56,11 +56,11 @@ export function debounce<T extends (...args: any[]) => any>(
 /**
  * Memoization function with LRU cache
  */
-export function memoize<T extends (...args: any[]) => any>(fn: T, maxSize: number = 100): T {
+export function memoize<T extends (...args: unknown[]) => unknown>(fn: T, maxSize: number = 100): T {
 	const cache = new Map();
-	const accessOrder: any[] = [];
+	const accessOrder: string[] = [];
 
-	return ((...args: any[]) => {
+	return ((...args: Parameters<T>) => {
 		const key = JSON.stringify(args);
 
 		if (cache.has(key)) {
@@ -220,7 +220,7 @@ export function isTouchDevice(): boolean {
 	return (
 		'ontouchstart' in window ||
 		navigator.maxTouchPoints > 0 ||
-		(navigator as any).msMaxTouchPoints > 0
+		('msMaxTouchPoints' in navigator && ((navigator as unknown) as {msMaxTouchPoints: number}).msMaxTouchPoints > 0)
 	);
 }
 
@@ -294,16 +294,16 @@ export function sampleArray<T>(array: T[], sampleRate: number): T[] {
  */
 export function deepClone<T>(obj: T): T {
 	if (obj === null || typeof obj !== 'object') return obj;
-	if (obj instanceof Date) return new Date(obj.getTime()) as any;
-	if (obj instanceof Array) return obj.map((item) => deepClone(item)) as any;
+	if (obj instanceof Date) return new Date(obj.getTime()) as unknown as T;
+	if (obj instanceof Array) return obj.map((item) => deepClone(item)) as unknown as T;
 	if (typeof obj === 'object') {
-		const cloned: any = {};
+		const cloned = {} as Record<string, unknown>;
 		for (const key in obj) {
-			if (obj.hasOwnProperty(key)) {
-				cloned[key] = deepClone(obj[key]);
+			if (Object.prototype.hasOwnProperty.call(obj, key)) {
+				cloned[key] = deepClone(obj[key as keyof T]);
 			}
 		}
-		return cloned;
+		return cloned as T;
 	}
 	return obj;
 }

@@ -3,14 +3,14 @@
 export interface LineData {
 	id: string;
 	label: string;
-	data: Array<Record<string, any>>;
+	data: Array<Record<string, unknown>>;
 	color: string;
 }
 
 export interface TooltipData {
 	x: number;
 	y: number;
-	value: any;
+	value: string | number;
 	label: string;
 	lineLabel: string;
 	color: string;
@@ -23,7 +23,7 @@ export interface CrosshairData {
 	values: Array<{
 		lineId: string;
 		lineLabel: string;
-		value: any;
+		value: string | number;
 		color: string;
 		y: number;
 	}>;

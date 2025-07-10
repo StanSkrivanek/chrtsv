@@ -80,7 +80,9 @@ export class PathGenerator {
 	private static setCachedPath(key: string, path: string): void {
 		if (this.pathCache.size >= this.maxCacheSize) {
 			const firstKey = this.pathCache.keys().next().value;
-			this.pathCache.delete(firstKey);
+			if (firstKey !== undefined) {
+				this.pathCache.delete(firstKey);
+			}
 		}
 		this.pathCache.set(key, path);
 	}
