@@ -355,7 +355,7 @@
   }
 
   // Utility functions
-  function formatXValue(value: unknown): string {
+  function formatXValue(value: any): string {
     if (value instanceof Date) {
       return value.toLocaleDateString();
     }

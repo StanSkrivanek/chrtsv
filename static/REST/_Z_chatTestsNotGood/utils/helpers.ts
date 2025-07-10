@@ -1,16 +1,18 @@
-export function isValidNumber(value: unknown): value is number {
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+export function isValidNumber(value: any): value is number {
 	return typeof value === 'number' && !isNaN(value) && isFinite(value);
 }
 
-export function isValidDate(value: unknown): value is Date {
+export function isValidDate(value: any): value is Date {
 	return value instanceof Date && !isNaN(value.getTime());
 }
 
-export function isValidString(value: unknown): value is string {
+export function isValidString(value: any): value is string {
 	return typeof value === 'string' && value.length > 0;
 }
 
-export function debounce<T extends (...args: unknown[]) => void>(
+export function debounce<T extends (...args: any[]) => void>(
 	func: T,
 	wait: number
 ): (...args: Parameters<T>) => void {
@@ -37,7 +39,7 @@ export function deepFreeze<T>(obj: T): Readonly<T> {
 
 	if (obj !== null && typeof obj === 'object') {
 		Object.getOwnPropertyNames(obj).forEach((prop) => {
-			const value = (obj as Record<string, unknown>)[prop];
+			const value = (obj as Record<string, any>)[prop];
 			if (value !== null && typeof value === 'object') {
 				deepFreeze(value);
 			}

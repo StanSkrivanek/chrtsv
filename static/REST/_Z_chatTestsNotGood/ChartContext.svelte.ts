@@ -1,4 +1,3 @@
-// src/lib/charts/ChartContext.svelte.ts
 import { getContext, setContext } from 'svelte';
 import type {
 	ChartConfig,
@@ -37,7 +36,7 @@ export class ChartContextManager {
 	private _isProcessing = $state<boolean>(false);
 	private _error = $state<Error | null>(null);
 
-	// ✅ FIXED: Use $derived.by() to get actual value, not function
+	//  get actual value, not function
 	private _processedData = $derived.by(() => {
 		try {
 			this._error = null;
@@ -49,7 +48,7 @@ export class ChartContextManager {
 		}
 	});
 
-	// ✅ FIXED: Now getter returns the actual value
+	// getter returns the actual value
 	public get processedData(): ProcessedChartData | null {
 		return this._processedData;
 	}

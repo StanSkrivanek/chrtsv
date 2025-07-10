@@ -674,7 +674,6 @@
 	});
 </script>
 
-// File: src/lib/components/charts/MultiLineChart.svelte
 <!-- Template -->
 <div class="multi-line-chart-container">
 	<!-- Screen reader announcements -->

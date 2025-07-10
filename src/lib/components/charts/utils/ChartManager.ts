@@ -1,8 +1,8 @@
-// File: src/lib/components/charts/utils/ChartDataManager.ts
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 export class ChartDataManager {
 	private static instance: ChartDataManager;
-	private dataCache = new Map<string, unknown>();
+	private dataCache = new Map<string, any>();
 	private maxCacheSize: number;
 	private accessTimes = new Map<string, number>();
 
@@ -23,7 +23,7 @@ export class ChartDataManager {
 	/**
 	 * Get cached data
 	 */
-	getCachedData(key: string): unknown {
+	getCachedData(key: string): any {
 		const data = this.dataCache.get(key);
 		if (data) {
 			// Update access time for LRU
@@ -35,7 +35,7 @@ export class ChartDataManager {
 	/**
 	 * Set cached data with LRU eviction
 	 */
-	setCachedData(key: string, data: unknown): void {
+	setCachedData(key: string, data: any): void {
 		if (this.dataCache.size >= this.maxCacheSize) {
 			this.evictLeastRecentlyUsed();
 		}

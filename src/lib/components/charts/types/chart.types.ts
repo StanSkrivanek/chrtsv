@@ -3,7 +3,8 @@
 export interface LineData {
 	id: string;
 	label: string;
-	data: Array<Record<string, unknown>>;
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	data: Array<Record<string, any>>;
 	color: string;
 }
 
