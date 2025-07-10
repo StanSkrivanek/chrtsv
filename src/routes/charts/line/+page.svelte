@@ -19,7 +19,7 @@
 	} from 'lucide-svelte';
 
 	// Tab state
-	let showTabs = $state(true);
+	let showTabs = $state(false);
 	let activeTab = $state('documentation');
 
 	// Tab configuration
