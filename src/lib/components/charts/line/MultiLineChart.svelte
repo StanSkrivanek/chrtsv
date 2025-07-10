@@ -71,8 +71,8 @@
 	};
 
 	// Internal state
-	let chart: SVGElement;
-	let canvasElement: HTMLCanvasElement;
+	let chart = $state<SVGElement | null>(null);
+	let canvasElement = $state<HTMLCanvasElement | null>(null);
 	let mounted = $state(false);
 	let isVisible = $state(true);
 	let width = $state(0);
@@ -103,15 +103,18 @@
 
 	// Calculate total data points for performance decisions
 	const totalDataPoints = $derived(
-		lines.reduce((sum, line) => sum + line.data.length, 0)
+		lines.reduce((sum: any, line: { data: string | any[]; }) => sum + line.data.length, 0)
 	);
 
 	// Performance mode determination
-	const performanceMode = $derived(() => {
-		if (totalDataPoints > config.svgMaxPoints) return 'canvas';
-		if (totalDataPoints > config.animationMaxPoints) return 'svg-no-animation';
-		return 'svg-full';
-	});
+const performanceMode = $derived(() => {
+  if (totalDataPoints > config.svgMaxPoints) return 'canvas';
+  if (totalDataPoints > config.animationMaxPoints) return 'svg-no-animation';
+  return 'svg-full';
+});
+
+// Get the actual value to use in comparisons
+const currentPerformanceMode = $derived(performanceMode());
 
 	// Memoized helper functions
 	const memoizedGetAllXValues = config.enableMemoization ? memoize((lines: LineData[], xKey: string) => {
@@ -179,11 +182,11 @@
 
 	// Data sampling for large datasets
 	const sampledLines = $derived.by(() => {
-		if (performanceMode === 'canvas' || !config.enableDataSampling) {
+		if (currentPerformanceMode === 'canvas' || !config.enableDataSampling) {
 			return lines;
 		}
 
-		return lines.map(line => {
+		return lines.map((line: { data: any[]; }) => {
 			if (line.data.length <= 100) return line;
 
 			const sampleRate = Math.ceil(line.data.length / 100);
@@ -246,7 +249,7 @@
 	const linePaths = $derived.by(() => {
 		if (!chartData) return [];
 		
-		return sampledLines.map((lineData, index) => {
+		return sampledLines.map((lineData: { color: string; data: any[]; id: any; label: any; }, index: number) => {
 			const color = lineData.color || defaultColors[index % defaultColors.length];
 			const points: Array<{ x: number; y: number }> = [];
 			
@@ -362,7 +365,7 @@
 
 	// Canvas rendering functions
 	function renderCanvas() {
-		if (!canvasElement || !canvasContext || performanceMode !== 'canvas' || !chartData) return;
+		if (!canvasElement || !canvasContext || currentPerformanceMode !== 'canvas' || !chartData) return;
 
 		const dpr = config.devicePixelRatio;
 		const rect = canvasElement.getBoundingClientRect();
@@ -380,7 +383,7 @@
 
 		drawCanvasAxes(canvasContext, chartData, rect.width, rect.height);
 
-		linePaths.forEach((lineData, index) => {
+		linePaths.forEach((lineData: { id: string | null; }, index: any) => {
 			const isHovered = hoveredLine === lineData.id;
 			const isOtherHovered = hoveredLine !== null && hoveredLine !== lineData.id;
 			
@@ -528,7 +531,7 @@
 		const parsedDate = parseDate(currentXValue);
 		const xLabel = parsedDate ? formatDateForDisplay(currentXValue) : currentXValue;
 
-		const values = linePaths.map(lineData => {
+		const values = linePaths.map((lineData: { data: any[]; id: any; label: any; color: any; }) => {
 			const dataPoint = lineData.data.find(d => String(d[xKey]) === currentXValue);
 			if (dataPoint) {
 				const yValue = Number(dataPoint[yKey]);
@@ -590,7 +593,7 @@
 				chartHeight = newHeight;
 				dataManager.clearCache();
 				
-				if (performanceMode === 'canvas') {
+				if (currentPerformanceMode === 'canvas') {
 					renderCanvas();
 				}
 			}
@@ -610,7 +613,7 @@
 		chartHeight = height - margin.top - margin.bottom;
 
 		// Setup canvas if needed
-		if (performanceMode === 'canvas' && canvasElement) {
+		if (currentPerformanceMode === 'canvas' && canvasElement) {
 			canvasContext = canvasElement.getContext('2d');
 			renderCanvas();
 		}
