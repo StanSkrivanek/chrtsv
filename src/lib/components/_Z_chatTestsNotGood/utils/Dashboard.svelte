@@ -2,9 +2,9 @@
 FILE: src/lib/charts/Dashboard.svelte (EXAMPLE USAGE)
 ============================================================================= -->
 <script lang="ts">
-    import ChartProvider from './ChartProvider.svelte';
-    import LineChart from './LineChart.svelte';
-    import type { ChartDataPoint, ChartConfig } from './types/chart.js';
+    import ChartProvider from '../types/ChartProvider.svelte';
+    import LineChart from '../LineChart.svelte';
+    import type { ChartDataPoint, ChartConfig } from '../types/chart.js';
   
     // Your analytics data (properly typed)
     const analyticsData: readonly ChartDataPoint[] = [

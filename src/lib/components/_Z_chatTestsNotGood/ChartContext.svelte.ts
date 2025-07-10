@@ -1,16 +1,22 @@
 // src/lib/charts/ChartContext.svelte.ts
 import { getContext, setContext } from 'svelte';
 import type {
-	ChartDataPoint,
 	ChartConfig,
-	ProcessedChartData,
+	ChartDataPoint,
+	ChartPoint,
 	ChartRegistration,
-	ScaleFunction,
-	ChartPoint
+	ProcessedChartData,
+	ScaleFunction
 } from './types/chart.js';
-import { createLinearScale, createTimeScale } from './utils/scale.js';
-import { debounce, isValidNumber, isValidDate, deepFreeze, createId } from './utils/helpers.js';
 import { DEFAULT_CHART_CONFIG } from './types/chart.js';
+import {
+	createId,
+	debounce,
+	deepFreeze,
+	isValidDate,
+	isValidNumber
+} from './utils/helpers.js';
+import { createLinearScale, createTimeScale } from './utils/scale.js';
 
 interface ChartCache {
 	readonly key: string;
@@ -469,7 +475,7 @@ export function processLineChartData(
 
 			// Fallback to index
 			return (xScale as ScaleFunction<number>)(index);
-		// eslint-disable-next-line @typescript-eslint/no-unused-vars
+			// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		} catch (error) {
 			// Manual fallback calculation
 			const margin = config.dimensions.margin;

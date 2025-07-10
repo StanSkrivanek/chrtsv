@@ -1,8 +1,8 @@
 <!-- src/routes/+page.svelte -->
 <script lang="ts">
-  import ChartProvider from '$lib/components/charts/ChartProvider.svelte';
-  import LineChart from '$lib/components/charts/LineChart.svelte';
-  import type { ChartDataPoint, ChartConfig } from '$lib/components/charts/types/chart.js';
+  import ChartProvider from '$lib/components/_Z_chatTestsNotGood/types/ChartProvider.svelte';
+  import LineChart from '$lib/components/_Z_chatTestsNotGood/LineChart.svelte';
+  import type { ChartDataPoint, ChartConfig } from '$lib/components/_Z_chatTestsNotGood/types/chart.js';
 
   // Sample analytics data - your actual data structure
   const analyticsData: readonly ChartDataPoint[] = [

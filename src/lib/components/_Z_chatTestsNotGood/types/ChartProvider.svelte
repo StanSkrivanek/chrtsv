@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { createChartContext } from './ChartContext.svelte.js';
-  import type { ChartDataPoint, ChartConfig } from './types/chart.js';
+  import { createChartContext } from '../ChartContext.svelte.js';
+  import type { ChartDataPoint, ChartConfig } from './chart.js';
 
   interface Props {
     data?: readonly ChartDataPoint[];
