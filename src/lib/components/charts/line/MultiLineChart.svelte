@@ -422,10 +422,10 @@
 
 	// Setup canvas when element is available
 	$effect(() => {
-		if (canvasElement && !canvasContext) {
+		console.log('Rendering mode:', currentRenderingMode);
+		if (currentRenderingMode === 'canvas' && mounted && canvasElement) {
 			canvasContext = canvasElement.getContext('2d');
 			console.log('Canvas context initialized');
-			
 			// Trigger initial render if we have data
 			if (chartData && linePaths.length > 0) {
 				requestAnimationFrame(() => {

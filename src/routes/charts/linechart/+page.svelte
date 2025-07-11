@@ -102,7 +102,7 @@
 
 	// Generate test datasets
 	function generateTestData(points: number): LineData[] {
-		console.log(`🔄 Generating ${points} points for 3 lines...`);
+		console.log(`Generating ${points} points for 3 lines...`);
 
 		const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 		const lines: LineData[] = [];
