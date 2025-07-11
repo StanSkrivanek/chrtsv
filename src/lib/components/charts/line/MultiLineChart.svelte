@@ -477,8 +477,8 @@ onMount(() => {
 			<canvas
 				bind:this={canvasElement}
 				class="chart-canvas"
-				width="100%"
-				{height}
+				width={width + margin.left + margin.right}
+				height={height}
 				aria-label="Line chart: {title}"
 			></canvas>
 		{:else}
@@ -658,6 +658,8 @@ onMount(() => {
 
 	.chart-canvas {
 		width: 100%;
+		height: auto;
+		max-height: 100%;
 		cursor: crosshair;
 		border: 1px solid #e2e8f0;
 		border-radius: 4px;
