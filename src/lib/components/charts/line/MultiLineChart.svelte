@@ -984,7 +984,7 @@
 								<!-- Data points -->
 								<g class="data-points-{lineData.id}">
 									{#each lineData.points as point, i}
-									<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+										<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 										<circle
 											cx={point.x}
 											cy={point.y}
