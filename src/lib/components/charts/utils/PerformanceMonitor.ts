@@ -160,13 +160,13 @@ export class PerformanceMonitor {
 
 		const summary = this.getPerformanceSummary();
 
-		console.group('📊 Chart Performance Summary');
-		console.log(`🎯 Health Status: ${summary.isHealthy ? '✅ Healthy' : '⚠️ Needs Optimization'}`);
-		console.log(`📈 Render Count: ${summary.renderCount}`);
-		console.log(`⏱️ Average Render Time: ${summary.avgRenderTime.toFixed(2)}ms`);
-		console.log(`🏃‍♂️ Effective FPS: ${summary.fps.toFixed(1)}`);
-		console.log(`📊 95th Percentile: ${summary.p95RenderTime.toFixed(2)}ms`);
-		console.log(`🎯 Cache Hit Rate: ${(summary.cacheHitRate * 100).toFixed(1)}%`);
+		console.group('Chart PERFORMANCE SUMMARY');
+		console.log(`Health Status: ${summary.isHealthy ? 'Healthy' : 'Needs Optimization'}`);
+		console.log(`Render Count: ${summary.renderCount}`);
+		console.log(`Average Render Time: ${summary.avgRenderTime.toFixed(2)}ms`);
+		console.log(`Effective FPS: ${summary.fps.toFixed(1)}`);
+		console.log(`95th Percentile: ${summary.p95RenderTime.toFixed(2)}ms`);
+		console.log(`Cache Hit Rate: ${(summary.cacheHitRate * 100).toFixed(1)}%`);
 		console.log(
 			`⚡ Min/Max Render: ${summary.minRenderTime.toFixed(2)}ms / ${summary.maxRenderTime.toFixed(2)}ms`
 		);

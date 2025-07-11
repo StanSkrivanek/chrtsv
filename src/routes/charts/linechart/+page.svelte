@@ -112,7 +112,7 @@
 			let value = Math.random() * 1000;
 
 			for (let i = 0; i < points; i++) {
-				const date = new Date(2024, 0, 1 + i);
+				const date = new Date(2025, 0, 1 + i);
 				value += (Math.random() - 0.5) * 100;
 				value = Math.max(0, value);
 
@@ -131,7 +131,7 @@
 		}
 
 		console.log(
-			`✅ Generated data:`,
+			`Generated data:`,
 			lines.map((line) => ({
 				id: line.id,
 				points: line.data.length
@@ -143,11 +143,11 @@
 
 	// Dataset loading functions with better reactivity and debugging
 	function loadSmallDataset() {
-		console.log('🔄 Loading small dataset...');
+		console.log('Loading small dataset...');
 		chartData = generateTestData(50);
 
 		console.log(
-			'✅ Small dataset loaded:',
+			'Small dataset loaded:',
 			chartData.length,
 			'lines,',
 			totalDataPoints,
@@ -156,11 +156,11 @@
 	}
 
 	function loadMediumDataset() {
-		console.log('🔄 Loading medium dataset...');
+		console.log('Loading medium dataset...');
 		chartData = generateTestData(500);
 
 		console.log(
-			'✅ Medium dataset loaded:',
+			'Medium dataset loaded:',
 			chartData.length,
 			'lines,',
 			totalDataPoints,
@@ -169,11 +169,11 @@
 	}
 
 	function loadLargeDataset() {
-		console.log('🔄 Loading large dataset...');
+		console.log('Loading large dataset...');
 		chartData = generateTestData(2000);
 
 		console.log(
-			'✅ Large dataset loaded:',
+			'Large dataset loaded:',
 			chartData.length,
 			'lines,',
 			totalDataPoints,
@@ -182,11 +182,11 @@
 	}
 
 	function loadXLDataset() {
-		console.log('🔄 Loading XL dataset...');
+		console.log('Loading XL dataset...');
 		chartData = generateTestData(10000);
 
 		console.log(
-			'✅ XL dataset loaded:',
+			'XL dataset loaded:',
 			chartData.length,
 			'lines,',
 			totalDataPoints,
@@ -196,7 +196,7 @@
 
 	// Debug reactive changes
 	$effect(() => {
-		console.log('📊 Chart data reactivity:', {
+		console.log('Chart data reactivity:', {
 			lines: chartData.length,
 			totalPoints: totalDataPoints,
 			expectedMode: renderingMode,
@@ -211,7 +211,7 @@
 	});
 
 	$effect(() => {
-		console.log('⚙️ Config reactivity:', {
+		console.log('Config reactivity:', {
 			selectedConfig,
 			svgMaxPoints: currentConfig.svgMaxPoints,
 			renderingMode,
@@ -221,12 +221,12 @@
 
 	// Development debugging
 	onMount(() => {
-		console.log('🚀 Demo page mounted');
+		console.log('Demo page mounted');
 
 		if (import.meta.env.DEV) {
 			const params = new URLSearchParams(window.location.search);
 			if (params.has('debug')) {
-				console.log('🐛 Debug mode enabled');
+				console.log('Debug mode enabled');
 
 				// Log initial state
 				console.log('Initial state:', {

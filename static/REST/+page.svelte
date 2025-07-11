@@ -146,32 +146,7 @@
 	function loadXLDataset() {
 		chartData = generateTestData(10000);
 	}
-	// Debug reactive changes
-	// $effect(() => {
-	// 	console.log('📊 Chart data reactivity:', {
-	// 		lines: chartData.length,
-	// 		totalPoints: totalDataPoints,
-	// 		expectedMode: renderingMode,
-	// 		firstLineDataLength: chartData[0]?.data?.length || 0,
-	// 		dataStructure: chartData.map(line => ({ 
-	// 			id: line.id, 
-	// 			points: line.data.length,
-	// 			firstPoint: line.data[0],
-	// 			lastPoint: line.data[line.data.length - 1]
-	// 		}))
-	// 	});
-	// });
-
-	// $effect(() => {
-	// 	console.log('⚙️ Config reactivity:', {
-	// 		selectedConfig,
-	// 		svgMaxPoints: currentConfig.svgMaxPoints,
-	// 		renderingMode,
-	// 		totalPoints: totalDataPoints
-	// 	});
-	// });
-
-	// Development debugging
+	
 	onMount(() => {
 		if (import.meta.env.DEV) {
 			const params = new URLSearchParams(window.location.search);
