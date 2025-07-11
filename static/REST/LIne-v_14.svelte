@@ -1,19 +1,20 @@
+// File: src/lib/components/charts/MultiLineChart.svelte
 <script lang="ts">
-	import type {
-		ChartPerformanceConfig,
-		CrosshairData,
-		LineData,
-		ProcessedChartData,
-		TooltipData
-	} from '$lib/components/charts/types/chart.types.ts';
-	import { ChartDataManager } from '$lib/components/charts/utils/ChartManager';
-	import { PathGenerator } from '$lib/components/charts/utils/PathGenerator';
-	import { PerformanceMonitor } from '$lib/components/charts/utils/PerformanceMonitor';
-	import { memoize, throttle } from '$lib/components/charts/utils/helpers';
 	import { format, isValid, parse, parseISO } from 'date-fns';
-	import { onDestroy, onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { cubicInOut } from 'svelte/easing';
 	import { fade, scale } from 'svelte/transition';
+	import { PathGenerator } from './utils/PathGenerator.js';
+	import { ChartDataManager } from './utils/ChartDataManager.js';
+	import { PerformanceMonitor } from './utils/PerformanceMonitor.js';
+	import { throttle, memoize } from './utils/helpers.js';
+	import type { 
+		LineData, 
+		TooltipData, 
+		CrosshairData, 
+		ChartPerformanceConfig,
+		ProcessedChartData 
+	} from './types/chart.types.js';
 
 	// Props with explicit typing
 	let {
@@ -70,8 +71,8 @@
 	};
 
 	// Internal state
-	let chart = $state<SVGElement | null>(null);
-	let canvasElement = $state<HTMLCanvasElement | null>(null);
+	let chart: SVGElement;
+	let canvasElement: HTMLCanvasElement;
 	let mounted = $state(false);
 	let isVisible = $state(true);
 	let width = $state(0);
@@ -96,11 +97,13 @@
 	const margin = { top: 20, right: 20, bottom: 40, left: 60 };
 
 	// Color palette for lines
-	const defaultColors = ['#000000', '#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'];
+	const defaultColors = [
+		'#000000', '#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'
+	];
 
 	// Calculate total data points for performance decisions
 	const totalDataPoints = $derived(
-		lines.reduce((sum: any, line: { data: string | any[] }) => sum + line.data.length, 0)
+		lines.reduce((sum, line) => sum + line.data.length, 0)
 	);
 
 	// Performance mode determination
@@ -110,120 +113,120 @@
 		return 'svg-full';
 	});
 
-	// Get the actual value to use in comparisons
-	const currentPerformanceMode = $derived(performanceMode());
 	// Memoized helper functions with proper typing
-	const getAllXValues = config.enableMemoization
+	const getAllXValues = config.enableMemoization 
 		? memoize((lines: LineData[], xKey: string): string[] => {
-				const xValues: string[] = [];
-				const seen = new Set<string>();
+			const xValues: string[] = [];
+			const seen = new Set<string>();
 
-				if (lines.length > 0) {
-					lines[0].data.forEach((d: Record<string, any>) => {
-						const value = String(d[xKey]);
-						if (!seen.has(value)) {
-							seen.add(value);
-							xValues.push(value);
-						}
-					});
-				}
-
-				lines.forEach((line: LineData) => {
-					line.data.forEach((d: Record<string, any>) => {
-						const value = String(d[xKey]);
-						if (!seen.has(value)) {
-							seen.add(value);
-							xValues.push(value);
-						}
-					});
+			if (lines.length > 0) {
+				lines[0].data.forEach((d: Record<string, any>) => {
+					const value = String(d[xKey]);
+					if (!seen.has(value)) {
+						seen.add(value);
+						xValues.push(value);
+					}
 				});
+			}
 
-				const firstValue = xValues[0];
-				if (firstValue && parseDate(firstValue)) {
-					return xValues.sort((a, b) => {
-						const dateA = parseDate(a);
-						const dateB = parseDate(b);
-						if (dateA && dateB) {
-							return dateA.getTime() - dateB.getTime();
-						}
-						return 0;
-					});
-				}
+			lines.forEach((line: LineData) => {
+				line.data.forEach((d: Record<string, any>) => {
+					const value = String(d[xKey]);
+					if (!seen.has(value)) {
+						seen.add(value);
+						xValues.push(value);
+					}
+				});
+			});
 
-				return xValues;
-			})
+			const firstValue = xValues[0];
+			if (firstValue && parseDate(firstValue)) {
+				return xValues.sort((a, b) => {
+					const dateA = parseDate(a);
+					const dateB = parseDate(b);
+					if (dateA && dateB) {
+						return dateA.getTime() - dateB.getTime();
+					}
+					return 0;
+				});
+			}
+
+			return xValues;
+		})
 		: (lines: LineData[], xKey: string): string[] => {
-				// Non-memoized version for fallback
-				const xValues: string[] = [];
-				const seen = new Set<string>();
+			// Non-memoized version for fallback
+			const xValues: string[] = [];
+			const seen = new Set<string>();
 
-				if (lines.length > 0) {
-					lines[0].data.forEach((d: Record<string, any>) => {
-						const value = String(d[xKey]);
-						if (!seen.has(value)) {
-							seen.add(value);
-							xValues.push(value);
-						}
-					});
-				}
-
-				lines.forEach((line: LineData) => {
-					line.data.forEach((d: Record<string, any>) => {
-						const value = String(d[xKey]);
-						if (!seen.has(value)) {
-							seen.add(value);
-							xValues.push(value);
-						}
-					});
+			if (lines.length > 0) {
+				lines[0].data.forEach((d: Record<string, any>) => {
+					const value = String(d[xKey]);
+					if (!seen.has(value)) {
+						seen.add(value);
+						xValues.push(value);
+					}
 				});
+			}
 
-				const firstValue = xValues[0];
-				if (firstValue && parseDate(firstValue)) {
-					return xValues.sort((a, b) => {
-						const dateA = parseDate(a);
-						const dateB = parseDate(b);
-						if (dateA && dateB) {
-							return dateA.getTime() - dateB.getTime();
-						}
-						return 0;
-					});
-				}
+			lines.forEach((line: LineData) => {
+				line.data.forEach((d: Record<string, any>) => {
+					const value = String(d[xKey]);
+					if (!seen.has(value)) {
+						seen.add(value);
+						xValues.push(value);
+					}
+				});
+			});
 
-				return xValues;
-			};
+			const firstValue = xValues[0];
+			if (firstValue && parseDate(firstValue)) {
+				return xValues.sort((a, b) => {
+					const dateA = parseDate(a);
+					const dateB = parseDate(b);
+					if (dateA && dateB) {
+						return dateA.getTime() - dateB.getTime();
+					}
+					return 0;
+				});
+			}
 
-	const getAllYValues = config.enableMemoization
+			return xValues;
+		};
+
+	const getAllYValues = config.enableMemoization 
 		? memoize((lines: LineData[], yKey: string): number[] => {
-				const yValues: number[] = [];
-				lines.forEach((line: LineData) => {
-					line.data.forEach((d: Record<string, any>) => {
-						yValues.push(Number(d[yKey]));
-					});
+			const yValues: number[] = [];
+			lines.forEach((line: LineData) => {
+				line.data.forEach((d: Record<string, any>) => {
+					yValues.push(Number(d[yKey]));
 				});
-				return yValues;
-			})
+			});
+			return yValues;
+		})
 		: (lines: LineData[], yKey: string): number[] => {
-				const yValues: number[] = [];
-				lines.forEach((line: LineData) => {
-					line.data.forEach((d: Record<string, any>) => {
-						yValues.push(Number(d[yKey]));
-					});
+			const yValues: number[] = [];
+			lines.forEach((line: LineData) => {
+				line.data.forEach((d: Record<string, any>) => {
+					yValues.push(Number(d[yKey]));
 				});
-				return yValues;
-			};
+			});
+			return yValues;
+		};
 
 	// Data sampling for large datasets
 	const sampledLines = $derived.by(() => {
-		if (currentPerformanceMode === 'canvas' || !config.enableDataSampling) {
+		if (performanceMode === 'canvas' || !config.enableDataSampling) {
 			return lines;
 		}
 
-		return lines.map((line: { data: any[] }) => {
+		return lines.map(line => {
 			if (line.data.length <= 100) return line;
 
 			const sampleRate = Math.ceil(line.data.length / 100);
-			const sampledData = line.data.filter(
-				(_, index) => index === 0 || index === line.data.length - 1 || index % sampleRate === 0
+			const sampledData = line.data.filter((_, index) => 
+				index === 0 || 
+				index === line.data.length - 1 || 
+				index % sampleRate === 0
 			);
 
 			return { ...line, data: sampledData };
@@ -235,10 +238,10 @@
 		if (!lines.length || !mounted) return null;
 
 		const startTime = performanceMonitor.startRender();
-
+		
 		const cacheKey = `${JSON.stringify(sampledLines)}_${xKey}_${yKey}_${width}_${chartHeight}`;
 		let cached = dataManager.getCachedData(cacheKey);
-
+		
 		if (cached) {
 			performanceMonitor.endRender(startTime);
 			return cached;
@@ -246,7 +249,7 @@
 
 		const allXValues = getAllXValues(sampledLines, xKey);
 		const allYValues = getAllYValues(sampledLines, yKey);
-
+		
 		if (!allXValues.length || !allYValues.length) {
 			performanceMonitor.endRender(startTime);
 			return null;
@@ -265,10 +268,7 @@
 			yMin: yMinWithPadding,
 			yMax: yMaxWithPadding,
 			xScale: (idx: number) => margin.left + (idx / Math.max(1, allXValues.length - 1)) * width,
-			yScale: (val: number) =>
-				margin.top +
-				chartHeight -
-				((val - yMinWithPadding) / (yMaxWithPadding - yMinWithPadding)) * chartHeight,
+			yScale: (val: number) => margin.top + chartHeight - ((val - yMinWithPadding) / (yMaxWithPadding - yMinWithPadding)) * chartHeight,
 			hasNegativeValues: yMin < 0,
 			yTicks: generateYTicks(yMinWithPadding, yMaxWithPadding)
 		};
@@ -281,37 +281,34 @@
 	// Line paths calculation
 	const linePaths = $derived.by(() => {
 		if (!chartData) return [];
-
-		return sampledLines.map(
-			(lineData: { color: string; data: any[]; id: any; label: any }, index: number) => {
-				const color = lineData.color || defaultColors[index % defaultColors.length];
-				const points: Array<{ x: number; y: number }> = [];
-
-				chartData.allXValues.forEach((xValue, xIndex) => {
-					const dataPoint = lineData.data.find((d) => String(d[xKey]) === xValue);
-					if (dataPoint) {
-						points.push({
-							x: chartData.xScale(xIndex),
-							y: chartData.yScale(Number(dataPoint[yKey]))
-						});
-					}
-				});
-
-				const pathData =
-					curveType === 'smooth' && tension > 0
-						? PathGenerator.createSmoothPath(points, tension)
-						: PathGenerator.createStraightPath(points);
-
-				return {
-					id: lineData.id,
-					label: lineData.label,
-					color,
-					pathData,
-					points,
-					data: lineData.data
-				};
-			}
-		);
+		
+		return sampledLines.map((lineData, index) => {
+			const color = lineData.color || defaultColors[index % defaultColors.length];
+			const points: Array<{ x: number; y: number }> = [];
+			
+			chartData.allXValues.forEach((xValue, xIndex) => {
+				const dataPoint = lineData.data.find(d => String(d[xKey]) === xValue);
+				if (dataPoint) {
+					points.push({
+						x: chartData.xScale(xIndex),
+						y: chartData.yScale(Number(dataPoint[yKey]))
+					});
+				}
+			});
+			
+			const pathData = curveType === 'smooth' && tension > 0 
+				? PathGenerator.createSmoothPath(points, tension)
+				: PathGenerator.createStraightPath(points);
+			
+			return {
+				id: lineData.id,
+				label: lineData.label,
+				color,
+				pathData,
+				points,
+				data: lineData.data
+			};
+		});
 	});
 
 	// Derived state for tooltip logic
@@ -369,24 +366,22 @@
 		const hasNegativeValues = yMin < 0;
 		const effectiveTickCount = hasNegativeValues && doubleTicks ? yTickCount * 2 : yTickCount;
 		const tickValues = new Set<number>();
-
+		
 		for (let i = 0; i <= effectiveTickCount; i++) {
 			const value = yMin + (i / effectiveTickCount) * (yMax - yMin);
 			tickValues.add(Number(value.toFixed(2)));
 		}
-
+		
 		if (hasNegativeValues && yMin < 0 && yMax > 0) {
 			tickValues.add(0);
 		}
-
+		
 		return Array.from(tickValues).sort((a, b) => b - a);
 	}
 
 	function announceToScreenReader(message: string) {
 		announcements = message;
-		setTimeout(() => {
-			announcements = '';
-		}, 1000);
+		setTimeout(() => { announcements = ''; }, 1000);
 	}
 
 	function generateChartDescription(): string {
@@ -401,60 +396,26 @@
 		return `Line chart with ${lineCount} data series and ${dataPointCount} data points${hasNegativeValues ? ', including negative values' : ''}. Use Tab to navigate legend items, Enter or Space to highlight lines, and Escape to clear highlights.`;
 	}
 
-	// Canvas rendering functions with improved error handling and debugging
+	// Canvas rendering functions with improved error handling
 	function renderCanvas() {
-		console.log('🎯 renderCanvas() called');
-
-		if (!canvasElement) {
-			console.warn('❌ Canvas element not available');
-			return;
-		}
-
-		if (!canvasContext) {
-			console.warn('❌ Canvas context not available');
-			return;
-		}
-
-		if (currentPerformanceMode !== 'canvas') {
-			console.warn('❌ Not in canvas mode:', currentPerformanceMode);
-			return;
-		}
-
-		if (!chartData) {
-			console.warn('❌ Chart data not available');
-			return;
-		}
-
-		if (!linePaths || linePaths.length === 0) {
-			console.warn('❌ Line paths not available or empty');
+		if (!canvasElement || !canvasContext || currentPerformanceMode !== 'canvas' || !chartData) {
+			console.warn('Canvas rendering skipped - missing requirements');
 			return;
 		}
 
 		try {
-			console.log('✅ Starting canvas render with:', {
-				linesCount: linePaths.length,
-				firstLinePoints: linePaths[0]?.points?.length || 0,
-				canvasSize: `${canvasElement.width}x${canvasElement.height}`,
-				chartDataPoints: chartData.allXValues?.length || 0
-			});
-
 			const dpr = config.devicePixelRatio;
 			const rect = canvasElement.getBoundingClientRect();
-
+			
 			// Ensure we have valid dimensions
 			if (rect.width === 0 || rect.height === 0) {
-				console.warn('❌ Canvas has zero dimensions:', rect);
+				console.warn('Canvas has zero dimensions, skipping render');
 				return;
 			}
-
-			console.log('📐 Canvas dimensions:', { width: rect.width, height: rect.height, dpr });
-
+			
 			// Set canvas size accounting for device pixel ratio
 			canvasElement.width = rect.width * dpr;
 			canvasElement.height = rect.height * dpr;
-
-			// Reset transform and scale
-			canvasContext.setTransform(1, 0, 0, 1, 0, 0);
 			canvasContext.scale(dpr, dpr);
 
 			if (config.canvasSmoothing) {
@@ -464,38 +425,24 @@
 
 			// Clear canvas
 			canvasContext.clearRect(0, 0, rect.width, rect.height);
-			console.log('🧹 Canvas cleared');
 
 			// Draw chart components
 			drawCanvasAxes(canvasContext, chartData, rect.width, rect.height);
-			console.log('📊 Axes drawn');
 
 			// Draw lines with hover states
-			let drawnLines = 0;
-			linePaths.forEach((lineData: { points: string | any[]; id: string | null }, index: any) => {
-				if (lineData.points && lineData.points.length > 0) {
-					const isHovered = hoveredLine === lineData.id;
-					const isOtherHovered = hoveredLine !== null && hoveredLine !== lineData.id;
-
-					drawCanvasLine(canvasContext!, lineData, chartData, {
-						strokeWidth: isHovered ? 3 : 2,
-						opacity: isOtherHovered ? 0.3 : 1
-					});
-					drawnLines++;
-				} else {
-					console.warn(`⚠️ Line ${lineData.id} has no points:`, lineData);
-				}
+			linePaths.forEach((lineData, index) => {
+				const isHovered = hoveredLine === lineData.id;
+				const isOtherHovered = hoveredLine !== null && hoveredLine !== lineData.id;
+				
+				drawCanvasLine(canvasContext!, lineData, chartData, {
+					strokeWidth: isHovered ? 3 : 2,
+					opacity: isOtherHovered ? 0.3 : 1
+				});
 			});
 
-			console.log(`✅ Canvas render completed successfully! Drew ${drawnLines} lines`);
+			console.log('Canvas rendered successfully');
 		} catch (error) {
-			console.error('❌ Canvas rendering error:', error);
-			console.error('Context:', {
-				canvasElement: !!canvasElement,
-				canvasContext: !!canvasContext,
-				chartData: !!chartData,
-				linePaths: linePaths?.length || 0
-			});
+			console.error('Canvas rendering error:', error);
 		}
 	}
 
@@ -516,7 +463,7 @@
 			if (dataPoint) {
 				const x = chartData.xScale(xIndex);
 				const y = chartData.yScale(Number(dataPoint[yKey]));
-
+				
 				if (firstPoint) {
 					ctx.moveTo(x, y);
 					firstPoint = false;
@@ -535,7 +482,7 @@
 			if (dataPoint) {
 				const x = chartData.xScale(xIndex);
 				const y = chartData.yScale(Number(dataPoint[yKey]));
-
+				
 				ctx.beginPath();
 				ctx.arc(x, y, 4, 0, 2 * Math.PI);
 				ctx.fillStyle = '#ffffff';
@@ -577,15 +524,15 @@
 		for (let i = 0; i < chartData.allXValues.length; i += tickInterval) {
 			const x = chartData.xScale(i);
 			const label = formatDateForDisplay(chartData.allXValues[i]);
-
+			
 			ctx.textAlign = 'center';
 			ctx.fillText(label, x, margin.top + chartHeight + 20);
 		}
 
 		// Y-axis labels and grid
-		chartData.yTicks.forEach((tickValue) => {
+		chartData.yTicks.forEach(tickValue => {
 			const y = chartData.yScale(tickValue);
-
+			
 			// Grid line
 			ctx.strokeStyle = '#e2e8f0';
 			ctx.setLineDash([4, 4]);
@@ -605,19 +552,15 @@
 	// Event handlers
 	const throttledMouseMove = throttle((e: MouseEvent) => {
 		if (!showCrosshair || !chartData) return;
-
+		
 		const rect = chart?.getBoundingClientRect() || canvasElement?.getBoundingClientRect();
 		if (!rect) return;
 
 		mouseX = e.clientX - rect.left;
 		mouseY = e.clientY - rect.top;
 
-		if (
-			mouseX >= margin.left &&
-			mouseX <= margin.left + width &&
-			mouseY >= margin.top &&
-			mouseY <= margin.top + chartHeight
-		) {
+		if (mouseX >= margin.left && mouseX <= margin.left + width &&
+			mouseY >= margin.top && mouseY <= margin.top + chartHeight) {
 			updateCrosshair(mouseX, mouseY);
 		}
 	}, config.mouseMoveThrottle);
@@ -640,22 +583,20 @@
 		const parsedDate = parseDate(currentXValue);
 		const xLabel = parsedDate ? formatDateForDisplay(currentXValue) : currentXValue;
 
-		const values = linePaths
-			.map((lineData: { data: any[]; id: any; label: any; color: any }) => {
-				const dataPoint = lineData.data.find((d) => String(d[xKey]) === currentXValue);
-				if (dataPoint) {
-					const yValue = Number(dataPoint[yKey]);
-					return {
-						lineId: lineData.id,
-						lineLabel: lineData.label,
-						value: formatYValue(yValue),
-						color: lineData.color,
-						y: chartData.yScale(yValue)
-					};
-				}
-				return null;
-			})
-			.filter(Boolean);
+		const values = linePaths.map(lineData => {
+			const dataPoint = lineData.data.find(d => String(d[xKey]) === currentXValue);
+			if (dataPoint) {
+				const yValue = Number(dataPoint[yKey]);
+				return {
+					lineId: lineData.id,
+					lineLabel: lineData.label,
+					value: formatYValue(yValue),
+					color: lineData.color,
+					y: chartData.yScale(yValue)
+				};
+			}
+			return null;
+		}).filter(Boolean);
 
 		crosshairData = {
 			x: chartData.xScale(nearestXIndex),
@@ -698,13 +639,13 @@
 		if (chart && isVisible) {
 			const newWidth = chart.clientWidth - margin.left - margin.right;
 			const newHeight = height - margin.top - margin.bottom;
-
+			
 			if (newWidth !== width || newHeight !== chartHeight) {
 				width = newWidth;
 				chartHeight = newHeight;
 				dataManager.clearCache();
-
-				if (currentPerformanceMode === 'canvas') {
+				
+				if (performanceMode === 'canvas') {
 					renderCanvas();
 				}
 			}
@@ -714,23 +655,19 @@
 	// Lifecycle with improved Canvas setup
 	onMount(() => {
 		mounted = true;
-
+		
 		if (!chart && !canvasElement) return;
 
 		const element = chart || canvasElement;
-
+		
 		// Initial dimensions
-		if (!element) {
-			console.error('❌ Chart or canvas element not found during mount');
-			return;
-		}
 		width = element.clientWidth - margin.left - margin.right;
 		chartHeight = height - margin.top - margin.bottom;
 
 		// Setup canvas context immediately if in canvas mode
 		if (canvasElement) {
 			canvasContext = canvasElement.getContext('2d');
-
+			
 			// Force initial render for canvas mode
 			if (currentPerformanceMode === 'canvas' && chartData) {
 				// Use requestAnimationFrame to ensure DOM is ready
@@ -742,9 +679,9 @@
 
 		// Intersection observer for visibility
 		const intersectionObserver = new IntersectionObserver(
-			(entries) => {
+			(entries) => { 
 				isVisible = entries[0].isIntersecting;
-
+				
 				// Re-render canvas when becoming visible
 				if (isVisible && currentPerformanceMode === 'canvas' && canvasContext) {
 					requestAnimationFrame(() => {
@@ -759,7 +696,7 @@
 		const resizeObserver = new ResizeObserver(() => {
 			if (isVisible) {
 				throttledResize();
-
+				
 				// Force Canvas re-render after resize
 				if (currentPerformanceMode === 'canvas' && canvasContext) {
 					setTimeout(() => {
@@ -783,75 +720,42 @@
 		PathGenerator.clearCache();
 	});
 
-	// ✅ CORRECT: Use $derived for calculations/data transformations
-	const shouldUseCanvas = $derived(currentPerformanceMode === 'canvas');
-	const canvasRenderingData = $derived.by(() => {
-		if (!shouldUseCanvas || !chartData) return null;
-
-		console.log('🎨 Preparing canvas rendering data:', {
-			mode: currentPerformanceMode,
-			totalPoints: totalDataPoints,
-			linesCount: linePaths.length,
-			sampledLinesCount: sampledLines.length
-		});
-
-		// This is a pure calculation - no side effects
-		return {
-			lines: linePaths,
-			dimensions: { width, height: chartHeight },
-			chartData,
-			hoveredLine,
-			timestamp: Date.now() // Force updates
-		};
-	});
-
-	// ✅ CORRECT: Use $effect for side effects (Canvas drawing)
+	// Effects with proper Canvas reactivity
 	$effect(() => {
-		// This is a side effect - it modifies the Canvas DOM element
-		if (canvasRenderingData && canvasElement && canvasContext && mounted) {
-			console.log('🖼️ Canvas effect triggered, scheduling render...');
-
-			// Use longer delay to ensure all reactive updates are complete
-			setTimeout(() => {
-				console.log('🎯 Executing canvas render...');
-				renderCanvas();
-			}, 50); // Increased delay
+		// This effect handles Canvas rendering and re-rendering
+		if (currentPerformanceMode === 'canvas' && canvasElement && canvasContext && chartData) {
+			// Re-render canvas when any reactive dependency changes
+			renderCanvas();
 		}
 	});
 
-	// Watch for critical data changes with debug logging
 	$effect(() => {
-		const deps = [lines, sampledLines, chartData, linePaths];
+		// This effect handles SVG mode reactive rendering
+		if (lines && mounted && currentPerformanceMode !== 'canvas') {
+			// SVG mode - reactive rendering happens automatically through Svelte's reactivity
+		}
+	});
 
-		console.log('📈 Data dependencies changed:', {
-			linesLength: lines.length,
-			sampledLinesLength: sampledLines.length,
-			chartDataLength: chartData?.allXValues?.length || 0,
-			linePathsLength: linePaths.length,
-			mode: currentPerformanceMode
-		});
-
-		if (currentPerformanceMode === 'canvas' && mounted && canvasContext && chartData) {
-			console.log('🔄 Scheduling canvas re-render due to data change...');
-
-			// Use requestAnimationFrame for better timing
+	// Watch for data changes and force Canvas re-render
+	$effect(() => {
+		// Watch for line data changes
+		const _ = [lines, xKey, yKey, tension, curveType, hoveredLine];
+		
+		if (currentPerformanceMode === 'canvas' && mounted && canvasContext) {
+			// Force Canvas re-render when data or styling changes
 			requestAnimationFrame(() => {
-				requestAnimationFrame(() => {
-					// Double RAF for better timing
-					console.log('🎨 Re-rendering canvas due to data change...');
-					renderCanvas();
-				});
+				renderCanvas();
 			});
 		}
 	});
 
-	// Watch for styling changes
+	// Watch for dimension changes
 	$effect(() => {
-		const styleChanges = [tension, curveType, hoveredLine, showValues];
-
+		// Watch for dimension changes
+		const _ = [width, chartHeight, height];
+		
 		if (currentPerformanceMode === 'canvas' && mounted && canvasContext) {
-			console.log('🎨 Style changes detected, re-rendering canvas...');
-
+			// Re-render canvas when dimensions change
 			requestAnimationFrame(() => {
 				renderCanvas();
 			});
@@ -875,7 +779,8 @@
 	{#if currentPerformanceMode === 'canvas'}
 		<div class="performance-notice">
 			<small>
-				Large dataset detected ({totalDataPoints.toLocaleString()} points). Using optimized Canvas rendering.
+				Large dataset detected ({totalDataPoints.toLocaleString()} points). 
+				Using optimized Canvas rendering.
 			</small>
 		</div>
 	{/if}
@@ -889,14 +794,11 @@
 				class="chart-canvas"
 				width="100%"
 				{height}
+				role="img"
 				aria-label="Line chart: {title}"
-				onmousemove={throttledMouseMove}
-				onmouseleave={() => {
-					crosshairVisible = false;
-				}}
-				onmouseenter={() => {
-					crosshairVisible = true;
-				}}
+				on:mousemove={throttledMouseMove}
+				on:mouseleave={() => { crosshairVisible = false; }}
+				on:mouseenter={() => { crosshairVisible = true; }}
 			></canvas>
 		{:else}
 			<!-- SVG for smaller datasets -->
@@ -907,13 +809,9 @@
 				{height}
 				role="img"
 				aria-label="Line chart: {title}"
-				onmousemove={throttledMouseMove}
-				onmouseleave={() => {
-					crosshairVisible = false;
-				}}
-				onmouseenter={() => {
-					crosshairVisible = true;
-				}}
+				on:mousemove={throttledMouseMove}
+				on:mouseleave={() => { crosshairVisible = false; }}
+				on:mouseenter={() => { crosshairVisible = true; }}
 			>
 				{#if chartData && linePaths.length > 0}
 					<g>
@@ -931,8 +829,14 @@
 
 						<!-- X Axis -->
 						<g class="x-axis" transform="translate(0, {margin.top + chartHeight})">
-							<line x1={margin.left} y1="0" x2={margin.left + width} y2="0" stroke="#94a3b8" />
-
+							<line 
+								x1={margin.left} 
+								y1="0" 
+								x2={margin.left + width} 
+								y2="0" 
+								stroke="#94a3b8" 
+							/>
+							
 							{#each chartData.allXValues as xValue, i}
 								{#if i % Math.max(1, Math.ceil(chartData.allXValues.length / 7)) === 0}
 									<g transform="translate({chartData.xScale(i)}, 0)">
@@ -947,16 +851,29 @@
 
 						<!-- Y Axis -->
 						<g class="y-axis" transform="translate({margin.left}, 0)">
-							<line x1="0" y1={margin.top} x2="0" y2={margin.top + chartHeight} stroke="#94a3b8" />
-
+							<line 
+								x1="0" 
+								y1={margin.top} 
+								x2="0" 
+								y2={margin.top + chartHeight} 
+								stroke="#94a3b8" 
+							/>
+							
 							{#each chartData.yTicks as tickValue}
 								<g transform="translate(0, {chartData.yScale(tickValue)})">
 									<line x2="-6" stroke="#94a3b8" />
-									<line x1="0" y1="0" x2={width} y2="0" stroke="#e2e8f0" stroke-dasharray="4,4" />
-									<text
-										x="-10"
-										y="4"
-										text-anchor="end"
+									<line 
+										x1="0" 
+										y1="0" 
+										x2={width} 
+										y2="0" 
+										stroke="#e2e8f0" 
+										stroke-dasharray="4,4" 
+									/>
+									<text 
+										x="-10" 
+										y="4" 
+										text-anchor="end" 
 										fill={tickValue === 0 ? '#374151' : '#64748b'}
 										font-size="12px"
 										font-weight={tickValue === 0 ? 'bold' : 'normal'}
@@ -980,11 +897,10 @@
 									class="line-{lineData.id}"
 									style="transition: stroke-width 0.3s ease, opacity 0.3s ease;"
 								/>
-
+								
 								<!-- Data points -->
 								<g class="data-points-{lineData.id}">
 									{#each lineData.points as point, i}
-									<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 										<circle
 											cx={point.x}
 											cy={point.y}
@@ -996,13 +912,11 @@
 											class="data-point"
 											role={hasTooltip ? 'button' : undefined}
 											tabindex={hasTooltip ? 0 : undefined}
-											onmouseenter={(e) => handlePointHover(e, lineData, point, i)}
-											onmouseleave={handlePointLeave}
-											style="transition: opacity 0.3s ease, transform 0.2s ease; cursor: {hasTooltip
-												? 'pointer'
-												: 'default'};"
+											on:mouseenter={(e) => handlePointHover(e, lineData, point, i)}
+											on:mouseleave={handlePointLeave}
+											style="transition: opacity 0.3s ease, transform 0.2s ease; cursor: {hasTooltip ? 'pointer' : 'default'};"
 										/>
-
+										
 										{#if showValues}
 											<text
 												x={point.x}
@@ -1015,14 +929,7 @@
 												class="value-label"
 												style="pointer-events: none; transition: opacity 0.3s ease;"
 											>
-												{formatYValue(
-													Number(
-														lineData.data.find(
-															(d: { [x: string]: any }) =>
-																chartData.allXValues.indexOf(String(d[xKey])) === i
-														)?.[yKey] || 0
-													)
-												)}
+												{formatYValue(Number(lineData.data.find(d => chartData.allXValues.indexOf(String(d[xKey])) === i)?.[yKey] || 0))}
 											</text>
 										{/if}
 									{/each}
@@ -1044,7 +951,7 @@
 									stroke-dasharray="4,4"
 									opacity="0.7"
 								/>
-
+								
 								<!-- Horizontal line -->
 								<line
 									x1={margin.left}
@@ -1157,11 +1064,7 @@
 		{@const shouldFlipY = tooltipY < 80}
 		<div
 			class="tooltip"
-			style="left: {tooltipX}px; top: {shouldFlipY
-				? tooltipY + 40
-				: tooltipY}px; transform: translate({shouldFlipX ? '-100%' : '-50%'}, {shouldFlipY
-				? '10px'
-				: '-100%'});"
+			style="left: {tooltipX}px; top: {shouldFlipY ? tooltipY + 40 : tooltipY}px; transform: translate({shouldFlipX ? '-100%' : '-50%'}, {shouldFlipY ? '10px' : '-100%'});"
 			role="tooltip"
 			aria-live="polite"
 		>
@@ -1169,10 +1072,7 @@
 				<div class="tooltip-header">{tooltipData.label}</div>
 				<div class="tooltip-values">
 					<div class="tooltip-value-row">
-						<div
-							class="tooltip-color-indicator"
-							style="background-color: {tooltipData.color}"
-						></div>
+						<div class="tooltip-color-indicator" style="background-color: {tooltipData.color}"></div>
 						<span class="tooltip-line-label">{tooltipData.lineLabel}:</span>
 						<span class="tooltip-value">{tooltipData.value}</span>
 					</div>
@@ -1189,11 +1089,7 @@
 		{@const shouldFlipY = tooltipY < 80}
 		<div
 			class="tooltip crosshair-tooltip"
-			style="left: {tooltipX}px; top: {shouldFlipY
-				? tooltipY + 40
-				: tooltipY}px; transform: translate({shouldFlipX ? '-100%' : '-50%'}, {shouldFlipY
-				? '10px'
-				: '-100%'});"
+			style="left: {tooltipX}px; top: {shouldFlipY ? tooltipY + 40 : tooltipY}px; transform: translate({shouldFlipX ? '-100%' : '-50%'}, {shouldFlipY ? '10px' : '-100%'});"
 			role="tooltip"
 			aria-live="polite"
 		>
@@ -1202,10 +1098,7 @@
 				<div class="tooltip-values">
 					{#each crosshairData.values as valueData (valueData.lineId)}
 						<div class="tooltip-value-row">
-							<div
-								class="tooltip-color-indicator"
-								style="background-color: {valueData.color}"
-							></div>
+							<div class="tooltip-color-indicator" style="background-color: {valueData.color}"></div>
 							<span class="tooltip-line-label">{valueData.lineLabel}:</span>
 							<span class="tooltip-value">{valueData.value}</span>
 						</div>
@@ -1256,9 +1149,7 @@
 							<tr>
 								<th scope="row">{formatDateForDisplay(xValue)}</th>
 								{#each lines as lineData}
-									{@const dataPoint = lineData.data.find(
-										(d: { [x: string]: any }) => String(d[xKey]) === xValue
-									)}
+									{@const dataPoint = lineData.data.find(d => String(d[xKey]) === xValue)}
 									<td>
 										{dataPoint ? dataPoint[yKey] : 'N/A'}
 									</td>
@@ -1397,9 +1288,7 @@
 		border-radius: 50%;
 		border: 2px solid #ffffff;
 		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-		transition:
-			transform 0.2s ease,
-			box-shadow 0.2s ease;
+		transition: transform 0.2s ease, box-shadow 0.2s ease;
 	}
 
 	.legend-item:hover .legend-color {

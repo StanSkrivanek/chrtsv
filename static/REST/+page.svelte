@@ -101,8 +101,6 @@
 
 	// Generate test datasets
 	function generateTestData(points: number): LineData[] {
-		console.log(`🔄 Generating ${points} points for 3 lines...`);
-		
 		const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 		const lines: LineData[] = [];
 		
@@ -129,84 +127,56 @@
 			});
 		}
 		
-		console.log(`✅ Generated data:`, lines.map(line => ({ 
-			id: line.id, 
-			points: line.data.length 
-		})));
-		
 		return lines;
 	}
 
-	// Dataset loading functions with better reactivity and debugging
+	// Dataset loading functions
 	function loadSmallDataset() {
-		console.log('🔄 Loading small dataset...');
-		const newData = generateTestData(50);
-		chartData = newData;
-		console.log('✅ Small dataset loaded:', chartData.length, 'lines,', totalDataPoints, 'total points');
+		chartData = generateTestData(50);
 	}
 
 	function loadMediumDataset() {
-		console.log('🔄 Loading medium dataset...');
-		const newData = generateTestData(500);
-		chartData = newData;
-		console.log('✅ Medium dataset loaded:', chartData.length, 'lines,', totalDataPoints, 'total points');
+		chartData = generateTestData(500);
 	}
 
 	function loadLargeDataset() {
-		console.log('🔄 Loading large dataset...');
-		const newData = generateTestData(2000);
-		chartData = newData;
-		console.log('✅ Large dataset loaded:', chartData.length, 'lines,', totalDataPoints, 'total points');
+		chartData = generateTestData(2000);
 	}
 
 	function loadXLDataset() {
-		console.log('🔄 Loading XL dataset...');
-		const newData = generateTestData(10000);
-		chartData = newData;
-		console.log('✅ XL dataset loaded:', chartData.length, 'lines,', totalDataPoints, 'total points');
+		chartData = generateTestData(10000);
 	}
-
 	// Debug reactive changes
-	$effect(() => {
-		console.log('📊 Chart data reactivity:', {
-			lines: chartData.length,
-			totalPoints: totalDataPoints,
-			expectedMode: renderingMode,
-			firstLineDataLength: chartData[0]?.data?.length || 0,
-			dataStructure: chartData.map(line => ({ 
-				id: line.id, 
-				points: line.data.length,
-				firstPoint: line.data[0],
-				lastPoint: line.data[line.data.length - 1]
-			}))
-		});
-	});
+	// $effect(() => {
+	// 	console.log('📊 Chart data reactivity:', {
+	// 		lines: chartData.length,
+	// 		totalPoints: totalDataPoints,
+	// 		expectedMode: renderingMode,
+	// 		firstLineDataLength: chartData[0]?.data?.length || 0,
+	// 		dataStructure: chartData.map(line => ({ 
+	// 			id: line.id, 
+	// 			points: line.data.length,
+	// 			firstPoint: line.data[0],
+	// 			lastPoint: line.data[line.data.length - 1]
+	// 		}))
+	// 	});
+	// });
 
-	$effect(() => {
-		console.log('⚙️ Config reactivity:', {
-			selectedConfig,
-			svgMaxPoints: currentConfig.svgMaxPoints,
-			renderingMode,
-			totalPoints: totalDataPoints
-		});
-	});
+	// $effect(() => {
+	// 	console.log('⚙️ Config reactivity:', {
+	// 		selectedConfig,
+	// 		svgMaxPoints: currentConfig.svgMaxPoints,
+	// 		renderingMode,
+	// 		totalPoints: totalDataPoints
+	// 	});
+	// });
 
 	// Development debugging
 	onMount(() => {
-		console.log('🚀 Demo page mounted');
-		
 		if (import.meta.env.DEV) {
 			const params = new URLSearchParams(window.location.search);
 			if (params.has('debug')) {
-				console.log('🐛 Debug mode enabled');
-				
-				// Log initial state
-				console.log('Initial state:', {
-					chartData: chartData.length,
-					selectedConfig,
-					renderingMode,
-					totalDataPoints
-				});
+				console.log('🚀 Chart performance debugging enabled');
 			}
 		}
 	});
@@ -290,23 +260,21 @@
 	<!-- Chart Section -->
 	<section class="chart-section">
 		<div class="chart-wrapper">
-			<!-- {#key `${chartData.length}-${totalDataPoints}-${selectedConfig}`} -->
-				<MultiLineChart
-					lines={chartData}
-					xKey="date"
-					yKey="value"
-					title="Performance Demo Chart"
-					showLegend={true}
-					height={400}
-					dateFormat="MMM dd"
-					{showValues}
-					{hasTooltip}
-					{showCrosshair}
-					{curveType}
-					{tension}
-					performanceConfig={currentConfig}
-				/>
-			<!-- {/key} -->
+			<MultiLineChart
+				lines={chartData}
+				xKey="date"
+				yKey="value"
+				title="Performance Demo Chart"
+				showLegend={true}
+				height={400}
+				dateFormat="MMM dd"
+				{showValues}
+				{hasTooltip}
+				{showCrosshair}
+				{curveType}
+				{tension}
+				performanceConfig={currentConfig}
+			/>
 		</div>
 	</section>
 
@@ -326,39 +294,11 @@
 				<strong>Rendering Mode:</strong>
 				<span class="mode-badge mode-{renderingMode.toLowerCase()}">{renderingMode}</span>
 			</div>
-			<div class="info-item">
-				<strong>SVG Threshold:</strong>
-				<span>{currentConfig.svgMaxPoints || 1000} points</span>
-			</div>
 		</div>
 	</section>
 
-	<!-- Debug Info -->
-	{#if import.meta.env.DEV}
-		<section class="debug-info">
-			<h3>Debug Information</h3>
-			<details>
-				<summary>Show Debug Data</summary>
-				<div class="debug-content">
-					<pre>{JSON.stringify({
-						chartDataLength: chartData.length,
-						totalDataPoints,
-						renderingMode,
-						selectedConfig,
-						currentConfig,
-						firstLineData: chartData[0]?.data?.slice(0, 3),
-						hasTooltip,
-						showCrosshair,
-						curveType,
-						tension
-					}, null, 2)}</pre>
-				</div>
-			</details>
-		</section>
-	{/if}
-
 	<!-- Integration Guide -->
-	<!-- <section class="integration-guide">
+	 <section class="integration-guide">
 		<h2>Integration Guide</h2>
 		
 		<div class="guide-section">
@@ -369,8 +309,8 @@ npm install date-fns svelte</code></pre>
 
 		<div class="guide-section">
 			<h3>Basic Usage</h3>
-			<pre><code>{`<script lang="ts">
-  import MultiLineChart from '$lib/components/charts/line/MultiLineChart.svelte';
+			<pre><code>{`&gt; lang="ts"&lt;
+  import MultiLineChart from '$lib/components/charts/MultiLineChart.svelte';
   import type { LineData } from '$lib/components/charts/types/chart.types.js';
   
   const data: LineData[] = [
@@ -385,7 +325,7 @@ npm install date-fns svelte</code></pre>
       ]
     }
   ];
-</script>
+&gt;/script $&lt;
 
 <MultiLineChart
   lines={data}
@@ -398,26 +338,52 @@ npm install date-fns svelte</code></pre>
 		</div>
 
 		<div class="guide-section">
-			<h3>Performance Testing</h3>
-			<p>Use the buttons above to test different dataset sizes:</p>
-			<ul>
-				<li><strong>Small (50 points):</strong> SVG mode, smooth animations</li>
-				<li><strong>Medium (500 points):</strong> SVG mode, reduced animations</li>
-				<li><strong>Large (2K points):</strong> Canvas mode (default config)</li>
-				<li><strong>XL (10K points):</strong> Canvas mode with data sampling</li>
-			</ul>
+			<h3>Performance Optimization</h3>
+			<pre><code>{`// For large datasets
+const performanceConfig: Partial<ChartPerformanceConfig> = {
+  svgMaxPoints: 500,        // Switch to Canvas above 500 points
+  enableDataSampling: true, // Sample large datasets
+  enableMemoization: true,  // Cache calculations
+  mouseMoveThrottle: 32     // Throttle mouse events
+};
+
+<MultiLineChart
+  lines={largeDataset}
+  performanceConfig={performanceConfig}
+/>`}</code></pre>
 		</div>
 
 		<div class="guide-section">
-			<h3>Debugging Canvas Issues</h3>
-			<p>Open browser console and watch for log messages when switching datasets:</p>
-			<ul>
-				<li>✅ <code>Canvas rendered successfully</code> - Canvas working</li>
-				<li>❌ <code>Canvas element not available</code> - Setup issue</li>
-				<li>⚠️ <code>Line paths not available</code> - Data processing issue</li>
-			</ul>
+			<h3>Svelte 5 Reactive Patterns</h3>
+			<pre><code>{`&gt; script lang="ts" &lt;
+  // Reactive state
+  let chartData = $state<LineData[]>([]);
+  let loading = $state(false);
+  
+  // Derived values
+  const totalPoints = $derived(
+    chartData.reduce((sum, line) => sum + line.data.length, 0)
+  );
+  
+  // Complex derived calculations
+  const performanceConfig = $derived.by(() => {
+    const points = totalPoints;
+    return {
+      svgMaxPoints: points > 5000 ? 500 : 1000,
+      enableDataSampling: points > 1000,
+      enableWebWorkers: points > 10000
+    };
+  });
+  
+  // Effects for side effects
+  $effect(() => {
+    if (chartData.length > 0) {
+      console.log(\`Chart updated with \${totalPoints} points\`);
+    }
+  });
+&gt; /script &lt;`}</code></pre>
 		</div>
-	</section> -->
+	</section>
 </main>
 
 <style>
@@ -600,34 +566,6 @@ npm install date-fns svelte</code></pre>
 		color: #166534;
 	}
 
-	.debug-info {
-		margin: 2rem 0;
-		padding: 1rem;
-		background: #f3f4f6;
-		border: 1px solid #d1d5db;
-		border-radius: 8px;
-	}
-
-	.debug-info h3 {
-		margin: 0 0 1rem 0;
-		color: #374151;
-		font-size: 1rem;
-	}
-
-	.debug-content {
-		margin-top: 1rem;
-	}
-
-	.debug-content pre {
-		background: #1f2937;
-		color: #f9fafb;
-		padding: 1rem;
-		border-radius: 4px;
-		overflow-x: auto;
-		font-size: 0.75rem;
-		line-height: 1.4;
-	}
-
 	.integration-guide {
 		margin-top: 3rem;
 		padding: 2rem;
@@ -652,23 +590,6 @@ npm install date-fns svelte</code></pre>
 		margin: 0 0 1rem 0;
 		font-size: 1.25rem;
 		font-weight: 600;
-	}
-
-	.guide-section p {
-		color: #4b5563;
-		margin-bottom: 1rem;
-		line-height: 1.6;
-	}
-
-	.guide-section ul {
-		color: #4b5563;
-		margin: 1rem 0;
-		padding-left: 1.5rem;
-	}
-
-	.guide-section li {
-		margin-bottom: 0.5rem;
-		line-height: 1.5;
 	}
 
 	.guide-section pre {

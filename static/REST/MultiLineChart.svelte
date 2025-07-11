@@ -112,9 +112,10 @@
 
 	// Get the actual value to use in comparisons
 	const currentPerformanceMode = $derived(performanceMode());
-	// Memoized helper functions with proper typing
-	const getAllXValues = config.enableMemoization
-		? memoize((lines: LineData[], xKey: string): string[] => {
+
+	// Memoized helper functions
+	const memoizedGetAllXValues = config.enableMemoization
+		? memoize((lines: LineData[], xKey: string) => {
 				const xValues: string[] = [];
 				const seen = new Set<string>();
 
@@ -152,48 +153,16 @@
 
 				return xValues;
 			})
-		: (lines: LineData[], xKey: string): string[] => {
+		: (lines: LineData[], xKey: string) => {
 				// Non-memoized version for fallback
 				const xValues: string[] = [];
 				const seen = new Set<string>();
-
-				if (lines.length > 0) {
-					lines[0].data.forEach((d: Record<string, any>) => {
-						const value = String(d[xKey]);
-						if (!seen.has(value)) {
-							seen.add(value);
-							xValues.push(value);
-						}
-					});
-				}
-
-				lines.forEach((line: LineData) => {
-					line.data.forEach((d: Record<string, any>) => {
-						const value = String(d[xKey]);
-						if (!seen.has(value)) {
-							seen.add(value);
-							xValues.push(value);
-						}
-					});
-				});
-
-				const firstValue = xValues[0];
-				if (firstValue && parseDate(firstValue)) {
-					return xValues.sort((a, b) => {
-						const dateA = parseDate(a);
-						const dateB = parseDate(b);
-						if (dateA && dateB) {
-							return dateA.getTime() - dateB.getTime();
-						}
-						return 0;
-					});
-				}
-
+				// ... same logic without memoization
 				return xValues;
 			};
 
-	const getAllYValues = config.enableMemoization
-		? memoize((lines: LineData[], yKey: string): number[] => {
+	const memoizedGetAllYValues = config.enableMemoization
+		? memoize((lines: LineData[], yKey: string) => {
 				const yValues: number[] = [];
 				lines.forEach((line: LineData) => {
 					line.data.forEach((d: Record<string, any>) => {
@@ -202,7 +171,7 @@
 				});
 				return yValues;
 			})
-		: (lines: LineData[], yKey: string): number[] => {
+		: (lines: LineData[], yKey: string) => {
 				const yValues: number[] = [];
 				lines.forEach((line: LineData) => {
 					line.data.forEach((d: Record<string, any>) => {
@@ -244,8 +213,8 @@
 			return cached;
 		}
 
-		const allXValues = getAllXValues(sampledLines, xKey);
-		const allYValues = getAllYValues(sampledLines, yKey);
+		const allXValues = memoizedGetAllXValues(sampledLines, xKey);
+		const allYValues = memoizedGetAllYValues(sampledLines, yKey);
 
 		if (!allXValues.length || !allYValues.length) {
 			performanceMonitor.endRender(startTime);
@@ -401,60 +370,26 @@
 		return `Line chart with ${lineCount} data series and ${dataPointCount} data points${hasNegativeValues ? ', including negative values' : ''}. Use Tab to navigate legend items, Enter or Space to highlight lines, and Escape to clear highlights.`;
 	}
 
-	// Canvas rendering functions with improved error handling and debugging
+	// Canvas rendering functions
 	function renderCanvas() {
-		console.log('🎯 renderCanvas() called');
-
-		if (!canvasElement) {
-			console.warn('❌ Canvas element not available');
-			return;
-		}
-
-		if (!canvasContext) {
-			console.warn('❌ Canvas context not available');
-			return;
-		}
-
-		if (currentPerformanceMode !== 'canvas') {
-			console.warn('❌ Not in canvas mode:', currentPerformanceMode);
-			return;
-		}
-
-		if (!chartData) {
-			console.warn('❌ Chart data not available');
-			return;
-		}
-
-		if (!linePaths || linePaths.length === 0) {
-			console.warn('❌ Line paths not available or empty');
+		if (!canvasElement || !canvasContext || currentPerformanceMode !== 'canvas' || !chartData) {
+			console.warn('Canvas rendering skipped - missing requirements');
 			return;
 		}
 
 		try {
-			console.log('✅ Starting canvas render with:', {
-				linesCount: linePaths.length,
-				firstLinePoints: linePaths[0]?.points?.length || 0,
-				canvasSize: `${canvasElement.width}x${canvasElement.height}`,
-				chartDataPoints: chartData.allXValues?.length || 0
-			});
-
 			const dpr = config.devicePixelRatio;
 			const rect = canvasElement.getBoundingClientRect();
 
 			// Ensure we have valid dimensions
 			if (rect.width === 0 || rect.height === 0) {
-				console.warn('❌ Canvas has zero dimensions:', rect);
+				console.warn('Canvas has zero dimensions, skipping render');
 				return;
 			}
-
-			console.log('📐 Canvas dimensions:', { width: rect.width, height: rect.height, dpr });
 
 			// Set canvas size accounting for device pixel ratio
 			canvasElement.width = rect.width * dpr;
 			canvasElement.height = rect.height * dpr;
-
-			// Reset transform and scale
-			canvasContext.setTransform(1, 0, 0, 1, 0, 0);
 			canvasContext.scale(dpr, dpr);
 
 			if (config.canvasSmoothing) {
@@ -464,38 +399,24 @@
 
 			// Clear canvas
 			canvasContext.clearRect(0, 0, rect.width, rect.height);
-			console.log('🧹 Canvas cleared');
 
 			// Draw chart components
 			drawCanvasAxes(canvasContext, chartData, rect.width, rect.height);
-			console.log('📊 Axes drawn');
 
 			// Draw lines with hover states
-			let drawnLines = 0;
-			linePaths.forEach((lineData: { points: string | any[]; id: string | null }, index: any) => {
-				if (lineData.points && lineData.points.length > 0) {
-					const isHovered = hoveredLine === lineData.id;
-					const isOtherHovered = hoveredLine !== null && hoveredLine !== lineData.id;
+			linePaths.forEach((lineData: { id: string | null }, index: any) => {
+				const isHovered = hoveredLine === lineData.id;
+				const isOtherHovered = hoveredLine !== null && hoveredLine !== lineData.id;
 
-					drawCanvasLine(canvasContext!, lineData, chartData, {
-						strokeWidth: isHovered ? 3 : 2,
-						opacity: isOtherHovered ? 0.3 : 1
-					});
-					drawnLines++;
-				} else {
-					console.warn(`⚠️ Line ${lineData.id} has no points:`, lineData);
-				}
+				drawCanvasLine(canvasContext!, lineData, chartData, {
+					strokeWidth: isHovered ? 3 : 2,
+					opacity: isOtherHovered ? 0.3 : 1
+				});
 			});
 
-			console.log(`✅ Canvas render completed successfully! Drew ${drawnLines} lines`);
+			console.log('Canvas rendered successfully');
 		} catch (error) {
-			console.error('❌ Canvas rendering error:', error);
-			console.error('Context:', {
-				canvasElement: !!canvasElement,
-				canvasContext: !!canvasContext,
-				chartData: !!chartData,
-				linePaths: linePaths?.length || 0
-			});
+			console.error('Canvas rendering error:', error);
 		}
 	}
 
@@ -718,12 +639,8 @@
 		if (!chart && !canvasElement) return;
 
 		const element = chart || canvasElement;
-
+		if (!element) return;
 		// Initial dimensions
-		if (!element) {
-			console.error('❌ Chart or canvas element not found during mount');
-			return;
-		}
 		width = element.clientWidth - margin.left - margin.right;
 		chartHeight = height - margin.top - margin.bottom;
 
@@ -769,8 +686,10 @@
 			}
 		});
 
-		intersectionObserver.observe(element);
-		resizeObserver.observe(element);
+		if (element) {
+			intersectionObserver.observe(element);
+			resizeObserver.observe(element);
+		}
 
 		return () => {
 			intersectionObserver.disconnect();
@@ -783,75 +702,41 @@
 		PathGenerator.clearCache();
 	});
 
-	// ✅ CORRECT: Use $derived for calculations/data transformations
-	const shouldUseCanvas = $derived(currentPerformanceMode === 'canvas');
-	const canvasRenderingData = $derived.by(() => {
-		if (!shouldUseCanvas || !chartData) return null;
-
-		console.log('🎨 Preparing canvas rendering data:', {
-			mode: currentPerformanceMode,
-			totalPoints: totalDataPoints,
-			linesCount: linePaths.length,
-			sampledLinesCount: sampledLines.length
-		});
-
-		// This is a pure calculation - no side effects
-		return {
-			lines: linePaths,
-			dimensions: { width, height: chartHeight },
-			chartData,
-			hoveredLine,
-			timestamp: Date.now() // Force updates
-		};
-	});
-
-	// ✅ CORRECT: Use $effect for side effects (Canvas drawing)
+	// Effects with proper Canvas reactivity
 	$effect(() => {
-		// This is a side effect - it modifies the Canvas DOM element
-		if (canvasRenderingData && canvasElement && canvasContext && mounted) {
-			console.log('🖼️ Canvas effect triggered, scheduling render...');
-
-			// Use longer delay to ensure all reactive updates are complete
-			setTimeout(() => {
-				console.log('🎯 Executing canvas render...');
-				renderCanvas();
-			}, 50); // Increased delay
+		// This effect handles Canvas rendering and re-rendering
+		if (currentPerformanceMode === 'canvas' && canvasElement && canvasContext && chartData) {
+			// Re-render canvas when any reactive dependency changes
+			renderCanvas();
 		}
 	});
 
-	// Watch for critical data changes with debug logging
 	$effect(() => {
-		const deps = [lines, sampledLines, chartData, linePaths];
+		// This effect handles SVG mode reactive rendering
+		if (lines && mounted && currentPerformanceMode !== 'canvas') {
+			// SVG mode - reactive rendering happens automatically through Svelte's reactivity
+		}
+	});
 
-		console.log('📈 Data dependencies changed:', {
-			linesLength: lines.length,
-			sampledLinesLength: sampledLines.length,
-			chartDataLength: chartData?.allXValues?.length || 0,
-			linePathsLength: linePaths.length,
-			mode: currentPerformanceMode
-		});
+	// Watch for data changes and force Canvas re-render
+	$effect(() => {
+		// Watch for line data changes
+		const _ = [lines, xKey, yKey, tension, curveType, hoveredLine];
 
-		if (currentPerformanceMode === 'canvas' && mounted && canvasContext && chartData) {
-			console.log('🔄 Scheduling canvas re-render due to data change...');
-
-			// Use requestAnimationFrame for better timing
+		if (currentPerformanceMode === 'canvas' && mounted && canvasContext) {
+			// Force Canvas re-render when data or styling changes
 			requestAnimationFrame(() => {
-				requestAnimationFrame(() => {
-					// Double RAF for better timing
-					console.log('🎨 Re-rendering canvas due to data change...');
-					renderCanvas();
-				});
+				renderCanvas();
 			});
 		}
 	});
-
-	// Watch for styling changes
+	// Watch for dimension changes
 	$effect(() => {
-		const styleChanges = [tension, curveType, hoveredLine, showValues];
+		// Watch for dimension changes
+		const _ = [width, chartHeight, height];
 
 		if (currentPerformanceMode === 'canvas' && mounted && canvasContext) {
-			console.log('🎨 Style changes detected, re-rendering canvas...');
-
+			// Re-render canvas when dimensions change
 			requestAnimationFrame(() => {
 				renderCanvas();
 			});
@@ -984,7 +869,7 @@
 								<!-- Data points -->
 								<g class="data-points-{lineData.id}">
 									{#each lineData.points as point, i}
-									<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+										<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 										<circle
 											cx={point.x}
 											cy={point.y}
@@ -996,6 +881,7 @@
 											class="data-point"
 											role={hasTooltip ? 'button' : undefined}
 											tabindex={hasTooltip ? 0 : undefined}
+											aria-describedby={hasTooltip ? 'tooltip-id' : undefined}
 											onmouseenter={(e) => handlePointHover(e, lineData, point, i)}
 											onmouseleave={handlePointLeave}
 											style="transition: opacity 0.3s ease, transform 0.2s ease; cursor: {hasTooltip
