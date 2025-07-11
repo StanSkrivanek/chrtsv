@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onDestroy, onMount, tick } from 'svelte';
 	import { fade } from 'svelte/transition';
+	// import { PerformanceMonitor } from '../utils/PerformanceMonitor';
 
 	// Types
 	interface DataPoint {
@@ -65,7 +66,7 @@
 		...performanceConfig
 	};
 
-	// State
+	// Svelte 5 runes
 	let svgElement = $state<SVGElement | null>(null);
 	let canvasElement = $state<HTMLCanvasElement | null>(null);
 	let mounted = $state(false);
@@ -84,7 +85,7 @@
 
 	// Calculate total data points
 	const totalDataPoints = $derived(
-		lines.reduce((sum: number, line: { data: string | any[]; }) => sum + line.data.length, 0)
+		lines.reduce((sum: number, line: { data: string | any[] }) => sum + line.data.length, 0)
 	);
 
 	// Determine rendering mode
@@ -103,17 +104,34 @@
 
 		// Get all unique X values
 		const xValues = new Set<string>();
-		lines.forEach((line: { data: any[]; }) => {
-			line.data.forEach(d => {
+		lines.forEach((line: { data: any[] }) => {
+			line.data.forEach((d) => {
 				xValues.add(String(d[xKey]));
 			});
 		});
-		const allXValues = Array.from(xValues).sort();
+		let allXValues = Array.from(xValues).sort();
 
+		if (!allXValues.length) return null;
+
+		// If data sampling is enabled, reduce the number of X values
+		if (config.enableDataSampling && allXValues.length > config.svgMaxPoints) {
+			const step = Math.ceil(allXValues.length / config.svgMaxPoints);
+			allXValues = allXValues.filter((_, i) => i % step === 0);
+			
+		console.table({
+			allXValues: allXValues.length,
+			ChartDataStep: step,
+			renderingMode:renderingMode(),
+			totalPoints: totalDataPoints,
+			configSampling: config.enableDataSampling,
+			maxPoints: config.svgMaxPoints
+
+		});
+		}
 		// Get Y value range
 		const allYValues: number[] = [];
-		lines.forEach((line: { data: any[]; }) => {
-			line.data.forEach(d => {
+		lines.forEach((line: { data: any[] }) => {
+			line.data.forEach((d) => {
 				allYValues.push(Number(d[yKey]));
 			});
 		});
@@ -128,11 +146,12 @@
 		const yMaxWithPadding = yMax + yPadding;
 
 		// Scale functions
-		const xScale = (idx: number) => 
+		const xScale = (idx: number) =>
 			margin.left + (idx / Math.max(1, allXValues.length - 1)) * width;
-		
+
 		const yScale = (val: number) =>
-			margin.top + chartHeight - 
+			margin.top +
+			chartHeight -
 			((val - yMinWithPadding) / (yMaxWithPadding - yMinWithPadding)) * chartHeight;
 
 		// Generate Y ticks
@@ -151,58 +170,123 @@
 			yTicks: yTicks.reverse()
 		};
 	});
+	// $inspect('chartData allXValues', chartData?.allXValues.length || 0);
+
+const linePaths = $derived.by(() => {
+    if (!chartData) return [];
+    return lines.map(
+        (lineData: { color: string; data: any[]; id: any; label: any }, index: number) => {
+            const color = lineData.color || defaultColors[index % defaultColors.length];
+            const points: Array<{ x: number; y: number }> = [];
+
+            // For each sampled X, find the closest data point in this line
+            chartData.allXValues.forEach((xValue, xIndex) => {
+                // Find the data point with matching X, or closest X if not found
+                let dataPoint = lineData.data.find((d) => String(d[xKey]) === xValue);
+                if (!dataPoint) {
+                    // If exact match not found, find the closest X
+                    dataPoint = lineData.data.reduce((prev, curr) => {
+                        return Math.abs(Number(curr[xKey]) - Number(xValue)) <
+                            Math.abs(Number(prev[xKey]) - Number(xValue))
+                            ? curr
+                            : prev;
+                    }, lineData.data[0]);
+                }
+                points.push({
+                    x: chartData.xScale(xIndex),
+                    y: chartData.yScale(Number(dataPoint[yKey]))
+                });
+            });
+
+            // Generate path
+            let pathData = '';
+            if (points.length > 0) {
+                if (curveType === 'smooth' && tension > 0) {
+                    pathData = `M ${points[0].x} ${points[0].y}`;
+                    for (let i = 1; i < points.length; i++) {
+                        const prev = points[i - 1];
+                        const curr = points[i];
+                        const cpx = (prev.x + curr.x) / 2;
+                        pathData += ` Q ${cpx} ${prev.y} ${cpx} ${curr.y} L ${curr.x} ${curr.y}`;
+                    }
+                } else {
+                    pathData = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+                }
+            }
+
+            return {
+                id: lineData.id,
+                label: lineData.label,
+                color,
+                pathData,
+                points,
+                data: points // use points for tooltips etc.
+            };
+        }
+    );
+});
+
+
+
 
 	// Calculate line paths
-	const linePaths = $derived.by(() => {
-		if (!chartData) return [];
+	// const linePaths = $derived.by(() => {
+	// 	if (!chartData) return [];
+	// 	console.log('🚀 ~ chartData in LINE PATHS:', chartData.allXValues.length);
+	// 	return lines.map(
+	// 		(lineData: { color: string; data: any[]; id: any; label: any }, index: number) => {
+	// 			const color = lineData.color || defaultColors[index % defaultColors.length];
+	// 			const points: Array<{ x: number; y: number }> = [];
 
-		return lines.map((lineData: { color: string; data: any[]; id: any; label: any; }, index: number) => {
-			const color = lineData.color || defaultColors[index % defaultColors.length];
-			const points: Array<{ x: number; y: number }> = [];
+	// 			chartData.allXValues.forEach((xValue, xIndex) => {
+	// 				const dataPoint = lineData.data.find((d) => String(d[xKey]) === xValue);
+	// 				if (dataPoint) {
+	// 					points.push({
+	// 						x: chartData.xScale(xIndex),
+	// 						y: chartData.yScale(Number(dataPoint[yKey]))
+	// 					});
+	// 				}
+	// 			});
 
-			chartData.allXValues.forEach((xValue, xIndex) => {
-				const dataPoint = lineData.data.find(d => String(d[xKey]) === xValue);
-				if (dataPoint) {
-					points.push({
-						x: chartData.xScale(xIndex),
-						y: chartData.yScale(Number(dataPoint[yKey]))
-					});
-				}
-			});
+	// 			// Generate path
+	// 			let pathData = '';
+	// 			if (points.length > 0) {
+	// 				if (curveType === 'smooth' && tension > 0) {
+	// 					// Simple smooth curve using quadratic bezier
+	// 					pathData = `M ${points[0].x} ${points[0].y}`;
+	// 					for (let i = 1; i < points.length; i++) {
+	// 						const prev = points[i - 1];
+	// 						const curr = points[i];
+	// 						const cpx = (prev.x + curr.x) / 2;
+	// 						pathData += ` Q ${cpx} ${prev.y} ${cpx} ${curr.y} L ${curr.x} ${curr.y}`;
+	// 					}
+	// 				} else {
+	// 					// Straight lines
+	// 					pathData = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+	// 				}
+	// 			}
 
-			// Generate path
-			let pathData = '';
-			if (points.length > 0) {
-				if (curveType === 'smooth' && tension > 0) {
-					// Simple smooth curve using quadratic bezier
-					pathData = `M ${points[0].x} ${points[0].y}`;
-					for (let i = 1; i < points.length; i++) {
-						const prev = points[i - 1];
-						const curr = points[i];
-						const cpx = (prev.x + curr.x) / 2;
-						pathData += ` Q ${cpx} ${prev.y} ${cpx} ${curr.y} L ${curr.x} ${curr.y}`;
-					}
-				} else {
-					// Straight lines
-					pathData = points.map((p, i) => 
-						`${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`
-					).join(' ');
-				}
-			}
-
-			return {
-				id: lineData.id,
-				label: lineData.label,
-				color,
-				pathData,
-				points,
-				data: lineData.data
-			};
-		});
-	});
+	// 			return {
+	// 				id: lineData.id,
+	// 				label: lineData.label,
+	// 				color,
+	// 				pathData,
+	// 				points,
+	// 				data: lineData.data
+	// 			};
+	// 		}
+	// 	);
+	// 	// console.log("🚀 ~ chartData.allXValues.forEach ~ chartData.allXValues:", chartData.allXValues)
+	// 	// console.log("🚀 ~ chartData.allXValues.forEach ~ chartData.allXValues:", chartData.allXValues)
+	// });
+	// TODO: can ve commented SVG rendering: measure and log performance after mount and updates
+	// const perfMonitor = new PerformanceMonitor(100, true);
 
 	// Canvas rendering function
 	function renderCanvas() {
+		// TODO: can ve commented SVG rendering: measure and log performance after mount and updates
+		// const start = perfMonitor.startRender();
+
 		if (!canvasElement || !canvasContext || !chartData || !linePaths.length) {
 			return;
 		}
@@ -213,7 +297,7 @@
 		// Set canvas size
 		canvasElement.width = rect.width * dpr;
 		canvasElement.height = rect.height * dpr;
-		
+
 		// Reset transform and scale
 		canvasContext.setTransform(1, 0, 0, 1, 0, 0);
 		canvasContext.scale(dpr, dpr);
@@ -225,9 +309,12 @@
 		drawCanvasAxes(canvasContext, chartData, rect.width, rect.height);
 
 		// Draw lines
-		linePaths.forEach((lineData: { id: string | null; }) => {
+		linePaths.forEach((lineData: { id: string | null }) => {
 			drawCanvasLine(canvasContext!, lineData, hoveredLine === lineData.id);
 		});
+		// TODO: can ve commented SVG rendering: measure and log performance after mount and updates
+		// perfMonitor.endRender(start);
+		// perfMonitor.logSummary();
 	}
 
 	function drawCanvasAxes(
@@ -254,10 +341,10 @@
 		// Y-axis ticks and grid
 		ctx.fillStyle = '#64748b';
 		ctx.font = '12px sans-serif';
-		
+
 		chartData.yTicks.forEach((tickValue: number) => {
 			const y = chartData.yScale(tickValue);
-			
+
 			// Grid line
 			ctx.strokeStyle = '#e2e8f0';
 			ctx.setLineDash([4, 4]);
@@ -266,7 +353,7 @@
 			ctx.lineTo(margin.left + width, y);
 			ctx.stroke();
 			ctx.setLineDash([]);
-			
+
 			// Label
 			ctx.fillStyle = '#64748b';
 			ctx.textAlign = 'right';
@@ -278,21 +365,17 @@
 		for (let i = 0; i < chartData.allXValues.length; i += tickInterval) {
 			const x = chartData.xScale(i);
 			const label = chartData.allXValues[i];
-			
+
 			ctx.textAlign = 'center';
 			ctx.fillText(label, x, margin.top + chartHeight + 20);
 		}
 	}
 
-	function drawCanvasLine(
-		ctx: CanvasRenderingContext2D,
-		lineData: any,
-		isHovered: boolean
-	) {
+	function drawCanvasLine(ctx: CanvasRenderingContext2D, lineData: any, isHovered: boolean) {
 		ctx.strokeStyle = lineData.color;
 		ctx.lineWidth = isHovered ? 3 : 2;
 		ctx.globalAlpha = hoveredLine && !isHovered ? 0.3 : 1;
-		
+
 		// Draw line
 		ctx.beginPath();
 		lineData.points.forEach((point: any, i: number) => {
@@ -303,7 +386,7 @@
 			}
 		});
 		ctx.stroke();
-		
+
 		// Draw points
 		lineData.points.forEach((point: any) => {
 			ctx.beginPath();
@@ -314,7 +397,7 @@
 			ctx.lineWidth = 2;
 			ctx.stroke();
 		});
-		
+
 		ctx.globalAlpha = 1;
 	}
 
@@ -335,11 +418,11 @@
 	): (...args: Parameters<T>) => void {
 		let timeout: ReturnType<typeof setTimeout> | null = null;
 		let lastCallTime = 0;
-		
+
 		return (...args: Parameters<T>) => {
 			const now = Date.now();
 			const remaining = wait - (now - lastCallTime);
-			
+
 			if (remaining <= 0) {
 				if (timeout) {
 					clearTimeout(timeout);
@@ -382,13 +465,13 @@
 	// Resize handler
 	const handleResize = throttle(() => {
 		if (!svgElement && !canvasElement) return;
-		
+
 		const element = svgElement || canvasElement;
 		if (!element) return;
-		
+
 		const newWidth = element.clientWidth - margin.left - margin.right;
 		const newHeight = height - margin.top - margin.bottom;
-		
+
 		if (newWidth !== width || newHeight !== chartHeight) {
 			width = newWidth;
 			chartHeight = newHeight;
@@ -407,10 +490,10 @@
 				hover: hoveredLine,
 				dims: `${width}x${chartHeight}`
 			};
-			
+
 			// Log for debugging
 			console.log('Canvas render triggered:', deps);
-			
+
 			// Render with double RAF to ensure all updates are complete
 			requestAnimationFrame(() => {
 				requestAnimationFrame(() => {
@@ -435,27 +518,38 @@
 		}
 	});
 
-// Lifecycle
-onMount(() => {
-  mounted = true;
+	// TODO: can ve commented SVG rendering: measure and log performance after mount and updates
+	// $effect(() => {
+	// 	if (currentRenderingMode !== 'canvas' && mounted && chartData && linePaths.length > 0) {
+	// 		const start = perfMonitor.startRender();
+	// 		tick().then(() => {
+	// 			perfMonitor.endRender(start);
+	// 			perfMonitor.logSummary();
+	// 		});
+	// 	}
+	// });
 
-  let resizeObserver: ResizeObserver;
+	// Lifecycle
+	onMount(() => {
+		mounted = true;
 
-  tick().then(() => {
-    const element = svgElement || canvasElement;
-    if (!element) return;
+		let resizeObserver: ResizeObserver;
 
-    width = element.clientWidth - margin.left - margin.right;
-    chartHeight = height - margin.top - margin.bottom;
+		tick().then(() => {
+			const element = svgElement || canvasElement;
+			if (!element) return;
 
-    resizeObserver = new ResizeObserver(handleResize);
-    resizeObserver.observe(element);
-  });
+			width = element.clientWidth - margin.left - margin.right;
+			chartHeight = height - margin.top - margin.bottom;
 
-  return () => {
-    resizeObserver?.disconnect();
-  };
-});
+			resizeObserver = new ResizeObserver(handleResize);
+			resizeObserver.observe(element);
+		});
+
+		return () => {
+			resizeObserver?.disconnect();
+		};
+	});
 
 	onDestroy(() => {
 		mounted = false;
@@ -478,7 +572,7 @@ onMount(() => {
 				bind:this={canvasElement}
 				class="chart-canvas"
 				width={width + margin.left + margin.right}
-				height={height}
+				{height}
 				aria-label="Line chart: {title}"
 			></canvas>
 		{:else}
@@ -574,7 +668,7 @@ onMount(() => {
 											font-weight="600"
 											opacity={hoveredLine && hoveredLine !== lineData.id ? 0.3 : 1}
 										>
-											{formatYValue(Number(lineData.data[i][yKey]))}
+											{formatYValue(Number(lines.find(l => l.id === lineData.id)?.data[i]?.[yKey]))}
 										</text>
 									{/if}
 								{/each}

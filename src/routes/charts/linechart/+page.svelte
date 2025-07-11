@@ -4,6 +4,8 @@
 		ChartPerformanceConfig,
 		LineData
 	} from '$lib/components/charts/types/chart.types.js';
+	import generateTestData from '$lib/components/charts/utils/testDataGenerator';
+
 	import { onMount } from 'svelte';
 
 	// Sample data with proper typing
@@ -101,45 +103,45 @@
 	);
 
 	// Generate test datasets
-	function generateTestData(points: number): LineData[] {
-		console.log(`Generating ${points} points for 3 lines...`);
+	// function generateTestData(points: number): LineData[] {
+	// 	console.log(`Generating ${points} points for 3 lines...`);
 
-		const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
-		const lines: LineData[] = [];
+	// 	const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+	// 	const lines: LineData[] = [];
 
-		for (let lineIndex = 0; lineIndex < 3; lineIndex++) {
-			const data = [];
-			let value = Math.random() * 1000;
+	// 	for (let lineIndex = 0; lineIndex < 3; lineIndex++) {
+	// 		const data = [];
+	// 		let value = Math.random() * 1000;
 
-			for (let i = 0; i < points; i++) {
-				const date = new Date(2025, 0, 1 + i);
-				value += (Math.random() - 0.5) * 100;
-				value = Math.max(0, value);
+	// 		for (let i = 0; i < points; i++) {
+	// 			const date = new Date(2025, 0, 1 + i);
+	// 			value += (Math.random() - 0.5) * 100;
+	// 			value = Math.max(0, value);
 
-				data.push({
-					date: date.toISOString().split('T')[0],
-					value: Math.round(value)
-				});
-			}
+	// 			data.push({
+	// 				date: date.toISOString().split('T')[0],
+	// 				value: Math.round(value)
+	// 			});
+	// 		}
 
-			lines.push({
-				id: `dataset-${lineIndex}`,
-				label: `Dataset ${lineIndex + 1}`,
-				color: colors[lineIndex],
-				data
-			});
-		}
+	// 		lines.push({
+	// 			id: `dataset-${lineIndex}`,
+	// 			label: `Dataset ${lineIndex + 1}`,
+	// 			color: colors[lineIndex],
+	// 			data
+	// 		});
+	// 	}
 
-		console.log(
-			`Generated data:`,
-			lines.map((line) => ({
-				id: line.id,
-				points: line.data.length
-			}))
-		);
+	// 	console.log(
+	// 		`Generated data:`,
+	// 		lines.map((line) => ({
+	// 			id: line.id,
+	// 			points: line.data.length
+	// 		}))
+	// 	);
 
-		return lines;
-	}
+	// 	return lines;
+	// }
 
 	// Dataset loading functions with better reactivity and debugging
 	function loadSmallDataset() {
@@ -196,45 +198,49 @@
 
 	// Debug reactive changes
 	$effect(() => {
-		console.log('Chart data reactivity:', {
+		console.table({
 			lines: chartData.length,
 			totalPoints: totalDataPoints,
 			expectedMode: renderingMode,
-			firstLineDataLength: chartData[0]?.data?.length || 0,
-			dataStructure: chartData.map((line) => ({
-				id: line.id,
-				points: line.data.length,
-				firstPoint: line.data[0],
-				lastPoint: line.data[line.data.length - 1]
-			}))
+			firstLineDataLength: chartData[0]?.data?.length || 0,	
 		});
-	});
 
-	$effect(() => {
-		console.log('Config reactivity:', {
+		console.table({
 			selectedConfig,
 			svgMaxPoints: currentConfig.svgMaxPoints,
 			renderingMode,
 			totalPoints: totalDataPoints
 		});
+		// console.log('Chart data reactivity:', {
+		// 	lines: chartData.length,
+		// 	totalPoints: totalDataPoints,
+		// 	expectedMode: renderingMode,
+		// 	firstLineDataLength: chartData[0]?.data?.length || 0,
+		// 	dataStructure: chartData.map((line) => ({
+		// 		id: line.id,
+		// 		points: line.data.length,
+		// 		firstPoint: line.data[0],
+		// 		lastPoint: line.data[line.data.length - 1]
+		// 	}))
+		// });
 	});
 
 	// Development debugging
 	onMount(() => {
-		console.log('Demo page mounted');
+		// console.log('Demo page mounted');
 
 		if (import.meta.env.DEV) {
 			const params = new URLSearchParams(window.location.search);
 			if (params.has('debug')) {
-				console.log('Debug mode enabled');
+				// console.log('Debug mode enabled');
 
 				// Log initial state
-				console.log('Initial state:', {
-					chartData: chartData.length,
-					selectedConfig,
-					renderingMode,
-					totalDataPoints
-				});
+				// console.log('Initial state:', {
+				// 	chartData: chartData.length,
+				// 	selectedConfig,
+				// 	renderingMode,
+				// 	totalDataPoints
+				// });
 			}
 		}
 	});
