@@ -1,6 +1,9 @@
 <script lang="ts">
 	import MultiLineChart from '$lib/components/charts/line/MultiLineChart.svelte';
-	import type { LineData, ChartPerformanceConfig } from '$lib/components/charts/types/chart.types.js';
+	import type {
+		ChartPerformanceConfig,
+		LineData
+	} from '$lib/components/charts/types/chart.types.js';
 	import { onMount } from 'svelte';
 
 	// Sample data with proper typing
@@ -91,9 +94,7 @@
 	const currentConfig = $derived(performanceConfigs[selectedConfig]);
 
 	// Derived performance info
-	const totalDataPoints = $derived(
-		chartData.reduce((sum, line) => sum + line.data.length, 0)
-	);
+	const totalDataPoints = $derived(chartData.reduce((sum, line) => sum + line.data.length, 0));
 
 	const renderingMode = $derived(
 		totalDataPoints > (currentConfig.svgMaxPoints || 1000) ? 'Canvas' : 'SVG'
@@ -102,25 +103,25 @@
 	// Generate test datasets
 	function generateTestData(points: number): LineData[] {
 		console.log(`🔄 Generating ${points} points for 3 lines...`);
-		
+
 		const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 		const lines: LineData[] = [];
-		
+
 		for (let lineIndex = 0; lineIndex < 3; lineIndex++) {
 			const data = [];
 			let value = Math.random() * 1000;
-			
+
 			for (let i = 0; i < points; i++) {
 				const date = new Date(2024, 0, 1 + i);
 				value += (Math.random() - 0.5) * 100;
 				value = Math.max(0, value);
-				
+
 				data.push({
 					date: date.toISOString().split('T')[0],
 					value: Math.round(value)
 				});
 			}
-			
+
 			lines.push({
 				id: `dataset-${lineIndex}`,
 				label: `Dataset ${lineIndex + 1}`,
@@ -128,42 +129,69 @@
 				data
 			});
 		}
-		
-		console.log(`✅ Generated data:`, lines.map(line => ({ 
-			id: line.id, 
-			points: line.data.length 
-		})));
-		
+
+		console.log(
+			`✅ Generated data:`,
+			lines.map((line) => ({
+				id: line.id,
+				points: line.data.length
+			}))
+		);
+
 		return lines;
 	}
 
 	// Dataset loading functions with better reactivity and debugging
 	function loadSmallDataset() {
 		console.log('🔄 Loading small dataset...');
-		const newData = generateTestData(50);
-		chartData = newData;
-		console.log('✅ Small dataset loaded:', chartData.length, 'lines,', totalDataPoints, 'total points');
+		chartData = generateTestData(50);
+
+		console.log(
+			'✅ Small dataset loaded:',
+			chartData.length,
+			'lines,',
+			totalDataPoints,
+			'total points'
+		);
 	}
 
 	function loadMediumDataset() {
 		console.log('🔄 Loading medium dataset...');
-		const newData = generateTestData(500);
-		chartData = newData;
-		console.log('✅ Medium dataset loaded:', chartData.length, 'lines,', totalDataPoints, 'total points');
+		chartData = generateTestData(500);
+
+		console.log(
+			'✅ Medium dataset loaded:',
+			chartData.length,
+			'lines,',
+			totalDataPoints,
+			'total points'
+		);
 	}
 
 	function loadLargeDataset() {
 		console.log('🔄 Loading large dataset...');
-		const newData = generateTestData(2000);
-		chartData = newData;
-		console.log('✅ Large dataset loaded:', chartData.length, 'lines,', totalDataPoints, 'total points');
+		chartData = generateTestData(2000);
+
+		console.log(
+			'✅ Large dataset loaded:',
+			chartData.length,
+			'lines,',
+			totalDataPoints,
+			'total points'
+		);
 	}
 
 	function loadXLDataset() {
 		console.log('🔄 Loading XL dataset...');
-		const newData = generateTestData(10000);
-		chartData = newData;
-		console.log('✅ XL dataset loaded:', chartData.length, 'lines,', totalDataPoints, 'total points');
+		chartData = generateTestData(10000);
+
+		console.log(
+			'✅ XL dataset loaded:',
+			chartData.length,
+			'lines,',
+			totalDataPoints,
+			'total points'
+		);
 	}
 
 	// Debug reactive changes
@@ -173,8 +201,8 @@
 			totalPoints: totalDataPoints,
 			expectedMode: renderingMode,
 			firstLineDataLength: chartData[0]?.data?.length || 0,
-			dataStructure: chartData.map(line => ({ 
-				id: line.id, 
+			dataStructure: chartData.map((line) => ({
+				id: line.id,
 				points: line.data.length,
 				firstPoint: line.data[0],
 				lastPoint: line.data[line.data.length - 1]
@@ -194,12 +222,12 @@
 	// Development debugging
 	onMount(() => {
 		console.log('🚀 Demo page mounted');
-		
+
 		if (import.meta.env.DEV) {
 			const params = new URLSearchParams(window.location.search);
 			if (params.has('debug')) {
 				console.log('🐛 Debug mode enabled');
-				
+
 				// Log initial state
 				console.log('Initial state:', {
 					chartData: chartData.length,
@@ -220,26 +248,20 @@
 <main class="demo-container">
 	<header>
 		<h1>Optimized Multi-Line Chart Demo</h1>
-		<p class="subtitle">High-performance chart component for Svelte 5 with automatic optimization</p>
+		<p class="subtitle">
+			High-performance chart component for Svelte 5 with automatic optimization
+		</p>
 	</header>
-	
+
 	<!-- Controls Section -->
 	<section class="controls">
 		<div class="control-group">
 			<h3>Dataset Size</h3>
 			<div class="button-group">
-				<button type="button" onclick={loadSmallDataset}>
-					Small (50 points)
-				</button>
-				<button type="button" onclick={loadMediumDataset}>
-					Medium (500 points)
-				</button>
-				<button type="button" onclick={loadLargeDataset}>
-					Large (2K points)
-				</button>
-				<button type="button" onclick={loadXLDataset}>
-					XL (10K points)
-				</button>
+				<button type="button" onclick={loadSmallDataset}> Small (50 points) </button>
+				<button type="button" onclick={loadMediumDataset}> Medium (500 points) </button>
+				<button type="button" onclick={loadLargeDataset}> Large (2K points) </button>
+				<button type="button" onclick={loadXLDataset}> XL (10K points) </button>
 			</div>
 		</div>
 
@@ -291,21 +313,21 @@
 	<section class="chart-section">
 		<div class="chart-wrapper">
 			<!-- {#key `${chartData.length}-${totalDataPoints}-${selectedConfig}`} -->
-				<MultiLineChart
-					lines={chartData}
-					xKey="date"
-					yKey="value"
-					title="Performance Demo Chart"
-					showLegend={true}
-					height={400}
-					dateFormat="MMM dd"
-					{showValues}
-					{hasTooltip}
-					{showCrosshair}
-					{curveType}
-					{tension}
-					performanceConfig={currentConfig}
-				/>
+			<MultiLineChart
+				lines={chartData}
+				xKey="date"
+				yKey="value"
+				title="Performance Demo Chart"
+				showLegend={true}
+				height={400}
+				dateFormat="MMM dd"
+				{showValues}
+				{hasTooltip}
+				{showCrosshair}
+				{curveType}
+				{tension}
+				performanceConfig={currentConfig}
+			/>
 			<!-- {/key} -->
 		</div>
 	</section>
@@ -340,18 +362,22 @@
 			<details>
 				<summary>Show Debug Data</summary>
 				<div class="debug-content">
-					<pre>{JSON.stringify({
-						chartDataLength: chartData.length,
-						totalDataPoints,
-						renderingMode,
-						selectedConfig,
-						currentConfig,
-						firstLineData: chartData[0]?.data?.slice(0, 3),
-						hasTooltip,
-						showCrosshair,
-						curveType,
-						tension
-					}, null, 2)}</pre>
+					<pre>{JSON.stringify(
+							{
+								chartDataLength: chartData.length,
+								totalDataPoints,
+								renderingMode,
+								selectedConfig,
+								currentConfig,
+								firstLineData: chartData[0]?.data?.slice(0, 3),
+								hasTooltip,
+								showCrosshair,
+								curveType,
+								tension
+							},
+							null,
+							2
+						)}</pre>
 				</div>
 			</details>
 		</section>
@@ -514,7 +540,7 @@ npm install date-fns svelte</code></pre>
 		color: #4b5563;
 	}
 
-	.range-label input[type="range"] {
+	.range-label input[type='range'] {
 		width: 100%;
 		margin-top: 0.5rem;
 	}
@@ -683,7 +709,8 @@ npm install date-fns svelte</code></pre>
 	}
 
 	.guide-section code {
-		font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+		font-family:
+			'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
 	}
 
 	@media (max-width: 768px) {
