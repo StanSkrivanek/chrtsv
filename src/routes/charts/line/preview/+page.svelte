@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import MultiLineChart from '$lib/components/charts/line/MultiLineChart.svelte'; // Your component
-
+	import generateTestData from '$lib/components/charts/utils/testDataGenerator';
 	// Types for our API data
 	interface DataPoint {
 		date: string;
@@ -372,6 +372,62 @@
 		}
 	}
 
+	// GENERATE data
+
+	// Dataset loading functions with better reactivity and debugging
+	function loadSmallDataset() {
+		console.log('Loading small dataset...');
+		chartData = generateTestData(50);
+
+		console.log(
+			'Small dataset loaded:',
+			chartData.length,
+			'lines,',
+			totalDataPoints,
+			'total points'
+		);
+	}
+
+	function loadMediumDataset() {
+		console.log('Loading medium dataset...');
+		chartData = generateTestData(500);
+
+		console.log(
+			'Medium dataset loaded:',
+			chartData.length,
+			'lines,',
+			totalDataPoints,
+			'total points'
+		);
+	}
+
+	function loadLargeDataset() {
+		console.log('Loading large dataset...');
+		chartData = generateTestData(2000);
+
+		console.log(
+			'Large dataset loaded:',
+			chartData.length,
+			'lines,',
+			totalDataPoints,
+			'total points'
+		);
+	}
+
+	function loadXLDataset() {
+		console.log('Loading XL dataset...');
+		chartData = generateTestData(10000);
+
+		console.log('XL dataset loaded:', chartData.length, 'lines,', totalDataPoints, 'total points');
+	}
+
+let selectedConfig = $state<keyof typeof currentConfig>('default');
+    const totalDataPoints = $derived(chartData.reduce((sum, line) => sum + line.data.length, 0));
+
+	const renderingMode = $derived(
+		totalDataPoints > (currentConfig.svgMaxPoints || 1000) ? 'Canvas' : 'SVG'
+	);
+
 	// Initialize with first dataset
 	onMount(() => {
 		selectedDataset = apiDatasets[0];
@@ -384,11 +440,27 @@
 	const avgPointsPerLine = $derived(
 		chartData.length > 0 ? Math.round(totalPoints / chartData.length) : 0
 	);
+
+
+    $effect(() => {
+		console.table({
+			lines: chartData.length,
+			totalPoints: totalDataPoints,
+			expectedMode: renderingMode,
+			firstLineDataLength: chartData[0]?.data?.length || 0,	
+		});
+
+		console.table({
+			selectedConfig,
+			svgMaxPoints: currentConfig.svgMaxPoints,
+			renderingMode,
+			totalPoints: totalDataPoints
+		});
+    })
 </script>
 
 <div class="demo-container">
 	<div class="control-panel">
-
 		<!-- Chart Controls -->
 		<div class="chart-controls">
 			<h3>Chart Options</h3>
@@ -462,8 +534,7 @@
 			</div>
 			<div class="sources">
 				<div class="dataset-selector">
-
-					<h3>Choose Dataset</h3>
+					<h3>Choose Dataset API</h3>
 					<div class="dataset-grid">
 						{#each apiDatasets as dataset}
 							<button
@@ -484,6 +555,15 @@
 								{/if} -->
 							</button>
 						{/each}
+					</div>
+					<div class="control-group">
+						<h3>Dataset Size</h3>
+						<div class="dataset-grid">
+							<button type="button" class="dataset-card" onclick={loadSmallDataset}> Small (50 points) </button>
+							<button type="button" class="dataset-card" onclick={loadMediumDataset}> Medium (500 points) </button>
+							<button type="button" class="dataset-card" onclick={loadLargeDataset}> Large (2K points) </button>
+							<button type="button" class="dataset-card" onclick={loadXLDataset}> XL (10K points) </button>
+						</div>
 					</div>
 				</div>
 			</div>
@@ -655,7 +735,11 @@
 		background: white;
 		cursor: pointer;
 		transition: all 0.2s ease;
-		text-align: left;
+		/* text-align: left; */
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		line-height: 1;
 	}
 
 	.dataset-card:hover {
@@ -737,7 +821,7 @@
 		overflow: hidden;
 		width: 51px;
 		height: 31px;
-		border-radius: 15.5px;
+		border-radius: 4px;
 		background-color: #e9e9ea;
 		transition: background-color 250ms;
 		vertical-align: middle;
@@ -756,7 +840,7 @@
 		position: absolute;
 		top: 2px;
 		left: 2px;
-		border-radius: 15.5px;
+		border-radius: 4px;
 		content: '';
 		display: inline-block;
 		width: 27px;
@@ -810,19 +894,19 @@
 	input[type='range'] {
 		outline: 0;
 		border: 0;
-		width: 300px;
+		width: 240px;
 		max-width: 100%;
 		margin: 24px 0 16px;
 		transition: box-shadow 0.2s ease-in-out;
 		@media screen and (-webkit-min-device-pixel-ratio: 0) {
 			& {
 				overflow: hidden;
-				height: 40px;
+				height: 34px;
 				appearance: none;
 				background-color: #ddd;
 			}
 			&::-webkit-slider-runnable-track {
-				height: 40px;
+				height: 34px;
 				-webkit-appearance: none;
 				color: #444;
 
@@ -831,12 +915,12 @@
 			&::-webkit-slider-thumb {
 				width: 40px;
 				-webkit-appearance: none;
-				height: 40px;
+				height: 34px;
 				cursor: ew-resize;
 				background: #fff;
 				box-shadow:
 					-340px 0 0 320px #2ed158,
-					inset 0 0 0 40px #1597ff;
+					inset 0 0 0 40px #fff;
 				border-radius: 4px;
 				transition: box-shadow 0.2s ease-in-out;
 				position: relative;
@@ -845,7 +929,7 @@
 				background: #fff;
 				box-shadow:
 					-340px 0 0 320px #2ed158,
-					inset 0 0 0 3px #1597ff;
+					inset 0 0 0 3px #fff;
 			}
 		}
 	}
