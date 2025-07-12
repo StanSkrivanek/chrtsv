@@ -48,7 +48,7 @@
 		yTickCount?: number;
 		curveType?: 'straight' | 'smooth';
 		tension?: number;
-		showCrosshair?: boolean;
+		hasCrosshair?: boolean;
 		performanceConfig?: PerformanceConfig;
 	}
 
@@ -137,7 +137,7 @@
 		yTickCount = 5,
 		tension = 0.3,
 		curveType = 'straight',
-		showCrosshair = false,
+		hasCrosshair = false,
 		performanceConfig = {}
 	}: ChartProps = $props();
 
@@ -230,12 +230,12 @@
 
 	// Derived state for tooltip logic
 	const shouldShowPointTooltip = $derived(
-		hasTooltip && !showCrosshair && tooltipVisible && tooltipData !== null
+		hasTooltip && !hasCrosshair && tooltipVisible && tooltipData !== null
 	);
 	const shouldShowCrosshairTooltip = $derived(
-		showCrosshair && hasTooltip && crosshairVisible && crosshairData !== null
+		hasCrosshair && hasTooltip && crosshairVisible && crosshairData !== null
 	);
-	const shouldShowCrosshairLines = $derived(showCrosshair && crosshairVisible);
+	const shouldShowCrosshairLines = $derived(hasCrosshair && crosshairVisible);
 
 	// Initialize worker
 	function initializeWorker(): void {
@@ -1077,7 +1077,7 @@
 
 	// Event handlers
 	function handlePointHover(e: MouseEvent, lineData: LinePathData, point: ChartDataPoint, index: number): void {
-		if (!showCrosshair && hasTooltip) {
+		if (!hasCrosshair && hasTooltip) {
 			const originalData = point.originalData;
 			tooltipData = {
 				x: point.x,
@@ -1093,7 +1093,7 @@
 	}
 
 	function handlePointLeave(): void {
-		if (!showCrosshair) {
+		if (!hasCrosshair) {
 			tooltipVisible = false;
 		}
 		hoveredLine = null;
@@ -1101,7 +1101,7 @@
 
 	// Throttled mouse move handler for crosshair
 	const throttledMouseMove = throttle((e: MouseEvent) => {
-		if (!showCrosshair || !chartData) return;
+		if (!hasCrosshair || !chartData) return;
 
 		const rect = (svgElement || canvasElement)?.getBoundingClientRect();
 		if (!rect) return;

@@ -85,6 +85,8 @@
 					showLegend={false}
 					height={280}
 					yTickCount={4}
+					hasTooltip={true}
+					hasCrosshair={true}
 				/>
 			</div>
 		</div>
