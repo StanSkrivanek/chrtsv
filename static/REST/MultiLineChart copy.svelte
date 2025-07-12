@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onDestroy, onMount, tick } from 'svelte';
 	import { fade } from 'svelte/transition';
+	// import { PerformanceMonitor } from '../utils/PerformanceMonitor';
 
 	// Types
 	interface DataPoint {
@@ -12,27 +13,6 @@
 		label: string;
 		color?: string;
 		data: DataPoint[];
-	}
-
-	interface PerformanceConfig {
-		// Device-specific limits
-		mobile?: number;
-		tablet?: number;
-		desktop?: number;
-		
-		// Rendering thresholds
-		svgMaxPoints?: number;
-		animationMaxPoints?: number;
-		
-		// Sampling configuration
-		enableDataSampling?: boolean;
-		useWebWorker?: boolean;
-		workerPath?: string;
-		sampleRate?: number; // For your existing worker (0.1 = 10% of points)
-		
-		// Performance settings
-		mouseMoveThrottle?: number;
-		resizeDebounce?: number;
 	}
 
 	interface ChartProps {
@@ -49,7 +29,13 @@
 		curveType?: 'straight' | 'smooth';
 		tension?: number;
 		showCrosshair?: boolean;
-		performanceConfig?: PerformanceConfig;
+		performanceConfig?: {
+			svgMaxPoints?: number;
+			animationMaxPoints?: number;
+			enableDataSampling?: boolean;
+			mouseMoveThrottle?: number;
+			resizeDebounce?: number;
+		};
 	}
 
 	// Props
@@ -68,57 +54,17 @@
 		curveType = 'straight',
 		showCrosshair = false,
 		performanceConfig = {}
-	}: ChartProps = $props();
+	} = $props();
 
-	// Device detection
-	function detectDeviceType(): 'mobile' | 'tablet' | 'desktop' {
-		if (typeof window === 'undefined') return 'desktop';
-		
-		const userAgent = navigator.userAgent;
-		const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
-		const isTablet = /(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i.test(userAgent);
-		
-		if (isMobile && !isTablet) return 'mobile';
-		if (isTablet) return 'tablet';
-		return 'desktop';
-	}
-
-	const deviceType = detectDeviceType();
-
-	// Enhanced performance configuration with device-aware defaults
-	const config = $derived(() => {
-		const deviceLimits = {
-			mobile: 300,
-			tablet: 500,
-			desktop: 1000
-		};
-
-		const defaults = {
-			// Device limits
-			mobile: deviceLimits.mobile,
-			tablet: deviceLimits.tablet,
-			desktop: deviceLimits.desktop,
-			
-			// Rendering thresholds
-			svgMaxPoints: 1500,
-			animationMaxPoints: 800,
-			
-			// Sampling with your existing worker
-			enableDataSampling: true,
-			useWebWorker: true,
-			workerPath: '/chart-worker.js',
-			sampleRate: 0.1, // Default 10% sampling rate
-			
-			// Performance
-			mouseMoveThrottle: 16,
-			resizeDebounce: 150
-		};
-
-		return { ...defaults, ...performanceConfig };
-	});
-
-	// Get current device limit
-	const maxPointsForDevice = $derived(config()[deviceType] || config().desktop);
+	// Performance configuration
+	const config = {
+		svgMaxPoints: 1000,
+		animationMaxPoints: 500,
+		enableDataSampling: true,
+		mouseMoveThrottle: 16,
+		resizeDebounce: 150,
+		...performanceConfig
+	};
 
 	// Svelte 5 runes
 	let svgElement = $state<SVGElement | null>(null);
@@ -130,18 +76,6 @@
 	let tooltipData = $state<any | null>(null);
 	let tooltipVisible = $state(false);
 	let canvasContext: CanvasRenderingContext2D | null = null;
-
-	// Worker and sampling state
-	let worker: Worker | null = null;
-	let sampledLines = $state<LineData[]>([]);
-	let samplingInProgress = $state(false);
-	let samplingStats = $state<{
-		originalPoints: number;
-		sampledPoints: number;
-		compressionRatio: number;
-		processingTime: number;
-		usedWorker: boolean;
-	} | null>(null);
 
 	// Chart dimensions
 	const margin = { top: 20, right: 20, bottom: 40, left: 60 };
@@ -156,190 +90,21 @@
 
 	// Determine rendering mode
 	const renderingMode = $derived(() => {
-		const configValue = config();
-		if (totalDataPoints > configValue.svgMaxPoints) return 'canvas';
-		if (totalDataPoints > configValue.animationMaxPoints) return 'svg-no-animation';
+		if (totalDataPoints > config.svgMaxPoints) return 'canvas';
+		if (totalDataPoints > config.animationMaxPoints) return 'svg-no-animation';
 		return 'svg-full';
 	});
 
+	// Get current rendering mode value
 	const currentRenderingMode = $derived(renderingMode());
 
-	// Initialize worker
-	function initializeWorker() {
-		if (!config().useWebWorker) return;
-
-		try {
-			worker = new Worker(config().workerPath);
-			console.log('Chart worker initialized');
-		} catch (error) {
-			console.warn('Failed to initialize worker:', error);
-			worker = null;
-		}
-	}
-
-	// Sample data using your existing worker
-	async function sampleDataWithWorker(data: DataPoint[]): Promise<DataPoint[]> {
-		if (!worker || !data.length) {
-			return data;
-		}
-
-		return new Promise((resolve, reject) => {
-			const timeout = setTimeout(() => {
-				reject(new Error('Worker timeout'));
-			}, 10000);
-
-			const handleMessage = (e: MessageEvent) => {
-				const { operation, success, result, error } = e.data;
-				
-				if (operation === 'sampleData') {
-					clearTimeout(timeout);
-					worker?.removeEventListener('message', handleMessage);
-					
-					if (success) {
-						resolve(result || data);
-					} else {
-						reject(new Error(error || 'Sampling failed'));
-					}
-				}
-			};
-
-			worker?.addEventListener('message', handleMessage);
-			
-			// Calculate sample rate based on target points
-			const targetPoints = maxPointsForDevice;
-			const sampleRate = Math.min(1, targetPoints / data.length);
-			
-			worker?.postMessage({
-				operation: 'sampleData',
-				data,
-				sampleRate,
-				xKey,
-				yKey
-			});
-		});
-	}
-
-	// Fallback: Simple uniform sampling on main thread
-	function uniformSample(data: DataPoint[], targetPoints: number): DataPoint[] {
-		if (data.length <= targetPoints) return data;
-		
-		const step = data.length / targetPoints;
-		const sampled: DataPoint[] = [];
-		
-		for (let i = 0; i < targetPoints; i++) {
-			const index = Math.round(i * step);
-			if (index < data.length) {
-				sampled.push(data[index]);
-			}
-		}
-		
-		// Always include first and last points
-		if (sampled.length > 0) {
-			sampled[0] = data[0];
-			sampled[sampled.length - 1] = data[data.length - 1];
-		}
-		
-		return sampled;
-	}
-
-	// Smart data sampling with worker integration
-	async function performSampling() {
-		if (!lines.length || !config().enableDataSampling) {
-			sampledLines = lines;
-			return;
-		}
-
-		const configValue = config();
-		const needsSampling = lines.some(line => line.data.length > maxPointsForDevice);
-		
-		if (!needsSampling) {
-			sampledLines = lines;
-			samplingStats = null;
-			return;
-		}
-
-		samplingInProgress = true;
-		const startTime = performance.now();
-		let usedWorker = false;
-
-		try {
-			const newSampledLines = await Promise.all(
-				lines.map(async (line) => {
-					if (line.data.length <= maxPointsForDevice) {
-						return line; // No sampling needed
-					}
-
-					let sampledData: DataPoint[];
-
-					// Try worker first, fallback to main thread
-					if (configValue.useWebWorker && worker) {
-						try {
-							sampledData = await sampleDataWithWorker(line.data);
-							usedWorker = true;
-						} catch (error) {
-							console.warn('Worker sampling failed, using main thread:', error);
-							sampledData = uniformSample(line.data, maxPointsForDevice);
-						}
-					} else {
-						sampledData = uniformSample(line.data, maxPointsForDevice);
-					}
-
-					return {
-						...line,
-						data: sampledData
-					};
-				})
-			);
-
-			sampledLines = newSampledLines;
-
-			// Calculate stats
-			const originalPoints = lines.reduce((sum, line) => sum + line.data.length, 0);
-			const sampledPoints = sampledLines.reduce((sum, line) => sum + line.data.length, 0);
-			const endTime = performance.now();
-
-			samplingStats = {
-				originalPoints,
-				sampledPoints,
-				compressionRatio: originalPoints / sampledPoints,
-				processingTime: endTime - startTime,
-				usedWorker
-			};
-
-			console.table({
-				deviceType,
-				maxPointsForDevice,
-				originalPoints: samplingStats.originalPoints,
-				sampledPoints: samplingStats.sampledPoints,
-				compressionRatio: samplingStats.compressionRatio.toFixed(2),
-				processingTime: `${samplingStats.processingTime.toFixed(1)}ms`,
-				usedWorker: samplingStats.usedWorker ? 'Yes' : 'No (fallback)'
-			});
-
-		} catch (error) {
-			console.error('Sampling failed:', error);
-			// Fallback to original data
-			sampledLines = lines;
-			samplingStats = null;
-		} finally {
-			samplingInProgress = false;
-		}
-	}
-
-	// Trigger sampling when data changes
-	$effect(() => {
-		if (mounted && lines.length > 0) {
-			performSampling();
-		}
-	});
-
-	// Process chart data (using sampled data)
+	// Process chart data
 	const chartData = $derived.by(() => {
-		if (!sampledLines.length || !mounted || width === 0 || chartHeight === 0) return null;
+		if (!lines.length || !mounted || width === 0 || chartHeight === 0) return null;
 
-		// Get all unique X values from sampled data
+		// Get all unique X values
 		const xValues = new Set<string>();
-		sampledLines.forEach((line) => {
+		lines.forEach((line: { data: any[] }) => {
 			line.data.forEach((d) => {
 				xValues.add(String(d[xKey]));
 			});
@@ -348,9 +113,24 @@
 
 		if (!allXValues.length) return null;
 
-		// Get Y value range from sampled data
+		// If data sampling is enabled, reduce the number of X values
+		if (config.enableDataSampling && allXValues.length > config.svgMaxPoints) {
+			const step = Math.ceil(allXValues.length / config.svgMaxPoints);
+			allXValues = allXValues.filter((_, i) => i % step === 0);
+			
+		console.table({
+			allXValues: allXValues.length,
+			ChartDataStep: step,
+			renderingMode:renderingMode(),
+			totalPoints: totalDataPoints,
+			configSampling: config.enableDataSampling,
+			maxPoints: config.svgMaxPoints
+
+		});
+		}
+		// Get Y value range
 		const allYValues: number[] = [];
-		sampledLines.forEach((line) => {
+		lines.forEach((line: { data: any[] }) => {
 			line.data.forEach((d) => {
 				allYValues.push(Number(d[yKey]));
 			});
@@ -390,66 +170,123 @@
 			yTicks: yTicks.reverse()
 		};
 	});
+	// $inspect('chartData allXValues', chartData?.allXValues.length || 0);
 
-	// Calculate line paths (using sampled data)
-	const linePaths = $derived.by(() => {
-		if (!chartData || !sampledLines.length) return [];
-		
-		return sampledLines.map((lineData, index) => {
-			const color = lineData.color || defaultColors[index % defaultColors.length];
-			const points: Array<{ x: number; y: number; originalData: any }> = [];
+const linePaths = $derived.by(() => {
+    if (!chartData) return [];
+    return lines.map(
+        (lineData: { color: string; data: any[]; id: any; label: any }, index: number) => {
+            const color = lineData.color || defaultColors[index % defaultColors.length];
+            const points: Array<{ x: number; y: number }> = [];
 
-			// For each X value, find the corresponding data point
-			chartData.allXValues.forEach((xValue, xIndex) => {
-				let dataPoint = lineData.data.find((d) => String(d[xKey]) === xValue);
-				if (!dataPoint) {
-					// If exact match not found, find the closest X
-					dataPoint = lineData.data.reduce((prev, curr) => {
-						return Math.abs(Number(curr[xKey]) - Number(xValue)) <
-							Math.abs(Number(prev[xKey]) - Number(xValue))
-							? curr
-							: prev;
-					}, lineData.data[0]);
-				}
-				
-				if (dataPoint) {
-					points.push({
-						x: chartData.xScale(xIndex),
-						y: chartData.yScale(Number(dataPoint[yKey])),
-						originalData: dataPoint
-					});
-				}
-			});
+            // For each sampled X, find the closest data point in this line
+            chartData.allXValues.forEach((xValue, xIndex) => {
+                // Find the data point with matching X, or closest X if not found
+                let dataPoint = lineData.data.find((d) => String(d[xKey]) === xValue);
+                if (!dataPoint) {
+                    // If exact match not found, find the closest X
+                    dataPoint = lineData.data.reduce((prev, curr) => {
+                        return Math.abs(Number(curr[xKey]) - Number(xValue)) <
+                            Math.abs(Number(prev[xKey]) - Number(xValue))
+                            ? curr
+                            : prev;
+                    }, lineData.data[0]);
+                }
+                points.push({
+                    x: chartData.xScale(xIndex),
+                    y: chartData.yScale(Number(dataPoint[yKey]))
+                });
+            });
 
-			// Generate path
-			let pathData = '';
-			if (points.length > 0) {
-				if (curveType === 'smooth' && tension > 0) {
-					pathData = `M ${points[0].x} ${points[0].y}`;
-					for (let i = 1; i < points.length; i++) {
-						const prev = points[i - 1];
-						const curr = points[i];
-						const cpx = (prev.x + curr.x) / 2;
-						pathData += ` Q ${cpx} ${prev.y} ${cpx} ${curr.y} L ${curr.x} ${curr.y}`;
-					}
-				} else {
-					pathData = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
-				}
-			}
+            // Generate path
+            let pathData = '';
+            if (points.length > 0) {
+                if (curveType === 'smooth' && tension > 0) {
+                    pathData = `M ${points[0].x} ${points[0].y}`;
+                    for (let i = 1; i < points.length; i++) {
+                        const prev = points[i - 1];
+                        const curr = points[i];
+                        const cpx = (prev.x + curr.x) / 2;
+                        pathData += ` Q ${cpx} ${prev.y} ${cpx} ${curr.y} L ${curr.x} ${curr.y}`;
+                    }
+                } else {
+                    pathData = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+                }
+            }
 
-			return {
-				id: lineData.id,
-				label: lineData.label,
-				color,
-				pathData,
-				points,
-				originalData: lineData.data
-			};
-		});
-	});
+            return {
+                id: lineData.id,
+                label: lineData.label,
+                color,
+                pathData,
+                points,
+                data: points // use points for tooltips etc.
+            };
+        }
+    );
+});
+
+
+
+
+	// Calculate line paths
+	// const linePaths = $derived.by(() => {
+	// 	if (!chartData) return [];
+	// 	console.log('🚀 ~ chartData in LINE PATHS:', chartData.allXValues.length);
+	// 	return lines.map(
+	// 		(lineData: { color: string; data: any[]; id: any; label: any }, index: number) => {
+	// 			const color = lineData.color || defaultColors[index % defaultColors.length];
+	// 			const points: Array<{ x: number; y: number }> = [];
+
+	// 			chartData.allXValues.forEach((xValue, xIndex) => {
+	// 				const dataPoint = lineData.data.find((d) => String(d[xKey]) === xValue);
+	// 				if (dataPoint) {
+	// 					points.push({
+	// 						x: chartData.xScale(xIndex),
+	// 						y: chartData.yScale(Number(dataPoint[yKey]))
+	// 					});
+	// 				}
+	// 			});
+
+	// 			// Generate path
+	// 			let pathData = '';
+	// 			if (points.length > 0) {
+	// 				if (curveType === 'smooth' && tension > 0) {
+	// 					// Simple smooth curve using quadratic bezier
+	// 					pathData = `M ${points[0].x} ${points[0].y}`;
+	// 					for (let i = 1; i < points.length; i++) {
+	// 						const prev = points[i - 1];
+	// 						const curr = points[i];
+	// 						const cpx = (prev.x + curr.x) / 2;
+	// 						pathData += ` Q ${cpx} ${prev.y} ${cpx} ${curr.y} L ${curr.x} ${curr.y}`;
+	// 					}
+	// 				} else {
+	// 					// Straight lines
+	// 					pathData = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+	// 				}
+	// 			}
+
+	// 			return {
+	// 				id: lineData.id,
+	// 				label: lineData.label,
+	// 				color,
+	// 				pathData,
+	// 				points,
+	// 				data: lineData.data
+	// 			};
+	// 		}
+	// 	);
+	// 	// console.log("🚀 ~ chartData.allXValues.forEach ~ chartData.allXValues:", chartData.allXValues)
+	// 	// console.log("🚀 ~ chartData.allXValues.forEach ~ chartData.allXValues:", chartData.allXValues)
+	// });
+	// TODO: can ve commented SVG rendering: measure and log performance after mount and updates
+	// const perfMonitor = new PerformanceMonitor(100, true);
 
 	// Canvas rendering function
 	function renderCanvas() {
+		// TODO: can ve commented SVG rendering: measure and log performance after mount and updates
+		// const start = perfMonitor.startRender();
+
 		if (!canvasElement || !canvasContext || !chartData || !linePaths.length) {
 			return;
 		}
@@ -472,9 +309,12 @@
 		drawCanvasAxes(canvasContext, chartData, rect.width, rect.height);
 
 		// Draw lines
-		linePaths.forEach((lineData) => {
+		linePaths.forEach((lineData: { id: string | null }) => {
 			drawCanvasLine(canvasContext!, lineData, hoveredLine === lineData.id);
 		});
+		// TODO: can ve commented SVG rendering: measure and log performance after mount and updates
+		// perfMonitor.endRender(start);
+		// perfMonitor.logSummary();
 	}
 
 	function drawCanvasAxes(
@@ -571,17 +411,16 @@
 		return value.toFixed(1);
 	}
 
-	// Throttle function that supports dynamic wait times
+	// Throttle function
 	function throttle<T extends (...args: any[]) => any>(
 		func: T,
-		waitOrGetter: number | (() => number)
+		wait: number
 	): (...args: Parameters<T>) => void {
 		let timeout: ReturnType<typeof setTimeout> | null = null;
 		let lastCallTime = 0;
 
 		return (...args: Parameters<T>) => {
 			const now = Date.now();
-			const wait = typeof waitOrGetter === 'function' ? waitOrGetter() : waitOrGetter;
 			const remaining = wait - (now - lastCallTime);
 
 			if (remaining <= 0) {
@@ -604,12 +443,12 @@
 	// Event handlers
 	function handlePointHover(e: MouseEvent, lineData: any, point: any, index: number) {
 		if (hasTooltip && !showCrosshair) {
-			const originalData = point.originalData;
+			const dataPoint = lineData.data[index];
 			tooltipData = {
 				x: point.x,
 				y: point.y,
-				value: formatYValue(Number(originalData[yKey])),
-				label: String(originalData[xKey]),
+				value: formatYValue(Number(dataPoint[yKey])),
+				label: String(dataPoint[xKey]),
 				lineLabel: lineData.label,
 				color: lineData.color
 			};
@@ -637,22 +476,25 @@
 			width = newWidth;
 			chartHeight = newHeight;
 		}
-	}, () => config().resizeDebounce);
+	}, config.resizeDebounce);
 
-	// Canvas rendering trigger
+	// Canvas rendering trigger - watches all relevant dependencies
 	$effect(() => {
 		if (currentRenderingMode === 'canvas' && mounted && canvasContext) {
+			// Create a dependency snapshot that will trigger re-renders
 			const deps = {
-				dataLength: sampledLines.length,
-				totalPoints: sampledLines.reduce((sum, line) => sum + line.data.length, 0),
+				dataLength: lines.length,
+				totalPoints: totalDataPoints,
 				hasChartData: !!chartData,
 				pathsLength: linePaths.length,
 				hover: hoveredLine,
 				dims: `${width}x${chartHeight}`
 			};
 
+			// Log for debugging
 			console.log('Canvas render triggered:', deps);
 
+			// Render with double RAF to ensure all updates are complete
 			requestAnimationFrame(() => {
 				requestAnimationFrame(() => {
 					renderCanvas();
@@ -667,6 +509,7 @@
 		if (currentRenderingMode === 'canvas' && mounted && canvasElement) {
 			canvasContext = canvasElement.getContext('2d');
 			console.log('Canvas context initialized');
+			// Trigger initial render if we have data
 			if (chartData && linePaths.length > 0) {
 				requestAnimationFrame(() => {
 					renderCanvas();
@@ -675,12 +518,20 @@
 		}
 	});
 
+	// TODO: can ve commented SVG rendering: measure and log performance after mount and updates
+	// $effect(() => {
+	// 	if (currentRenderingMode !== 'canvas' && mounted && chartData && linePaths.length > 0) {
+	// 		const start = perfMonitor.startRender();
+	// 		tick().then(() => {
+	// 			perfMonitor.endRender(start);
+	// 			perfMonitor.logSummary();
+	// 		});
+	// 	}
+	// });
+
 	// Lifecycle
 	onMount(() => {
 		mounted = true;
-
-		// Initialize worker
-		initializeWorker();
 
 		let resizeObserver: ResizeObserver;
 
@@ -703,39 +554,14 @@
 	onDestroy(() => {
 		mounted = false;
 		canvasContext = null;
-		
-		// Clean up worker
-		if (worker) {
-			worker.terminate();
-			worker = null;
-		}
 	});
 </script>
 
 <div class="multi-line-chart-container">
-	<!-- Performance & Sampling Info -->
-	{#if samplingInProgress}
-		<div class="sampling-notice processing">
-			<small>⚡ Processing {totalDataPoints.toLocaleString()} data points...</small>
-		</div>
-	{:else if samplingStats && samplingStats.compressionRatio > 1}
-		<div class="sampling-notice optimized">
-			<small>
-				📊 Optimized for {deviceType}: {samplingStats.originalPoints.toLocaleString()} → {samplingStats.sampledPoints.toLocaleString()} points 
-				({samplingStats.compressionRatio.toFixed(1)}x compression, {samplingStats.processingTime.toFixed(1)}ms)
-				{#if samplingStats.usedWorker}
-					🔧 Using Web Worker
-				{:else}
-					⚡ Main thread fallback
-				{/if}
-			</small>
-		</div>
-	{/if}
-
 	{#if currentRenderingMode === 'canvas'}
 		<div class="performance-notice">
 			<small>
-				🚀 Large dataset - Using Canvas rendering for optimal performance
+				Large dataset ({totalDataPoints.toLocaleString()} points) - Using Canvas rendering
 			</small>
 		</div>
 	{/if}
@@ -842,7 +668,7 @@
 											font-weight="600"
 											opacity={hoveredLine && hoveredLine !== lineData.id ? 0.3 : 1}
 										>
-											{formatYValue(Number(point.originalData[yKey]))}
+											{formatYValue(Number(lines.find(l => l.id === lineData.id)?.data[i]?.[yKey]))}
 										</text>
 									{/if}
 								{/each}
@@ -942,33 +768,6 @@
 		color: #0369a1;
 		text-align: center;
 		font-size: 12px;
-	}
-
-	.sampling-notice {
-		margin-bottom: 8px;
-		padding: 8px 12px;
-		border-radius: 4px;
-		text-align: center;
-		font-size: 12px;
-		font-weight: 500;
-	}
-
-	.sampling-notice.processing {
-		background: #fef3c7;
-		border: 1px solid #f59e0b;
-		color: #92400e;
-		animation: pulse 2s infinite;
-	}
-
-	.sampling-notice.optimized {
-		background: #f0fdf4;
-		border: 1px solid #22c55e;
-		color: #15803d;
-	}
-
-	@keyframes pulse {
-		0%, 100% { opacity: 1; }
-		50% { opacity: 0.7; }
 	}
 
 	.legend {
@@ -1094,12 +893,6 @@
 		}
 
 		.legend-item {
-			padding: 6px 10px;
-		}
-
-		.sampling-notice,
-		.performance-notice {
-			font-size: 11px;
 			padding: 6px 10px;
 		}
 	}

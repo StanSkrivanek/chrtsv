@@ -5,12 +5,12 @@
  * handling worker lifecycle, message passing, and promise-based APIs.
  */
 
-import type { SamplingConfig, SamplingAlgorithm } from './samplingAlgorithms';
+import type { SamplingConfig, SamplingAlgorithm, DataPoint } from './samplingAlgorithms';
 
 interface WorkerMessage {
 	type: 'sample' | 'batch' | 'benchmark' | 'analyze';
 	id: string;
-	data: any;
+	data: DataPoint[] | DataPoint[][];
 	config?: SamplingConfig;
 	configs?: SamplingConfig[];
 	algorithms?: SamplingAlgorithm[];
@@ -20,7 +20,8 @@ interface WorkerResponse {
 	type: 'result' | 'error' | 'progress' | 'ready';
 	id?: string;
 	success?: boolean;
-	data?: any;
+	data?: DataPoint[];
+	results?: SamplingResult[];
 	error?: string;
 	processingTime?: number;
 	originalLength?: number;
@@ -29,18 +30,44 @@ interface WorkerResponse {
 	completed?: number;
 	total?: number;
 	percentage?: number;
+	volatility?: number;
+	dataLength?: number;
+	recommendedAlgorithm?: SamplingAlgorithm;
+	totalProcessingTime?: number;
+	datasetsProcessed?: number;
+	algorithm?: string;
+}
+
+interface SamplingResult {
+	success: boolean;
+	data: DataPoint[];
+	originalLength: number;
+	sampledLength: number;
+	processingTime: number;
+	algorithm: string;
+	compressionRatio: number;
+}
+
+interface BenchmarkResult {
+	processingTime: number;
+	compressionRatio: number;
+	sampledPoints: number;
+	success: boolean;
+}
+
+interface ProgressCallback {
+	(progress: { completed: number; total: number; percentage: number }): void;
+}
+
+interface PendingRequest {
+	resolve: (value: WorkerResponse) => void;
+	reject: (reason?: Error) => void;
+	onProgress?: ProgressCallback;
 }
 
 export class SamplingWorkerManager {
 	private worker: Worker | null = null;
-	private pendingRequests = new Map<
-		string,
-		{
-			resolve: (value: any) => void;
-			reject: (reason?: any) => void;
-			onProgress?: (progress: { completed: number; total: number; percentage: number }) => void;
-		}
-	>();
+	private pendingRequests = new Map<string, PendingRequest>();
 	private isReady = false;
 	private readyPromise: Promise<void>;
 
@@ -120,8 +147,8 @@ export class SamplingWorkerManager {
 
 	private async sendMessage(
 		message: Omit<WorkerMessage, 'id'>,
-		onProgress?: (progress: { completed: number; total: number; percentage: number }) => void
-	): Promise<any> {
+		onProgress?: ProgressCallback
+	): Promise<WorkerResponse> {
 		await this.readyPromise;
 
 		if (!this.worker) {
@@ -131,7 +158,7 @@ export class SamplingWorkerManager {
 		const id = this.generateId();
 		const fullMessage: WorkerMessage = { ...message, id };
 
-		return new Promise((resolve, reject) => {
+		return new Promise<WorkerResponse>((resolve, reject) => {
 			this.pendingRequests.set(id, { resolve, reject, onProgress });
 			this.worker!.postMessage(fullMessage);
 		});
@@ -140,39 +167,38 @@ export class SamplingWorkerManager {
 	/**
 	 * Sample a single dataset
 	 */
-	async sampleData(
-		data: any[],
-		config: SamplingConfig
-	): Promise<{
-		success: boolean;
-		data: any[];
-		originalLength: number;
-		sampledLength: number;
-		processingTime: number;
-		algorithm: string;
-		compressionRatio: number;
-	}> {
-		return this.sendMessage({
+	async sampleData(data: DataPoint[], config: SamplingConfig): Promise<SamplingResult> {
+		const response = await this.sendMessage({
 			type: 'sample',
 			data,
 			config
 		});
+
+		return {
+			success: response.success || false,
+			data: response.data || [],
+			originalLength: response.originalLength || 0,
+			sampledLength: response.sampledLength || 0,
+			processingTime: response.processingTime || 0,
+			algorithm: response.algorithm || config.algorithm,
+			compressionRatio: response.compressionRatio || 1
+		};
 	}
 
 	/**
 	 * Sample multiple datasets in batch
 	 */
 	async batchSample(
-		datasets: any[][],
+		datasets: DataPoint[][],
 		configs: SamplingConfig[],
-		onProgress?: (progress: { completed: number; total: number; percentage: number }) => void
+		onProgress?: ProgressCallback
 	): Promise<{
 		success: boolean;
-		results: any[];
+		results: SamplingResult[];
 		totalProcessingTime: number;
 		datasetsProcessed: number;
 	}> {
-		return this.sendMessage(
+		const response = await this.sendMessage(
 			{
 				type: 'batch',
 				data: datasets,
@@ -180,39 +206,39 @@ export class SamplingWorkerManager {
 			},
 			onProgress
 		);
+
+		return {
+			success: response.success || false,
+			results: response.results || [],
+			totalProcessingTime: response.totalProcessingTime || 0,
+			datasetsProcessed: response.datasetsProcessed || 0
+		};
 	}
 
 	/**
 	 * Benchmark different algorithms
 	 */
 	async benchmarkAlgorithms(
-		data: any[],
+		data: DataPoint[],
 		algorithms: SamplingAlgorithm[],
 		targetPoints: number
-	): Promise<
-		Record<
-			SamplingAlgorithm,
-			{
-				processingTime: number;
-				compressionRatio: number;
-				sampledPoints: number;
-				success: boolean;
-			}
-		>
-	> {
-		return this.sendMessage({
+	): Promise<Record<SamplingAlgorithm, BenchmarkResult>> {
+		const response = await this.sendMessage({
 			type: 'benchmark',
 			data,
 			algorithms,
 			config: { algorithm: 'uniform', targetPoints }
 		});
+
+		// The response should contain the benchmark results
+		return response as unknown as Record<SamplingAlgorithm, BenchmarkResult>;
 	}
 
 	/**
 	 * Analyze data characteristics
 	 */
 	async analyzeData(
-		data: any[],
+		data: DataPoint[],
 		yKey = 'value'
 	): Promise<{
 		success: boolean;
@@ -220,11 +246,18 @@ export class SamplingWorkerManager {
 		dataLength: number;
 		recommendedAlgorithm: SamplingAlgorithm;
 	}> {
-		return this.sendMessage({
+		const response = await this.sendMessage({
 			type: 'analyze',
 			data,
 			config: { algorithm: 'uniform', targetPoints: 100, yKey }
 		});
+
+		return {
+			success: response.success || false,
+			volatility: response.volatility || 0,
+			dataLength: response.dataLength || 0,
+			recommendedAlgorithm: response.recommendedAlgorithm || 'uniform'
+		};
 	}
 
 	/**
@@ -273,10 +306,10 @@ export function getSamplingWorker(workerPath?: string): SamplingWorkerManager {
  * Sample data with automatic fallback to main thread
  */
 export async function sampleDataSafe(
-	data: any[],
+	data: DataPoint[],
 	config: SamplingConfig,
 	useWorker = true
-): Promise<any[]> {
+): Promise<DataPoint[]> {
 	// For small datasets, use main thread
 	if (data.length < 5000 || !useWorker) {
 		const { sampleData } = await import('./samplingAlgorithms');
@@ -333,15 +366,9 @@ export function getOptimalSamplingConfig(
  * Progress tracking utility
  */
 export class SamplingProgress {
-	private callbacks: ((progress: {
-		completed: number;
-		total: number;
-		percentage: number;
-	}) => void)[] = [];
+	private callbacks: ProgressCallback[] = [];
 
-	onProgress(
-		callback: (progress: { completed: number; total: number; percentage: number }) => void
-	): void {
+	onProgress(callback: ProgressCallback): void {
 		this.callbacks.push(callback);
 	}
 
@@ -359,17 +386,17 @@ export class SamplingProgress {
  */
 export class ChartSamplingManager {
 	private worker: SamplingWorkerManager;
-	private cache = new Map<string, any[]>();
+	private cache = new Map<string, DataPoint[]>();
 
 	constructor(workerPath?: string) {
 		this.worker = new SamplingWorkerManager(workerPath);
 	}
 
 	async sampleForChart(
-		data: any[],
+		data: DataPoint[],
 		chartWidth: number,
 		deviceType: 'mobile' | 'tablet' | 'desktop' | 'highPerformance' = 'desktop'
-	): Promise<any[]> {
+	): Promise<DataPoint[]> {
 		// Calculate optimal points based on chart width (roughly 1 point per 2 pixels)
 		const optimalPoints = Math.min(Math.floor(chartWidth / 2), data.length);
 		const config = getOptimalSamplingConfig(data.length, deviceType);
