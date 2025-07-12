@@ -717,6 +717,39 @@
 		};
 	});
 
+	// Path generation utilities
+	function createStraightPath(points: Array<{ x: number; y: number }>): string {
+		if (points.length === 0) return '';
+		return points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(' ');
+	}
+
+	function createSmoothPath(points: Array<{ x: number; y: number }>, tension: number): string {
+		if (points.length < 2) return createStraightPath(points);
+		
+		const path = [`M ${points[0].x.toFixed(2)} ${points[0].y.toFixed(2)}`];
+		
+		if (points.length === 2) {
+			path.push(`L ${points[1].x.toFixed(2)} ${points[1].y.toFixed(2)}`);
+		} else {
+			for (let i = 0; i < points.length - 1; i++) {
+				const p0 = points[Math.max(0, i - 1)];
+				const p1 = points[i];
+				const p2 = points[i + 1];
+				const p3 = points[Math.min(points.length - 1, i + 2)];
+
+				// Catmull-Rom control points with proper tension
+				const cp1x = p1.x + ((p2.x - p0.x) * tension) / 6;
+				const cp1y = p1.y + ((p2.y - p0.y) * tension) / 6;
+				const cp2x = p2.x - ((p3.x - p1.x) * tension) / 6;
+				const cp2y = p2.y - ((p3.y - p1.y) * tension) / 6;
+
+				path.push(`C ${cp1x.toFixed(2)} ${cp1y.toFixed(2)}, ${cp2x.toFixed(2)} ${cp2y.toFixed(2)}, ${p2.x.toFixed(2)} ${p2.y.toFixed(2)}`);
+			}
+		}
+		
+		return path.join(' ');
+	}
+
 	// Calculate line paths (using sampled data)
 	const linePaths = $derived.by((): LinePathData[] => {
 		if (!chartData || !sampledLines.length) return [];
@@ -747,19 +780,13 @@
 				}
 			});
 
-			// Generate path
+			// Generate path using improved smooth curve algorithm
 			let pathData = '';
 			if (points.length > 0) {
 				if (curveType === 'smooth' && tension > 0) {
-					pathData = `M ${points[0].x} ${points[0].y}`;
-					for (let i = 1; i < points.length; i++) {
-						const prev = points[i - 1];
-						const curr = points[i];
-						const cpx = (prev.x + curr.x) / 2;
-						pathData += ` Q ${cpx} ${prev.y} ${cpx} ${curr.y} L ${curr.x} ${curr.y}`;
-					}
+					pathData = createSmoothPath(points, tension);
 				} else {
-					pathData = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+					pathData = createStraightPath(points);
 				}
 			}
 
@@ -867,15 +894,23 @@
 		ctx.lineWidth = isHovered ? 3 : 2;
 		ctx.globalAlpha = hoveredLine && !isHovered ? 0.3 : 1;
 
-		// Draw line
+		// Draw line using the same smooth curve algorithm as SVG
 		ctx.beginPath();
-		lineData.points.forEach((point, i) => {
-			if (i === 0) {
-				ctx.moveTo(point.x, point.y);
+		if (lineData.points.length > 0) {
+			if (curveType === 'smooth' && tension > 0) {
+				// Use smooth curve for canvas
+				drawSmoothCanvasLine(ctx, lineData.points, tension);
 			} else {
-				ctx.lineTo(point.x, point.y);
+				// Straight line
+				lineData.points.forEach((point, i) => {
+					if (i === 0) {
+						ctx.moveTo(point.x, point.y);
+					} else {
+						ctx.lineTo(point.x, point.y);
+					}
+				});
 			}
-		});
+		}
 		ctx.stroke();
 
 		// Draw points
@@ -890,6 +925,31 @@
 		});
 
 		ctx.globalAlpha = 1;
+	}
+
+	function drawSmoothCanvasLine(ctx: CanvasRenderingContext2D, points: ChartDataPoint[], tension: number): void {
+		if (points.length < 2) return;
+
+		ctx.moveTo(points[0].x, points[0].y);
+
+		if (points.length === 2) {
+			ctx.lineTo(points[1].x, points[1].y);
+		} else {
+			for (let i = 0; i < points.length - 1; i++) {
+				const p0 = points[Math.max(0, i - 1)];
+				const p1 = points[i];
+				const p2 = points[i + 1];
+				const p3 = points[Math.min(points.length - 1, i + 2)];
+
+				// Catmull-Rom control points with proper tension
+				const cp1x = p1.x + ((p2.x - p0.x) * tension) / 6;
+				const cp1y = p1.y + ((p2.y - p0.y) * tension) / 6;
+				const cp2x = p2.x - ((p3.x - p1.x) * tension) / 6;
+				const cp2y = p2.y - ((p3.y - p1.y) * tension) / 6;
+
+				ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y);
+			}
+		}
 	}
 
 	function drawCanvasCrosshair(ctx: CanvasRenderingContext2D, crosshairData: CrosshairData): void {
