@@ -5,7 +5,7 @@
  * handling worker lifecycle, message passing, and promise-based APIs.
  */
 
-import type { SamplingConfig, SamplingAlgorithm, DataPoint } from './samplingAlgorithms';
+import type { SamplingConfig, SamplingAlgorithm, DataPoint } from './backup/line/md/samplingAlgorithms';
 
 interface WorkerMessage {
 	type: 'sample' | 'batch' | 'benchmark' | 'analyze';
@@ -312,7 +312,7 @@ export async function sampleDataSafe(
 ): Promise<DataPoint[]> {
 	// For small datasets, use main thread
 	if (data.length < 5000 || !useWorker) {
-		const { sampleData } = await import('./samplingAlgorithms');
+		const { sampleData } = await import('./backup/line/md/samplingAlgorithms');
 		return sampleData(data, config);
 	}
 
@@ -322,7 +322,7 @@ export async function sampleDataSafe(
 		return result.data;
 	} catch (error) {
 		console.warn('Worker sampling failed, falling back to main thread:', error);
-		const { sampleData } = await import('./samplingAlgorithms');
+		const { sampleData } = await import('./backup/line/md/samplingAlgorithms');
 		return sampleData(data, config);
 	}
 }

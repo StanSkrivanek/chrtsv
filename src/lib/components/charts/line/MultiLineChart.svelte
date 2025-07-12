@@ -109,6 +109,20 @@
 		color: string;
 	}
 
+	// Enhanced crosshair interfaces
+	interface CrosshairData {
+		x: number;
+		y: number;
+		xLabel: string;
+		values: Array<{
+			lineId: string;
+			lineLabel: string;
+			value: string;
+			color: string;
+			y: number;
+		}>;
+	}
+
 	// Props
 	let {
 		lines = [],
@@ -181,6 +195,12 @@
 	let tooltipVisible = $state(false);
 	let canvasContext: CanvasRenderingContext2D | null = null;
 
+	// Crosshair state
+	let crosshairVisible = $state(false);
+	let crosshairData = $state<CrosshairData | null>(null);
+	let mouseX = $state(0);
+	let mouseY = $state(0);
+
 	// Worker and sampling state
 	let worker: Worker | null = null;
 	let sampledLines = $state<LineData[]>([]);
@@ -207,6 +227,15 @@
 	});
 
 	const currentRenderingMode = $derived(renderingMode());
+
+	// Derived state for tooltip logic
+	const shouldShowPointTooltip = $derived(
+		hasTooltip && !showCrosshair && tooltipVisible && tooltipData !== null
+	);
+	const shouldShowCrosshairTooltip = $derived(
+		showCrosshair && hasTooltip && crosshairVisible && crosshairData !== null
+	);
+	const shouldShowCrosshairLines = $derived(showCrosshair && crosshairVisible);
 
 	// Initialize worker
 	function initializeWorker(): void {
@@ -588,6 +617,40 @@
 		return sampled;
 	}
 
+	// Helper function to parse dates
+	function parseDate(dateString: string): Date | null {
+		if (!dateString) return null;
+
+		try {
+			// Try ISO format first
+			const isoDate = new Date(dateString);
+			if (!isNaN(isoDate.getTime())) return isoDate;
+		} catch (e) {}
+
+		try {
+			// Try parsing as number (timestamp)
+			const timestamp = Number(dateString);
+			if (!isNaN(timestamp)) {
+				const date = new Date(timestamp);
+				if (!isNaN(date.getTime())) return date;
+			}
+		} catch (e) {}
+
+		return null;
+	}
+
+	// Helper function to format dates for display
+	function formatDateForDisplay(dateString: string): string {
+		const date = parseDate(dateString);
+		if (date) {
+			return date.toLocaleDateString('en-US', { 
+				month: 'short', 
+				day: 'numeric' 
+			});
+		}
+		return String(dateString).substring(0, 10);
+	}
+
 	// Trigger sampling when data changes
 	$effect(() => {
 		if (mounted && lines.length > 0) {
@@ -649,7 +712,8 @@
 			yMax: yMaxWithPadding,
 			xScale,
 			yScale,
-			yTicks: yTicks.reverse()
+			yTicks: yTicks.reverse(),
+			hasNegativeValues: yMin < 0
 		};
 	});
 
@@ -737,6 +801,11 @@
 		linePaths.forEach((lineData) => {
 			drawCanvasLine(canvasContext!, lineData, hoveredLine === lineData.id);
 		});
+
+		// Draw crosshair in canvas mode
+		if (shouldShowCrosshairLines && crosshairData) {
+			drawCanvasCrosshair(canvasContext, crosshairData);
+		}
 	}
 
 	function drawCanvasAxes(
@@ -779,14 +848,14 @@
 			// Label
 			ctx.fillStyle = '#64748b';
 			ctx.textAlign = 'right';
-			ctx.fillText(tickValue.toFixed(1), margin.left - 10, y + 4);
+			ctx.fillText(formatYValue(tickValue), margin.left - 10, y + 4);
 		});
 
 		// X-axis labels
 		const tickInterval = Math.max(1, Math.ceil(chartData.allXValues.length / 7));
 		for (let i = 0; i < chartData.allXValues.length; i += tickInterval) {
 			const x = chartData.xScale(i);
-			const label = chartData.allXValues[i];
+			const label = formatDateForDisplay(chartData.allXValues[i]);
 
 			ctx.textAlign = 'center';
 			ctx.fillText(label, x, margin.top + chartHeight + 20);
@@ -821,6 +890,39 @@
 		});
 
 		ctx.globalAlpha = 1;
+	}
+
+	function drawCanvasCrosshair(ctx: CanvasRenderingContext2D, crosshairData: CrosshairData): void {
+		ctx.strokeStyle = '#6b7280';
+		ctx.lineWidth = 1;
+		ctx.setLineDash([4, 4]);
+		ctx.globalAlpha = 0.7;
+
+		// Vertical line
+		ctx.beginPath();
+		ctx.moveTo(crosshairData.x, margin.top);
+		ctx.lineTo(crosshairData.x, margin.top + chartHeight);
+		ctx.stroke();
+
+		// Horizontal line
+		ctx.beginPath();
+		ctx.moveTo(margin.left, crosshairData.y);
+		ctx.lineTo(margin.left + width, crosshairData.y);
+		ctx.stroke();
+
+		ctx.setLineDash([]);
+		ctx.globalAlpha = 1;
+
+		// Draw crosshair points
+		crosshairData.values.forEach((valueData) => {
+			ctx.beginPath();
+			ctx.arc(crosshairData.x, valueData.y, 4, 0, 2 * Math.PI);
+			ctx.fillStyle = valueData.color;
+			ctx.fill();
+			ctx.strokeStyle = '#ffffff';
+			ctx.lineWidth = 2;
+			ctx.stroke();
+		});
 	}
 
 	// Helper functions
@@ -863,15 +965,65 @@
 		};
 	}
 
+	// Crosshair update function
+	function updateCrosshair(x: number, y: number) {
+		if (!chartData) return;
+
+		let nearestXIndex = 0;
+		let minDistance = Infinity;
+
+		for (let i = 0; i < chartData.allXValues.length; i++) {
+			const distance = Math.abs(x - chartData.xScale(i));
+			if (distance < minDistance) {
+				minDistance = distance;
+				nearestXIndex = i;
+			}
+		}
+
+		const currentXValue = chartData.allXValues[nearestXIndex];
+		const parsedDate = parseDate(currentXValue);
+		const xLabel = parsedDate ? formatDateForDisplay(currentXValue) : currentXValue;
+
+		const values = linePaths
+			.map((lineData: LinePathData) => {
+				const dataPoint = lineData.originalData.find((d) => String(d[xKey]) === currentXValue);
+				if (dataPoint) {
+					const yValue = Number(dataPoint[yKey]);
+					return {
+						lineId: lineData.id,
+						lineLabel: lineData.label,
+						value: formatYValue(yValue),
+						color: lineData.color,
+						y: chartData.yScale(yValue)
+					};
+				}
+				return null;
+			})
+			.filter(Boolean) as Array<{
+				lineId: string;
+				lineLabel: string;
+				value: string;
+				color: string;
+				y: number;
+			}>;
+
+		crosshairData = {
+			x: chartData.xScale(nearestXIndex),
+			y,
+			xLabel,
+			values
+		};
+	}
+
 	// Event handlers
 	function handlePointHover(e: MouseEvent, lineData: LinePathData, point: ChartDataPoint, index: number): void {
-		if (hasTooltip && !showCrosshair) {
+		if (!showCrosshair && hasTooltip) {
 			const originalData = point.originalData;
 			tooltipData = {
 				x: point.x,
 				y: point.y,
 				value: formatYValue(Number(originalData[yKey])),
-				label: String(originalData[xKey]),
+				label: formatDateForDisplay(String(originalData[xKey])),
 				lineLabel: lineData.label,
 				color: lineData.color
 			};
@@ -881,9 +1033,31 @@
 	}
 
 	function handlePointLeave(): void {
-		tooltipVisible = false;
+		if (!showCrosshair) {
+			tooltipVisible = false;
+		}
 		hoveredLine = null;
 	}
+
+	// Throttled mouse move handler for crosshair
+	const throttledMouseMove = throttle((e: MouseEvent) => {
+		if (!showCrosshair || !chartData) return;
+
+		const rect = (svgElement || canvasElement)?.getBoundingClientRect();
+		if (!rect) return;
+
+		mouseX = e.clientX - rect.left;
+		mouseY = e.clientY - rect.top;
+
+		if (
+			mouseX >= margin.left &&
+			mouseX <= margin.left + width &&
+			mouseY >= margin.top &&
+			mouseY <= margin.top + chartHeight
+		) {
+			updateCrosshair(mouseX, mouseY);
+		}
+	}, () => config().mouseMoveThrottle);
 
 	// Resize handler
 	const handleResize = throttle(() => {
@@ -910,7 +1084,8 @@
 				hasChartData: !!chartData,
 				pathsLength: linePaths.length,
 				hover: hoveredLine,
-				dims: `${width}x${chartHeight}`
+				dims: `${width}x${chartHeight}`,
+				crosshair: crosshairData?.x
 			};
 
 			console.log('Canvas render triggered:', deps);
@@ -1010,6 +1185,13 @@
 				width={width + margin.left + margin.right}
 				{height}
 				aria-label="Line chart: {title}"
+				onmousemove={throttledMouseMove}
+				onmouseleave={() => {
+					crosshairVisible = false;
+				}}
+				onmouseenter={() => {
+					crosshairVisible = true;
+				}}
 			></canvas>
 		{:else}
 			<svg
@@ -1019,6 +1201,13 @@
 				{height}
 				role="img"
 				aria-label="Line chart: {title}"
+				onmousemove={throttledMouseMove}
+				onmouseleave={() => {
+					crosshairVisible = false;
+				}}
+				onmouseenter={() => {
+					crosshairVisible = true;
+				}}
 			>
 				{#if chartData && linePaths.length > 0}
 					<g>
@@ -1043,7 +1232,7 @@
 									<g transform="translate({chartData.xScale(i)}, 0)">
 										<line y2="6" stroke="#94a3b8" />
 										<text y="20" text-anchor="middle" fill="#64748b" font-size="12px">
-											{xValue}
+											{formatDateForDisplay(xValue)}
 										</text>
 									</g>
 								{/if}
@@ -1058,7 +1247,14 @@
 								<g transform="translate(0, {chartData.yScale(tickValue)})">
 									<line x2="-6" stroke="#94a3b8" />
 									<line x1="0" y1="0" x2={width} y2="0" stroke="#e2e8f0" stroke-dasharray="4,4" />
-									<text x="-10" y="4" text-anchor="end" fill="#64748b" font-size="12px">
+									<text
+										x="-10"
+										y="4"
+										text-anchor="end"
+										fill={tickValue === 0 ? '#374151' : '#64748b'}
+										font-size="12px"
+										font-weight={tickValue === 0 ? 'bold' : 'normal'}
+									>
 										{formatYValue(tickValue)}
 									</text>
 								</g>
@@ -1110,6 +1306,48 @@
 								{/each}
 							</g>
 						{/each}
+
+						<!-- Crosshair lines -->
+						{#if shouldShowCrosshairLines && crosshairData}
+							<g class="crosshair-group" opacity="1">
+								<!-- Vertical line -->
+								<line
+									x1={crosshairData.x}
+									y1={margin.top}
+									x2={crosshairData.x}
+									y2={margin.top + chartHeight}
+									stroke="#6b7280"
+									stroke-width="1"
+									stroke-dasharray="4,4"
+									opacity="0.7"
+								/>
+
+								<!-- Horizontal line -->
+								<line
+									x1={margin.left}
+									y1={crosshairData.y}
+									x2={margin.left + width}
+									y2={crosshairData.y}
+									stroke="#6b7280"
+									stroke-width="1"
+									stroke-dasharray="4,4"
+									opacity="0.7"
+								/>
+
+								<!-- Crosshair points -->
+								{#each crosshairData.values as valueData}
+									<circle
+										cx={crosshairData.x}
+										cy={valueData.y}
+										r="4"
+										fill={valueData.color}
+										stroke="#ffffff"
+										stroke-width="2"
+										opacity="0.9"
+									/>
+								{/each}
+							</g>
+						{/if}
 					</g>
 				{/if}
 			</svg>
@@ -1140,8 +1378,8 @@
 		</div>
 	{/if}
 
-	<!-- Tooltip -->
-	{#if hasTooltip && tooltipVisible && tooltipData}
+	<!-- Point tooltip -->
+	{#if shouldShowPointTooltip && tooltipData}
 		{@const tooltipX = tooltipData.x}
 		{@const tooltipY = tooltipData.y - 20}
 		{@const shouldFlipX = tooltipX > width - 120}
@@ -1151,6 +1389,8 @@
 			class="tooltip"
 			style="left: {tooltipX}px; top: {shouldFlipY ? tooltipY + 40 : tooltipY}px; 
 			       transform: translate({shouldFlipX ? '-100%' : '-50%'}, {shouldFlipY ? '10px' : '-100%'});"
+			role="tooltip"
+			aria-live="polite"
 		>
 			<div class="tooltip-content">
 				<div class="tooltip-header">{tooltipData.label}</div>
@@ -1163,6 +1403,38 @@
 						<span class="tooltip-line-label">{tooltipData.lineLabel}:</span>
 						<span class="tooltip-value">{tooltipData.value}</span>
 					</div>
+				</div>
+			</div>
+		</div>
+	{/if}
+
+	<!-- Crosshair tooltip -->
+	{#if shouldShowCrosshairTooltip && crosshairData}
+		{@const tooltipX = crosshairData.x}
+		{@const tooltipY = crosshairData.y - 20}
+		{@const shouldFlipX = tooltipX > width - 120}
+		{@const shouldFlipY = tooltipY < 80}
+
+		<div
+			class="tooltip crosshair-tooltip"
+			style="left: {tooltipX}px; top: {shouldFlipY ? tooltipY + 40 : tooltipY}px; 
+			       transform: translate({shouldFlipX ? '-100%' : '-50%'}, {shouldFlipY ? '10px' : '-100%'});"
+			role="tooltip"
+			aria-live="polite"
+		>
+			<div class="tooltip-content">
+				<div class="tooltip-header">{crosshairData.xLabel}</div>
+				<div class="tooltip-values">
+					{#each crosshairData.values as valueData (valueData.lineId)}
+						<div class="tooltip-value-row">
+							<div
+								class="tooltip-color-indicator"
+								style="background-color: {valueData.color}"
+							></div>
+							<span class="tooltip-line-label">{valueData.lineLabel}:</span>
+							<span class="tooltip-value">{valueData.value}</span>
+						</div>
+					{/each}
 				</div>
 			</div>
 		</div>
@@ -1253,12 +1525,19 @@
 		border-radius: 4px;
 		transition: all 0.2s ease;
 		transform-origin: center;
+		border: 2px solid transparent;
+		outline: none;
 	}
 
 	.legend-item:hover {
 		background: #e2e8f0;
 		transform: translateY(-2px);
 		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+	}
+
+	.legend-item:focus {
+		border-color: #3b82f6;
+		box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
 	}
 
 	.legend-item.hovered {
@@ -1296,6 +1575,8 @@
 		pointer-events: none;
 		z-index: 20;
 		max-width: 240px;
+		opacity: 1;
+		transition: opacity 0.15s ease;
 	}
 
 	.tooltip-content {
@@ -1305,6 +1586,8 @@
 		border-radius: 8px;
 		font-size: 12px;
 		box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+		backdrop-filter: blur(10px);
+		border: 1px solid rgba(255, 255, 255, 0.15);
 		min-width: 120px;
 	}
 
@@ -1315,6 +1598,7 @@
 		border-bottom: 1px solid rgba(255, 255, 255, 0.25);
 		font-size: 13px;
 		text-align: center;
+		color: #ffffff;
 	}
 
 	.tooltip-values {
@@ -1327,6 +1611,7 @@
 		display: flex;
 		align-items: center;
 		gap: 8px;
+		padding: 2px 0;
 	}
 
 	.tooltip-color-indicator {
@@ -1334,11 +1619,16 @@
 		height: 10px;
 		border-radius: 50%;
 		flex-shrink: 0;
+		border: 1px solid rgba(255, 255, 255, 0.2);
 	}
 
 	.tooltip-line-label {
 		font-weight: 500;
 		flex: 1;
+		min-width: 0;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 		color: #e5e7eb;
 	}
 
@@ -1347,6 +1637,7 @@
 		font-size: 13px;
 		color: #ffffff;
 		text-align: right;
+		flex-shrink: 0;
 	}
 
 	@media (max-width: 768px) {
@@ -1363,6 +1654,12 @@
 		.performance-notice {
 			font-size: 11px;
 			padding: 6px 10px;
+		}
+
+		.tooltip-content {
+			font-size: 11px;
+			padding: 8px 10px;
+			min-width: 100px;
 		}
 	}
 </style>

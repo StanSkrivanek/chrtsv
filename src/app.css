@@ -109,7 +109,7 @@
 
 	--clr-red: oklch(64.963% 0.23835 17.882); /* Red */
 	--clr-green: oklch(77.053% 0.21614 146.915); /* Green */
-	--clr-blue: oklch(70.72% 0.16803 242.065) /* RED */ --color-red-50: oklch(0.971 0.013 17.38);
+	--clr-blue: oklch(70.72% 0.16803 242.065) 
 	--color-red-100: oklch(0.936 0.032 17.717);
 	--color-red-200: oklch(0.885 0.062 18.334);
 	--color-red-300: oklch(0.808 0.114 19.571);

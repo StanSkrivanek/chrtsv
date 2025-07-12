@@ -16,7 +16,7 @@ self.onmessage = function(e) {
 				result = sampleLargeDataset(data, e.data.sampleRate || 0.1);
 				break;
 				
-			// NEW: Multi-line sampling with consistent X-axis
+			//Multi-line sampling with consistent X-axis
 			case 'sampleMultipleLines':
 				result = sampleMultipleLines(data, e.data.sampleRate || 0.1, xKey, yKey);
 				break;
