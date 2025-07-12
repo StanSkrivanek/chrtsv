@@ -1,5 +1,5 @@
 // File: static/chart-worker.js
-// Web Worker for processing large datasets
+// Enhanced Web Worker for processing large multi-line datasets
 
 self.onmessage = function(e) {
 	const { data, xKey, yKey, operation } = e.data;
@@ -14,6 +14,11 @@ self.onmessage = function(e) {
 				
 			case 'sampleData':
 				result = sampleLargeDataset(data, e.data.sampleRate || 0.1);
+				break;
+				
+			// NEW: Multi-line sampling with consistent X-axis
+			case 'sampleMultipleLines':
+				result = sampleMultipleLines(data, e.data.sampleRate || 0.1, xKey, yKey);
 				break;
 				
 			case 'calculateStatistics':
@@ -43,6 +48,233 @@ self.onmessage = function(e) {
 	}
 };
 
+// Enhanced multi-line sampling function with better error handling
+function sampleMultipleLines(lines, sampleRate, xKey) {
+	console.log('Worker: Starting sampleMultipleLines');
+	console.log('Worker: Lines type:', typeof lines, 'Is array:', Array.isArray(lines));
+	
+	if (!Array.isArray(lines) || lines.length === 0) {
+		console.log('Worker: Invalid or empty lines data');
+		return {
+			lines: lines || [],
+			metadata: null
+		};
+	}
+	
+	try {
+		console.log('Worker: Processing', lines.length, 'lines for sampling');
+		
+		// Step 1: Collect all unique X values across all lines
+		const allXValues = new Set();
+		const xValueCounts = new Map();
+		
+		lines.forEach((line, lineIndex) => {
+			console.log(`Worker: Processing line ${lineIndex}:`, {
+				id: line.id,
+				label: line.label,
+				dataLength: line.data ? line.data.length : 'no data'
+			});
+			
+			if (!line.data || !Array.isArray(line.data)) {
+				console.warn(`Worker: Line ${lineIndex} has invalid data`);
+				return;
+			}
+			
+			line.data.forEach((point, pointIndex) => {
+				if (!point || typeof point !== 'object') {
+					console.warn(`Worker: Line ${lineIndex}, point ${pointIndex} is invalid:`, point);
+					return;
+				}
+				
+				if (!(xKey in point)) {
+					console.warn(`Worker: Line ${lineIndex}, point ${pointIndex} missing xKey '${xKey}':`, point);
+					return;
+				}
+				
+				const xVal = String(point[xKey]);
+				allXValues.add(xVal);
+				xValueCounts.set(xVal, (xValueCounts.get(xVal) || 0) + 1);
+			});
+		});
+		
+		// Step 2: Sort X values (handle dates if needed)
+		const sortedXValues = Array.from(allXValues).sort((a, b) => {
+			if (isDateString(a) && isDateString(b)) {
+				return new Date(a).getTime() - new Date(b).getTime();
+			}
+			// Try numeric comparison
+			const numA = Number(a);
+			const numB = Number(b);
+			if (!isNaN(numA) && !isNaN(numB)) {
+				return numA - numB;
+			}
+			// Fallback to string comparison
+			return a.localeCompare(b);
+		});
+		
+		console.log('Worker: Total unique X values:', sortedXValues.length);
+		
+		// Step 3: Determine target sample size based on the line with most points
+		const maxLineLength = Math.max(...lines.map(line => line.data?.length || 0));
+		const targetSampleSize = Math.max(100, Math.floor(maxLineLength * sampleRate));
+		
+		console.log('Worker: Target sample size:', targetSampleSize, 'from max line length:', maxLineLength);
+		
+		// Step 4: Create a unified sampling strategy
+		let sampledXIndices;
+		
+		if (sortedXValues.length <= targetSampleSize) {
+			// No sampling needed
+			sampledXIndices = sortedXValues.map((_, index) => index);
+		} else {
+			// Sample X values strategically
+			sampledXIndices = createSamplingIndices(sortedXValues.length, targetSampleSize);
+		}
+		
+		const sampledXValues = sampledXIndices.map(i => sortedXValues[i]);
+		
+		console.log('Worker: Sampled X values:', sampledXValues.length);
+		
+		// Step 5: Sample each line based on the unified X sampling
+		const sampledLines = lines.map((line, lineIndex) => {
+			if (!line.data || !Array.isArray(line.data) || line.data.length === 0) {
+				console.log(`Worker: Line ${lineIndex} has no data, skipping`);
+				return {
+					id: line.id || `line-${lineIndex}`,
+					label: line.label || `Line ${lineIndex}`,
+					color: line.color || '',
+					data: []
+				};
+			}
+			
+			console.log(`Worker: Processing line ${lineIndex} with ${line.data.length} points`);
+			
+			// Create a map for quick lookup of line data by X value
+			const dataMap = new Map();
+			line.data.forEach(point => {
+				if (point && typeof point === 'object' && (xKey in point)) {
+					const xVal = String(point[xKey]);
+					dataMap.set(xVal, point);
+				}
+			});
+			
+			// Sample data based on unified X values
+			const sampledData = [];
+			
+			sampledXValues.forEach(xVal => {
+				if (dataMap.has(xVal)) {
+					sampledData.push(dataMap.get(xVal));
+				} else {
+					// Find nearest X value if exact match not found
+					const nearestPoint = findNearestPoint(line.data, xVal, xKey);
+					if (nearestPoint) {
+						sampledData.push(nearestPoint);
+					}
+				}
+			});
+			
+			console.log(`Worker: Line ${lineIndex} sampled from ${line.data.length} to ${sampledData.length} points`);
+			
+			return {
+				id: line.id || `line-${lineIndex}`,
+				label: line.label || `Line ${lineIndex}`,
+				color: line.color || '',
+				data: sampledData
+			};
+		});
+		
+		// Step 6: Return results with metadata
+		const originalPoints = lines.reduce((sum, line) => sum + (line.data?.length || 0), 0);
+		const sampledPoints = sampledLines.reduce((sum, line) => sum + (line.data?.length || 0), 0);
+		
+		const result = {
+			lines: sampledLines,
+			metadata: {
+				originalPoints,
+				sampledPoints,
+				compressionRatio: originalPoints > 0 ? originalPoints / sampledPoints : 1,
+				targetSampleSize,
+				unifiedXValues: sampledXValues.length,
+				linesProcessed: sampledLines.length
+			}
+		};
+		
+		console.log('Worker: Sampling complete', result.metadata);
+		return result;
+		
+	} catch (error) {
+		console.error('Worker: Error in sampleMultipleLines:', error);
+		// Return original data on error
+		return {
+			lines: lines,
+			metadata: null
+		};
+	}
+}
+
+// Helper function to create strategic sampling indices
+function createSamplingIndices(totalLength, targetSize) {
+	const indices = [];
+	
+	// Always include first and last
+	indices.push(0);
+	if (totalLength > 1) {
+		indices.push(totalLength - 1);
+	}
+	
+	// Calculate remaining points to sample
+	const remaining = targetSize - indices.length;
+	
+	if (remaining > 0 && totalLength > 2) {
+		// Use uniform sampling for middle points
+		const step = (totalLength - 1) / (remaining + 1);
+		
+		for (let i = 1; i <= remaining; i++) {
+			const index = Math.round(step * i);
+			if (index > 0 && index < totalLength - 1 && !indices.includes(index)) {
+				indices.push(index);
+			}
+		}
+	}
+	
+	// Sort indices and remove duplicates
+	return [...new Set(indices)].sort((a, b) => a - b);
+}
+
+// Helper function to find nearest point when exact X match is not found
+function findNearestPoint(data, targetX, xKey) {
+	if (!data.length) return null;
+	
+	let nearest = data[0];
+	let minDistance = Math.abs(getNumericValue(data[0][xKey]) - getNumericValue(targetX));
+	
+	for (let i = 1; i < data.length; i++) {
+		const distance = Math.abs(getNumericValue(data[i][xKey]) - getNumericValue(targetX));
+		if (distance < minDistance) {
+			minDistance = distance;
+			nearest = data[i];
+		}
+	}
+	
+	return nearest;
+}
+
+// Helper function to get numeric value from string (handles dates)
+function getNumericValue(value) {
+	if (typeof value === 'number') return value;
+	if (typeof value === 'string') {
+		// Try parsing as date first
+		if (isDateString(value)) {
+			return new Date(value).getTime();
+		}
+		// Try parsing as number
+		const num = Number(value);
+		if (!isNaN(num)) return num;
+	}
+	return 0;
+}
+
+// Original functions (kept for backward compatibility)
 function processChartData(data, xKey, yKey) {
 	const processed = data.map(d => ({
 		x: d[xKey],
@@ -63,24 +295,9 @@ function sampleLargeDataset(data, sampleRate) {
 	if (data.length <= 1000) return data;
 	
 	const targetSize = Math.max(100, Math.floor(data.length * sampleRate));
-	const step = Math.floor(data.length / targetSize);
+	const indices = createSamplingIndices(data.length, targetSize);
 	
-	const sampled = [];
-	
-	// Always include first point
-	sampled.push(data[0]);
-	
-	// Sample middle points
-	for (let i = step; i < data.length - 1; i += step) {
-		sampled.push(data[i]);
-	}
-	
-	// Always include last point
-	if (data.length > 1) {
-		sampled.push(data[data.length - 1]);
-	}
-	
-	return sampled;
+	return indices.map(i => data[i]);
 }
 
 function calculateDataStatistics(data, yKey) {
@@ -97,8 +314,8 @@ function calculateDataStatistics(data, yKey) {
 	
 	// Median
 	const mid = Math.floor(sorted.length / 2);
-	const median = sorted.length % 2 === 0 
-		? (sorted[mid - 1] + sorted[mid]) / 2 
+	const median = sorted.length % 2 === 0
+		? (sorted[mid - 1] + sorted[mid]) / 2
 		: sorted[mid];
 	
 	// Standard deviation

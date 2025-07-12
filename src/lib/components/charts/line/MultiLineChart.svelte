@@ -2,7 +2,7 @@
 	import { onDestroy, onMount, tick } from 'svelte';
 	import { fade } from 'svelte/transition';
 
-	// Types
+	// Enhanced Types
 	interface DataPoint {
 		[key: string]: any;
 	}
@@ -28,7 +28,7 @@
 		enableDataSampling?: boolean;
 		useWebWorker?: boolean;
 		workerPath?: string;
-		sampleRate?: number; // For your existing worker (0.1 = 10% of points)
+		sampleRate?: number;
 		
 		// Performance settings
 		mouseMoveThrottle?: number;
@@ -50,6 +50,63 @@
 		tension?: number;
 		showCrosshair?: boolean;
 		performanceConfig?: PerformanceConfig;
+	}
+
+	// Enhanced sampling stats interface
+	interface SamplingStats {
+		originalPoints: number;
+		sampledPoints: number;
+		compressionRatio: number;
+		processingTime: number;
+		usedWorker: boolean;
+		linesProcessed?: number;
+		unifiedXValues?: number;
+		method?: string;
+	}
+
+	// Worker message interfaces
+	interface WorkerMessage {
+		operation: string;
+		success: boolean;
+		result?: any;
+		error?: string;
+	}
+
+	interface SamplingResult {
+		lines: LineData[];
+		metadata: {
+			originalPoints: number;
+			sampledPoints: number;
+			compressionRatio: number;
+			targetSampleSize: number;
+			unifiedXValues: number;
+			linesProcessed: number;
+		} | null;
+	}
+
+	// Chart data interfaces
+	interface ChartDataPoint {
+		x: number;
+		y: number;
+		originalData: DataPoint;
+	}
+
+	interface LinePathData {
+		id: string;
+		label: string;
+		color: string;
+		pathData: string;
+		points: ChartDataPoint[];
+		originalData: DataPoint[];
+	}
+
+	interface TooltipData {
+		x: number;
+		y: number;
+		value: string;
+		label: string;
+		lineLabel: string;
+		color: string;
 	}
 
 	// Props
@@ -85,7 +142,7 @@
 
 	const deviceType = detectDeviceType();
 
-	// Enhanced performance configuration with device-aware defaults
+	// Enhanced performance configuration
 	const config = $derived(() => {
 		const deviceLimits = {
 			mobile: 300,
@@ -93,23 +150,16 @@
 			desktop: 1000
 		};
 
-		const defaults = {
-			// Device limits
+		const defaults: Required<PerformanceConfig> = {
 			mobile: deviceLimits.mobile,
 			tablet: deviceLimits.tablet,
 			desktop: deviceLimits.desktop,
-			
-			// Rendering thresholds
 			svgMaxPoints: 1500,
 			animationMaxPoints: 800,
-			
-			// Sampling with your existing worker
 			enableDataSampling: true,
 			useWebWorker: true,
 			workerPath: '/chart-worker.js',
-			sampleRate: 0.1, // Default 10% sampling rate
-			
-			// Performance
+			sampleRate: 0.1,
 			mouseMoveThrottle: 16,
 			resizeDebounce: 150
 		};
@@ -127,7 +177,7 @@
 	let width = $state(0);
 	let chartHeight = $state(0);
 	let hoveredLine = $state<string | null>(null);
-	let tooltipData = $state<any | null>(null);
+	let tooltipData = $state<TooltipData | null>(null);
 	let tooltipVisible = $state(false);
 	let canvasContext: CanvasRenderingContext2D | null = null;
 
@@ -135,13 +185,7 @@
 	let worker: Worker | null = null;
 	let sampledLines = $state<LineData[]>([]);
 	let samplingInProgress = $state(false);
-	let samplingStats = $state<{
-		originalPoints: number;
-		sampledPoints: number;
-		compressionRatio: number;
-		processingTime: number;
-		usedWorker: boolean;
-	} | null>(null);
+	let samplingStats = $state<SamplingStats | null>(null);
 
 	// Chart dimensions
 	const margin = { top: 20, right: 20, bottom: 40, left: 60 };
@@ -151,7 +195,7 @@
 
 	// Calculate total data points
 	const totalDataPoints = $derived(
-		lines.reduce((sum: number, line: { data: string | any[] }) => sum + line.data.length, 0)
+		lines.reduce((sum: number, line) => sum + line.data.length, 0)
 	);
 
 	// Determine rendering mode
@@ -165,7 +209,7 @@
 	const currentRenderingMode = $derived(renderingMode());
 
 	// Initialize worker
-	function initializeWorker() {
+	function initializeWorker(): void {
 		if (!config().useWebWorker) return;
 
 		try {
@@ -177,46 +221,348 @@
 		}
 	}
 
-	// Sample data using your existing worker
-	async function sampleDataWithWorker(data: DataPoint[]): Promise<DataPoint[]> {
-		if (!worker || !data.length) {
+	// Helper function to sanitize data for Web Worker
+	function sanitizeDataForWorker(data: any): any {
+		if (data === null || data === undefined) {
 			return data;
 		}
+		
+		if (typeof data === 'string' || typeof data === 'number' || typeof data === 'boolean') {
+			return data;
+		}
+		
+		if (data instanceof Date) {
+			return data.toISOString();
+		}
+		
+		if (Array.isArray(data)) {
+			return data.map(item => sanitizeDataForWorker(item));
+		}
+		
+		if (typeof data === 'object') {
+			const sanitized: any = {};
+			for (const key in data) {
+				if (data.hasOwnProperty(key)) {
+					const value = data[key];
+					// Skip functions, symbols, and other non-serializable types
+					if (typeof value === 'function' || typeof value === 'symbol') {
+						continue;
+					}
+					// Handle circular references by using JSON stringify/parse
+					try {
+						sanitized[key] = sanitizeDataForWorker(value);
+					} catch (error) {
+						console.warn(`Skipping non-serializable property: ${key}`);
+						continue;
+					}
+				}
+			}
+			return sanitized;
+		}
+		
+		return data;
+	}
 
-		return new Promise((resolve, reject) => {
+	// Helper function to create a clean copy of lines data for worker
+	function createCleanLinesForWorker(lines: LineData[]): LineData[] {
+		return lines.map(line => {
+			// Create a clean copy of each line's data
+			const cleanData = line.data.map(dataPoint => {
+				const cleanPoint: { [key: string]: any } = {};
+				
+				// Only include primitive values and dates
+				for (const key in dataPoint) {
+					if (dataPoint.hasOwnProperty(key)) {
+						const value = dataPoint[key];
+						if (value !== null && value !== undefined) {
+							if (typeof value === 'string' || 
+								typeof value === 'number' || 
+								typeof value === 'boolean') {
+								cleanPoint[key] = value;
+							} else if (value instanceof Date) {
+								cleanPoint[key] = value.toISOString();
+							} else if (typeof value === 'object' && !Array.isArray(value)) {
+								// For nested objects, try to serialize simple ones
+								try {
+									cleanPoint[key] = JSON.parse(JSON.stringify(value));
+								} catch (e) {
+									// Skip complex objects that can't be serialized
+									console.warn(`Skipping complex object in data point: ${key}`);
+								}
+							}
+						}
+					}
+				}
+				
+				return cleanPoint;
+			});
+
+			return {
+				id: line.id,
+				label: line.label,
+				color: line.color || '',
+				data: cleanData
+			};
+		});
+	}
+
+	// Sample multiple lines with unified X-axis using worker
+	async function sampleMultipleLinesWithWorker(lines: LineData[]): Promise<SamplingResult> {
+		if (!worker || !lines.length) {
+			return { lines, metadata: null };
+		}
+
+		return new Promise<SamplingResult>((resolve, reject) => {
 			const timeout = setTimeout(() => {
 				reject(new Error('Worker timeout'));
-			}, 10000);
+			}, 15000);
 
-			const handleMessage = (e: MessageEvent) => {
+			const handleMessage = (e: MessageEvent<WorkerMessage>) => {
 				const { operation, success, result, error } = e.data;
 				
-				if (operation === 'sampleData') {
+				if (operation === 'sampleMultipleLines') {
 					clearTimeout(timeout);
 					worker?.removeEventListener('message', handleMessage);
 					
-					if (success) {
-						resolve(result || data);
+					if (success && result) {
+						console.log('Worker returned multi-line data:', result);
+						resolve(result as SamplingResult);
 					} else {
-						reject(new Error(error || 'Sampling failed'));
+						reject(new Error(error || 'Multi-line sampling failed'));
 					}
 				}
 			};
 
 			worker?.addEventListener('message', handleMessage);
 			
-			// Calculate sample rate based on target points
+			// Calculate sample rate based on target points and largest dataset
+			const maxLineLength = Math.max(...lines.map(line => line.data?.length || 0));
 			const targetPoints = maxPointsForDevice;
-			const sampleRate = Math.min(1, targetPoints / data.length);
+			const sampleRate = Math.min(1, targetPoints / maxLineLength);
 			
-			worker?.postMessage({
-				operation: 'sampleData',
-				data,
-				sampleRate,
-				xKey,
-				yKey
+			// Create clean data for worker
+			let cleanLines: LineData[];
+			try {
+				cleanLines = createCleanLinesForWorker(lines);
+				console.log('Sending multi-line data to worker:', {
+					operation: 'sampleMultipleLines',
+					linesCount: cleanLines.length,
+					maxLineLength,
+					sampleRate,
+					targetPoints,
+					xKey,
+					yKey,
+					firstLineDataSample: cleanLines[0]?.data[0]
+				});
+			} catch (error) {
+				console.error('Failed to clean data for worker:', error);
+				reject(new Error('Data sanitization failed'));
+				return;
+			}
+			
+			// Send cleaned data to worker
+			try {
+				worker?.postMessage({
+					operation: 'sampleMultipleLines',
+					data: cleanLines,
+					sampleRate,
+					xKey,
+					yKey
+				});
+			} catch (error) {
+				console.error('Failed to send data to worker:', error);
+				reject(new Error('Failed to send data to worker: ' + (error as Error).message));
+			}
+		});
+	}
+
+	// Fallback: Improved multi-line sampling on main thread
+	function sampleMultipleLinesMainThread(lines: LineData[], targetPoints: number): SamplingResult {
+		if (!lines.length) return { lines, metadata: null };
+		
+		console.log('Main thread: Processing', lines.length, 'lines for sampling');
+		
+		// Step 1: Collect all unique X values
+		const allXValues = new Set<string>();
+		lines.forEach(line => {
+			if (!line.data || !Array.isArray(line.data)) return;
+			line.data.forEach((point: DataPoint) => {
+				allXValues.add(String(point[xKey]));
 			});
 		});
+		
+		const sortedXValues = Array.from(allXValues).sort((a: string, b: string) => {
+			// Handle date sorting
+			if (a.match(/\d{4}-\d{2}-\d{2}/) && b.match(/\d{4}-\d{2}-\d{2}/)) {
+				return new Date(a).getTime() - new Date(b).getTime();
+			}
+			// Handle numeric sorting
+			const numA = Number(a);
+			const numB = Number(b);
+			if (!isNaN(numA) && !isNaN(numB)) {
+				return numA - numB;
+			}
+			return a.localeCompare(b);
+		});
+		
+		// Step 2: Determine sampling strategy
+		let sampledXValues: string[];
+		if (sortedXValues.length <= targetPoints) {
+			sampledXValues = sortedXValues;
+		} else {
+			// Create sampling indices
+			const indices: number[] = [];
+			indices.push(0); // Always include first
+			if (sortedXValues.length > 1) {
+				indices.push(sortedXValues.length - 1); // Always include last
+			}
+			
+			const remaining = targetPoints - indices.length;
+			if (remaining > 0 && sortedXValues.length > 2) {
+				const step = (sortedXValues.length - 1) / (remaining + 1);
+				for (let i = 1; i <= remaining; i++) {
+					const index = Math.round(step * i);
+					if (index > 0 && index < sortedXValues.length - 1 && !indices.includes(index)) {
+						indices.push(index);
+					}
+				}
+			}
+			
+			const uniqueIndices = [...new Set(indices)].sort((a, b) => a - b);
+			sampledXValues = uniqueIndices.map(i => sortedXValues[i]);
+		}
+		
+		// Step 3: Sample each line based on unified X values
+		const sampledLines: LineData[] = lines.map((line, lineIndex) => {
+			if (!line.data || !Array.isArray(line.data) || line.data.length === 0) {
+				return line;
+			}
+			
+			// Create lookup map
+			const dataMap = new Map<string, DataPoint>();
+			line.data.forEach((point: DataPoint) => {
+				dataMap.set(String(point[xKey]), point);
+			});
+			
+			// Sample data
+			const sampledData: DataPoint[] = [];
+			sampledXValues.forEach(xVal => {
+				if (dataMap.has(xVal)) {
+					sampledData.push(dataMap.get(xVal)!);
+				} else {
+					// Find nearest point
+					const nearest = line.data.reduce((prev: DataPoint, curr: DataPoint) => {
+						const prevDiff = Math.abs(Number(prev[xKey]) - Number(xVal));
+						const currDiff = Math.abs(Number(curr[xKey]) - Number(xVal));
+						return currDiff < prevDiff ? curr : prev;
+					});
+					if (nearest) {
+						sampledData.push(nearest);
+					}
+				}
+			});
+			
+			console.log(`Main thread: Line ${lineIndex} sampled from ${line.data.length} to ${sampledData.length} points`);
+			
+			return {
+				...line,
+				data: sampledData
+			};
+		});
+		
+		const originalPoints = lines.reduce((sum, line) => sum + (line.data?.length || 0), 0);
+		const sampledPoints = sampledLines.reduce((sum, line) => sum + (line.data?.length || 0), 0);
+		
+		return {
+			lines: sampledLines,
+			metadata: {
+				originalPoints,
+				sampledPoints,
+				compressionRatio: originalPoints / sampledPoints,
+				targetSampleSize: targetPoints,
+				unifiedXValues: sampledXValues.length,
+				linesProcessed: sampledLines.length
+			}
+		};
+	}
+
+	// Updated performSampling function
+	async function performSampling(): Promise<void> {
+		if (!lines.length || !config().enableDataSampling) {
+			sampledLines = lines;
+			samplingStats = null;
+			return;
+		}
+
+		const configValue = config();
+		const totalPoints = lines.reduce((sum, line) => sum + (line.data?.length || 0), 0);
+		const needsSampling = totalPoints > maxPointsForDevice * lines.length;
+		
+		if (!needsSampling) {
+			sampledLines = lines;
+			samplingStats = null;
+			console.log('No sampling needed - total points:', totalPoints, 'threshold:', maxPointsForDevice * lines.length);
+			return;
+		}
+
+		console.log('Starting multi-line sampling for', lines.length, 'lines with', totalPoints, 'total points');
+		samplingInProgress = true;
+		const startTime = performance.now();
+		
+		try {
+			let result: SamplingResult;
+			
+			// Try worker first, fallback to main thread
+			if (configValue.useWebWorker && worker) {
+				try {
+					console.log('Attempting worker-based multi-line sampling');
+					result = await sampleMultipleLinesWithWorker(lines);
+					console.log('Worker sampling successful');
+				} catch (error) {
+					console.warn('Worker sampling failed, using main thread:', error);
+					result = sampleMultipleLinesMainThread(lines, maxPointsForDevice);
+				}
+			} else {
+				console.log('Using main thread multi-line sampling');
+				result = sampleMultipleLinesMainThread(lines, maxPointsForDevice);
+			}
+
+			sampledLines = result.lines;
+			const endTime = performance.now();
+
+			// Enhanced sampling stats
+			samplingStats = {
+				originalPoints: result.metadata?.originalPoints || totalPoints,
+				sampledPoints: result.metadata?.sampledPoints || sampledLines.reduce((sum, line) => sum + line.data.length, 0),
+				compressionRatio: result.metadata?.compressionRatio || 1,
+				processingTime: endTime - startTime,
+				usedWorker: configValue.useWebWorker && worker ? true : false,
+				linesProcessed: result.metadata?.linesProcessed || lines.length,
+				unifiedXValues: result.metadata?.unifiedXValues,
+				method: 'multi-line-unified'
+			};
+
+			console.table({
+				deviceType,
+				maxPointsForDevice,
+				linesCount: lines.length,
+				originalPoints: samplingStats.originalPoints,
+				sampledPoints: samplingStats.sampledPoints,
+				compressionRatio: samplingStats.compressionRatio.toFixed(2),
+				processingTime: `${samplingStats.processingTime.toFixed(1)}ms`,
+				usedWorker: samplingStats.usedWorker ? 'Yes' : 'No',
+				unifiedXValues: samplingStats.unifiedXValues,
+				method: samplingStats.method
+			});
+
+		} catch (error) {
+			console.error('Multi-line sampling failed:', error);
+			// Fallback to original data
+			sampledLines = lines;
+			samplingStats = null;
+		} finally {
+			samplingInProgress = false;
+		}
 	}
 
 	// Fallback: Simple uniform sampling on main thread
@@ -240,90 +586,6 @@
 		}
 		
 		return sampled;
-	}
-
-	// Smart data sampling with worker integration
-	async function performSampling() {
-		if (!lines.length || !config().enableDataSampling) {
-			sampledLines = lines;
-			return;
-		}
-
-		const configValue = config();
-		const needsSampling = lines.some(line => line.data.length > maxPointsForDevice);
-		
-		if (!needsSampling) {
-			sampledLines = lines;
-			samplingStats = null;
-			return;
-		}
-
-		samplingInProgress = true;
-		const startTime = performance.now();
-		let usedWorker = false;
-
-		try {
-			const newSampledLines = await Promise.all(
-				lines.map(async (line) => {
-					if (line.data.length <= maxPointsForDevice) {
-						return line; // No sampling needed
-					}
-
-					let sampledData: DataPoint[];
-
-					// Try worker first, fallback to main thread
-					if (configValue.useWebWorker && worker) {
-						try {
-							sampledData = await sampleDataWithWorker(line.data);
-							usedWorker = true;
-						} catch (error) {
-							console.warn('Worker sampling failed, using main thread:', error);
-							sampledData = uniformSample(line.data, maxPointsForDevice);
-						}
-					} else {
-						sampledData = uniformSample(line.data, maxPointsForDevice);
-					}
-
-					return {
-						...line,
-						data: sampledData
-					};
-				})
-			);
-
-			sampledLines = newSampledLines;
-
-			// Calculate stats
-			const originalPoints = lines.reduce((sum, line) => sum + line.data.length, 0);
-			const sampledPoints = sampledLines.reduce((sum, line) => sum + line.data.length, 0);
-			const endTime = performance.now();
-
-			samplingStats = {
-				originalPoints,
-				sampledPoints,
-				compressionRatio: originalPoints / sampledPoints,
-				processingTime: endTime - startTime,
-				usedWorker
-			};
-
-			console.table({
-				deviceType,
-				maxPointsForDevice,
-				originalPoints: samplingStats.originalPoints,
-				sampledPoints: samplingStats.sampledPoints,
-				compressionRatio: samplingStats.compressionRatio.toFixed(2),
-				processingTime: `${samplingStats.processingTime.toFixed(1)}ms`,
-				usedWorker: samplingStats.usedWorker ? 'Yes' : 'No (fallback)'
-			});
-
-		} catch (error) {
-			console.error('Sampling failed:', error);
-			// Fallback to original data
-			sampledLines = lines;
-			samplingStats = null;
-		} finally {
-			samplingInProgress = false;
-		}
 	}
 
 	// Trigger sampling when data changes
@@ -392,12 +654,12 @@
 	});
 
 	// Calculate line paths (using sampled data)
-	const linePaths = $derived.by(() => {
+	const linePaths = $derived.by((): LinePathData[] => {
 		if (!chartData || !sampledLines.length) return [];
 		
 		return sampledLines.map((lineData, index) => {
 			const color = lineData.color || defaultColors[index % defaultColors.length];
-			const points: Array<{ x: number; y: number; originalData: any }> = [];
+			const points: ChartDataPoint[] = [];
 
 			// For each X value, find the corresponding data point
 			chartData.allXValues.forEach((xValue, xIndex) => {
@@ -449,7 +711,7 @@
 	});
 
 	// Canvas rendering function
-	function renderCanvas() {
+	function renderCanvas(): void {
 		if (!canvasElement || !canvasContext || !chartData || !linePaths.length) {
 			return;
 		}
@@ -482,7 +744,7 @@
 		chartData: any,
 		canvasWidth: number,
 		canvasHeight: number
-	) {
+	): void {
 		ctx.strokeStyle = '#94a3b8';
 		ctx.lineWidth = 1;
 
@@ -531,14 +793,14 @@
 		}
 	}
 
-	function drawCanvasLine(ctx: CanvasRenderingContext2D, lineData: any, isHovered: boolean) {
+	function drawCanvasLine(ctx: CanvasRenderingContext2D, lineData: LinePathData, isHovered: boolean): void {
 		ctx.strokeStyle = lineData.color;
 		ctx.lineWidth = isHovered ? 3 : 2;
 		ctx.globalAlpha = hoveredLine && !isHovered ? 0.3 : 1;
 
 		// Draw line
 		ctx.beginPath();
-		lineData.points.forEach((point: any, i: number) => {
+		lineData.points.forEach((point, i) => {
 			if (i === 0) {
 				ctx.moveTo(point.x, point.y);
 			} else {
@@ -548,7 +810,7 @@
 		ctx.stroke();
 
 		// Draw points
-		lineData.points.forEach((point: any) => {
+		lineData.points.forEach((point) => {
 			ctx.beginPath();
 			ctx.arc(point.x, point.y, 4, 0, 2 * Math.PI);
 			ctx.fillStyle = '#ffffff';
@@ -571,7 +833,7 @@
 		return value.toFixed(1);
 	}
 
-	// Throttle function that supports dynamic wait times
+	// Throttle function with proper typing
 	function throttle<T extends (...args: any[]) => any>(
 		func: T,
 		waitOrGetter: number | (() => number)
@@ -602,7 +864,7 @@
 	}
 
 	// Event handlers
-	function handlePointHover(e: MouseEvent, lineData: any, point: any, index: number) {
+	function handlePointHover(e: MouseEvent, lineData: LinePathData, point: ChartDataPoint, index: number): void {
 		if (hasTooltip && !showCrosshair) {
 			const originalData = point.originalData;
 			tooltipData = {
@@ -618,7 +880,7 @@
 		hoveredLine = lineData.id;
 	}
 
-	function handlePointLeave() {
+	function handlePointLeave(): void {
 		tooltipVisible = false;
 		hoveredLine = null;
 	}
