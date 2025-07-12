@@ -86,7 +86,7 @@
 
 	// UI state
 	let selectedConfig = $state<keyof typeof performanceConfigs>('default');
-	let showCrosshair = $state(false);
+	let hasCrosshair = $state(false);
 	let curveType = $state<'straight' | 'smooth'>('straight');
 	let tension = $state(0.3);
 	let showValues = $state(false);
@@ -283,7 +283,7 @@
 		<div class="control-group">
 			<h3>Chart Options</h3>
 			<label class="checkbox-label">
-				<input type="checkbox" bind:checked={showCrosshair} />
+				<input type="checkbox" bind:checked={hasCrosshair} />
 				Show Crosshair
 			</label>
 			<label class="checkbox-label">
@@ -329,7 +329,7 @@
 				dateFormat="MMM dd"
 				{showValues}
 				{hasTooltip}
-				{showCrosshair}
+				{hasCrosshair}
 				{curveType}
 				{tension}
 				performanceConfig={currentConfig}
@@ -377,7 +377,7 @@
 								currentConfig,
 								firstLineData: chartData[0]?.data?.slice(0, 3),
 								hasTooltip,
-								showCrosshair,
+								hasCrosshair,
 								curveType,
 								tension
 							},

@@ -407,7 +407,7 @@
 												<td>Curve tension factor for smooth lines (0-1, optimal: 0.3-0.5)</td>
 											</tr>
 											<tr>
-												<td><code>showCrosshair</code></td>
+												<td><code>hasCrosshair</code></td>
 												<td><code>boolean</code></td>
 												<td><code>false</code></td>
 												<td
@@ -591,7 +591,7 @@
 									<p>Crosshair Control</p>
 								</div>
 								<p class="paragraph">
-									You can enable the crosshair on the chart using the <code>showCrosshair</code> prop.
+									You can enable the crosshair on the chart using the <code>hasCrosshair</code> prop.
 								</p>
 								<div class="code-preview">
 									<CodeBlock
@@ -600,7 +600,7 @@
 												lines={data}
 												xKey="date"
 												yKey="value"
-												showCrosshair={true}
+												hasCrosshair={true}
 											/>
 										`}
 										language="svelte"
@@ -636,7 +636,7 @@
 									<p>Crosshair Control</p>
 								</div>
 								<p class="paragraph">
-									You can enable the crosshair on the chart using the <code>showCrosshair</code> prop.
+									You can enable the crosshair on the chart using the <code>hasCrosshair</code> prop.
 								</p>
 								<div class="code-preview">
 									<CodeBlock
@@ -645,7 +645,7 @@
 												lines={data}
 												xKey="date"
 												yKey="value"
-												showCrosshair={true}
+												hasCrosshair={true}
 											/>
 										`}
 										language="svelte"
@@ -857,7 +857,7 @@
 											</li>
 											<li>
 												<strong>Configurable:</strong> Can be disabled via the
-												<code>showCrosshair</code> prop
+												<code>hasCrosshair</code> prop
 											</li>
 										</ul>
 									</div>
@@ -873,7 +873,7 @@
 													xKey="date"
 													yKey="value"
 													title="Sales Performance"
-													showCrosshair={true}
+													hasCrosshair={true}
 													curveType="smooth"
 													tension={0.3}
 												/>
@@ -1369,7 +1369,7 @@
 										title="Accessibility Demo - Product Sales by Month"
 										showLegend={true}
 										height={300}
-										showCrosshair={true}
+										hasCrosshair={true}
 										curveType="smooth"
 									/>
 								</div>
@@ -1513,7 +1513,7 @@
 						showLegend={true}
 						showValues={true}
 						hasTooltip={false}
-						showCrosshair={true}
+						hasCrosshair={true}
 						height={350}
 						curveType="smooth"
 						tension={1}
@@ -1551,7 +1551,7 @@
 						title={`Product Performance - ${profitMetrics.find((m) => m.value === selectedProfitMetric)?.label}`}
 						showLegend={true}
 						showValues={true}
-						showCrosshair={true}
+						hasCrosshair={true}
 					
 						height={400}
 					/>
@@ -1581,7 +1581,7 @@
 								yKey="profit"
 								title="ABRACADABRA"
 								showLegend={true}
-								showCrosshair={true}
+								hasCrosshair={true}
 								height={280}
 							/>
 						</div>
@@ -1593,7 +1593,7 @@
 								yKey="profit"
 								title=""
 								showLegend={false}
-								showCrosshair={true}
+								hasCrosshair={true}
 								height={280}
 								
 							/>
@@ -1611,7 +1611,7 @@
 			<!-- Tooltip and Crosshair Combinations -->
 			<div class="example-card">
 				<div class="example-header">
-					<h3>Tooltip Only (hasTooltip=true, showCrosshair=false)</h3>
+					<h3>Tooltip Only (hasTooltip=true, hasCrosshair=false)</h3>
 					<p>Individual point tooltips on hover without crosshair lines</p>
 				</div>
 
@@ -1623,7 +1623,7 @@
 						title="Point Tooltips Only"
 						showLegend={true}
 						hasTooltip={true}
-						showCrosshair={false}
+						hasCrosshair={false}
 						height={300}
 					/>
 				</div>
@@ -1638,7 +1638,7 @@
 			<!-- Crosshair Only -->
 			<div class="example-card">
 				<div class="example-header">
-					<h3>Crosshair Only (hasTooltip=false, showCrosshair=true)</h3>
+					<h3>Crosshair Only (hasTooltip=false, hasCrosshair=true)</h3>
 					<p>Crosshair lines without tooltips for visual guidance only</p>
 				</div>
 
@@ -1650,7 +1650,7 @@
 						title="Crosshair Lines Only"
 						showLegend={true}
 						hasTooltip={false}
-						showCrosshair={true}
+						hasCrosshair={true}
 						height={300}
 					/>
 				</div>
@@ -1665,7 +1665,7 @@
 			<!-- Combined Crosshair + Tooltip -->
 			<div class="example-card">
 				<div class="example-header">
-					<h3>Combined (hasTooltip=true, showCrosshair=true)</h3>
+					<h3>Combined (hasTooltip=true, hasCrosshair=true)</h3>
 					<p>Crosshair lines with multi-value tooltip showing all line values</p>
 				</div>
 
@@ -1677,7 +1677,7 @@
 						title="Crosshair with Multi-Value Tooltip"
 						showLegend={true}
 						hasTooltip={true}
-						showCrosshair={true}
+						hasCrosshair={true}
 						height={300}
 					/>
 				</div>

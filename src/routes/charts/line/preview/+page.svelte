@@ -35,7 +35,7 @@
 	// Chart configuration options
 	let showValues = $state(false);
 	let hasTooltip = $state(true);
-	let showCrosshair = $state(false);
+	let hasCrosshair = $state(false);
 	let curveType = $state<'straight' | 'smooth'>('straight');
 	let tension = $state(0.3);
 	let showLegend = $state(true);
@@ -477,7 +477,7 @@
 						Enable Tooltips
 					</label>
 					<label>
-						<input type="checkbox" bind:checked={showCrosshair} />
+						<input type="checkbox" bind:checked={hasCrosshair} />
 						Show Crosshair
 					</label>
 					<label>
@@ -603,7 +603,7 @@
 					dateFormat="MMM dd"
 					{showValues}
 					{hasTooltip}
-					{showCrosshair}
+					{hasCrosshair}
 					{curveType}
 					{tension}
 					yTickCount={selectedDataset?.yTickCount || 5}
