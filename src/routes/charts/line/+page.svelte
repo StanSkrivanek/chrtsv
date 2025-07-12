@@ -1515,6 +1515,8 @@
 						hasTooltip={false}
 						showCrosshair={true}
 						height={350}
+						curveType="smooth"
+						tension={1}
 					/>
 				</div>
 
@@ -1548,9 +1550,9 @@
 						yKey={selectedProfitMetric}
 						title={`Product Performance - ${profitMetrics.find((m) => m.value === selectedProfitMetric)?.label}`}
 						showLegend={true}
-						
+						showValues={true}
 						showCrosshair={true}
-						hasTooltip={true}
+					
 						height={400}
 					/>
 				</div>
@@ -1593,6 +1595,7 @@
 								showLegend={false}
 								showCrosshair={true}
 								height={280}
+								
 							/>
 						</div>
 					</div>
