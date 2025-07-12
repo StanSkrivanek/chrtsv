@@ -277,6 +277,10 @@
 					<BookOpen size={16} />
 					{showTabs ? 'Hide' : 'Show'} Documentation & Usage
 				</button>
+				<a class="btn btn-secondary" href="/charts/line/preview">
+					<BookOpen size={16} />
+					Test Cases
+				</a>
 			</div>
 
 			<div class="hero-side">
@@ -1476,7 +1480,6 @@
 						showLegend={true}
 						height={300}
 						yTickCount={4}
-						
 						hasTooltip={true}
 					/>
 				</div>
@@ -1552,7 +1555,6 @@
 						showLegend={true}
 						showValues={true}
 						hasCrosshair={true}
-					
 						height={400}
 					/>
 				</div>
@@ -1595,7 +1597,6 @@
 								showLegend={false}
 								hasCrosshair={true}
 								height={280}
-								
 							/>
 						</div>
 					</div>
