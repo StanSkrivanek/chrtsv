@@ -207,7 +207,7 @@
 					<ChartLine size={16} />
 					View Documentation
 				</a>
-				<a href="https://github.com/StanSkrivanek/chrtsv" class="btn btn-outline">
+				<a href="https://github.com/StanSkrivanek/chrtsv" class="btn btn-outline" target="_blank">
 					<!-- <Github size={16} /> -->
 					<img
 						src="/github.svg"
