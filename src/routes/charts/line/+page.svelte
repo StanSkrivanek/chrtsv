@@ -1593,7 +1593,6 @@
 								showLegend={false}
 								showCrosshair={true}
 								height={280}
-								doubleTicks={true}
 							/>
 						</div>
 					</div>
