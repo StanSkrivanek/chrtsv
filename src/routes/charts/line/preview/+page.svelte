@@ -56,7 +56,8 @@
 				enableDataSampling: enableSampling,
 				useWebWorker: useWebWorker,
 				mouseMoveThrottle: 32,
-				resizeDebounce: 200
+				resizeDebounce: 200,
+				svgMaxPoints: 500 // Adding missing svgMaxPoints property
 			},
 			tablet: {
 				mobile: 300,
@@ -65,7 +66,8 @@
 				enableDataSampling: enableSampling,
 				useWebWorker: useWebWorker,
 				mouseMoveThrottle: 24,
-				resizeDebounce: 150
+				resizeDebounce: 150,
+				svgMaxPoints: 1000 // Adding missing svgMaxPoints property
 			},
 			desktop: {
 				mobile: 500,
@@ -74,11 +76,13 @@
 				enableDataSampling: enableSampling,
 				useWebWorker: useWebWorker,
 				mouseMoveThrottle: 16,
-				resizeDebounce: 100
+				resizeDebounce: 100,
+				svgMaxPoints: 2000 // Adding missing svgMaxPoints property
 			},
 			auto: {
 				enableDataSampling: enableSampling,
-				useWebWorker: useWebWorker
+				useWebWorker: useWebWorker,
+				svgMaxPoints: 1000 // Adding missing svgMaxPoints property
 			}
 		};
 		return configs[performanceMode];
@@ -373,7 +377,6 @@
 	}
 
 	// GENERATE data
-
 	// Dataset loading functions with better reactivity and debugging
 	function loadSmallDataset() {
 		console.log('Loading small dataset...');
@@ -421,8 +424,9 @@
 		console.log('XL dataset loaded:', chartData.length, 'lines,', totalDataPoints, 'total points');
 	}
 
-let selectedConfig = $state<keyof typeof currentConfig>('default');
-    const totalDataPoints = $derived(chartData.reduce((sum, line) => sum + line.data.length, 0));
+	// Fixed the selectedConfig type to match available config options
+	let selectedConfig = $state<'mobile' | 'tablet' | 'desktop' | 'auto'>('auto');
+	const totalDataPoints = $derived(chartData.reduce((sum, line) => sum + line.data.length, 0));
 
 	const renderingMode = $derived(
 		totalDataPoints > (currentConfig.svgMaxPoints || 1000) ? 'Canvas' : 'SVG'
@@ -434,20 +438,13 @@ let selectedConfig = $state<keyof typeof currentConfig>('default');
 		fetchData(selectedDataset);
 	});
 
-	// Calculate total data points for display
-	const totalPoints = $derived(chartData.reduce((sum, line) => sum + line.data.length, 0));
-
-	const avgPointsPerLine = $derived(
-		chartData.length > 0 ? Math.round(totalPoints / chartData.length) : 0
-	);
-
-
-    $effect(() => {
+	// Ensure we're using totalDataPoints consistently (not mixing with totalPoints)
+	$effect(() => {
 		console.table({
 			lines: chartData.length,
 			totalPoints: totalDataPoints,
 			expectedMode: renderingMode,
-			firstLineDataLength: chartData[0]?.data?.length || 0,	
+			firstLineDataLength: chartData[0]?.data?.length || 0
 		});
 
 		console.table({
@@ -456,7 +453,12 @@ let selectedConfig = $state<keyof typeof currentConfig>('default');
 			renderingMode,
 			totalPoints: totalDataPoints
 		});
-    })
+	});
+
+	// Remove duplicate $effect and update the variable reference
+	const avgPointsPerLine = $derived(
+		chartData.length > 0 ? Math.round(totalDataPoints / chartData.length) : 0
+	);
 </script>
 
 <div class="demo-container">
@@ -559,10 +561,18 @@ let selectedConfig = $state<keyof typeof currentConfig>('default');
 					<div class="control-group">
 						<h3>Dataset Size</h3>
 						<div class="dataset-grid">
-							<button type="button" class="dataset-card" onclick={loadSmallDataset}> Small (50 points) </button>
-							<button type="button" class="dataset-card" onclick={loadMediumDataset}> Medium (500 points) </button>
-							<button type="button" class="dataset-card" onclick={loadLargeDataset}> Large (2K points) </button>
-							<button type="button" class="dataset-card" onclick={loadXLDataset}> XL (10K points) </button>
+							<button type="button" class="dataset-card" onclick={loadSmallDataset}>
+								Small (50 points)
+							</button>
+							<button type="button" class="dataset-card" onclick={loadMediumDataset}>
+								Medium (500 points)
+							</button>
+							<button type="button" class="dataset-card" onclick={loadLargeDataset}>
+								Large (2K points)
+							</button>
+							<button type="button" class="dataset-card" onclick={loadXLDataset}>
+								XL (10K points)
+							</button>
 						</div>
 					</div>
 				</div>
@@ -597,7 +607,7 @@ let selectedConfig = $state<keyof typeof currentConfig>('default');
 					{curveType}
 					{tension}
 					yTickCount={selectedDataset?.yTickCount || 5}
-					performanceConfig={(currentConfig as any) || {}}
+					performanceConfig={currentConfig || {}}
 				/>
 
 				<!-- Placeholder for demo -->
@@ -627,7 +637,7 @@ let selectedConfig = $state<keyof typeof currentConfig>('default');
 							</div>
 							<div class="status-item">
 								<span class="status-label">Total Points:</span>
-								<span class="status-value">{totalPoints.toLocaleString()}</span>
+								<span class="status-value">{totalDataPoints.toLocaleString()}</span>
 							</div>
 							<div class="status-item">
 								<span class="status-label">Lines:</span>
