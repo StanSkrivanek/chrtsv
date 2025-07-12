@@ -983,7 +983,7 @@
 	{:else if samplingStats && samplingStats.compressionRatio > 1}
 		<div class="sampling-notice optimized">
 			<small>
-				📊 Optimized for {deviceType}: {samplingStats.originalPoints.toLocaleString()} → {samplingStats.sampledPoints.toLocaleString()} points 
+				Optimized for {deviceType}: {samplingStats.originalPoints.toLocaleString()} → {samplingStats.sampledPoints.toLocaleString()} points 
 				({samplingStats.compressionRatio.toFixed(1)}x compression, {samplingStats.processingTime.toFixed(1)}ms)
 				{#if samplingStats.usedWorker}
 					🔧 Using Web Worker

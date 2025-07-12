@@ -339,8 +339,8 @@
 			const endTime = performance.now();
 			lastFetchTime = endTime - startTime;
 			
-			console.log(`✅ ${dataset.name} loaded in ${lastFetchTime.toFixed(1)}ms`);
-			console.log('📊 Data summary:', {
+			console.log(`${dataset.name} loaded in ${lastFetchTime.toFixed(1)}ms`);
+			console.log('Data summary:', {
 				lines: data.length,
 				totalPoints: data.reduce((sum, line) => sum + line.data.length, 0),
 				avgPointsPerLine: Math.round(data.reduce((sum, line) => sum + line.data.length, 0) / data.length),
@@ -348,7 +348,7 @@
 			});
 		} catch (err) {
 			error = `Failed to fetch ${dataset.name}: ${(err as Error).message}`;
-			console.error('❌ Fetch error:', err);
+			console.error('Fetch error:', err);
 		} finally {
 			loading = false;
 		}

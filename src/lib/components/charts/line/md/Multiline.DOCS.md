@@ -287,7 +287,7 @@ The UI displays sampling status:
 ⚡ Processing 15,000 data points...
 
 {/* Optimization complete */}
-📊 Optimized for desktop: 15,000 → 2,850 points 
+Optimized for desktop: 15,000 → 2,850 points 
 (5.3x compression, 45.2ms) 🔧 Using Web Worker
 
 {/* Canvas mode for large datasets */}
