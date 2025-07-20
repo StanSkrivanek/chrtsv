@@ -1,4 +1,3 @@
-// File: src/lib/components/charts/utils/PerformanceMonitor.ts
 
 export class PerformanceMonitor {
 	private renderTimes: number[] = [];

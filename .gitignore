@@ -8,6 +8,7 @@ node_modules
 /.svelte-kit
 /build
 /static/REST
+/rubbish
 # OS
 .DS_Store
 Thumbs.db

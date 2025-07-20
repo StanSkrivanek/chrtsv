@@ -4,7 +4,7 @@
 
 	// Enhanced Types
 	interface DataPoint {
-		[key: string]: any;
+		[key: string]: unknown;
 	}
 
 	interface LineData {
@@ -229,13 +229,13 @@
 	const currentRenderingMode = $derived(renderingMode());
 
 	// Derived state for tooltip logic
-	const shouldShowPointTooltip = $derived(
+	const showPointTooltip = $derived(
 		hasTooltip && !hasCrosshair && tooltipVisible && tooltipData !== null
 	);
-	const shouldShowCrosshairTooltip = $derived(
+	const showCrosshairTooltip = $derived(
 		hasCrosshair && hasTooltip && crosshairVisible && crosshairData !== null
 	);
-	const shouldShowCrosshairLines = $derived(hasCrosshair && crosshairVisible);
+	const showCrosshairLines = $derived(hasCrosshair && crosshairVisible);
 
 	// Initialize worker
 	function initializeWorker(): void {
@@ -850,7 +850,7 @@
 		});
 
 		// Draw crosshair in canvas mode
-		if (shouldShowCrosshairLines && crosshairData) {
+		if (showCrosshairLines && crosshairData) {
 			drawCanvasCrosshair(canvasContext, crosshairData);
 		}
 	}
@@ -1276,9 +1276,9 @@
 					1
 				)}ms)
 				{#if samplingStats.usedWorker}
-					🔧 Using Web Worker
+					Using Web Worker
 				{:else}
-					⚡ Main thread fallback
+					Main thread fallback
 				{/if}
 			</small>
 		</div>
@@ -1433,7 +1433,7 @@
 						{/each}
 
 						<!-- Crosshair lines -->
-						{#if shouldShowCrosshairLines && crosshairData}
+						{#if showCrosshairLines && crosshairData}
 							<g class="crosshair-group" opacity="1">
 								<!-- Vertical line -->
 								<line
@@ -1504,7 +1504,7 @@
 	{/if}
 
 	<!-- Point tooltip -->
-	{#if shouldShowPointTooltip && tooltipData}
+	{#if showPointTooltip && tooltipData}
 		{@const tooltipX = tooltipData.x}
 		{@const tooltipY = tooltipData.y - 20}
 		{@const shouldFlipX = tooltipX > width - 120}
@@ -1534,7 +1534,7 @@
 	{/if}
 
 	<!-- Crosshair tooltip -->
-	{#if shouldShowCrosshairTooltip && crosshairData}
+	{#if showCrosshairTooltip && crosshairData}
 		{@const tooltipX = crosshairData.x}
 		{@const tooltipY = crosshairData.y - 20}
 		{@const shouldFlipX = tooltipX > width - 120}

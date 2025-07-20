@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// File: src/lib/components/charts/utils/helpers.ts
 
 /**
  * Throttle function that limits how often a function can be called

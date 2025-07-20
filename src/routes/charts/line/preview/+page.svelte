@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import MultiLineChart from '$lib/components/charts/line/MultiLineChart.svelte'; // Your component
+	import MultiLineChart from '$lib/components/charts/line/MultiLineChart.svelte';
 	import generateTestData from '$lib/components/charts/utils/testDataGenerator';
 	// Types for our API data
 	interface DataPoint {

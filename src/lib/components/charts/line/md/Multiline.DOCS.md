@@ -31,12 +31,12 @@ The sampling system is built on several key principles:
 Unlike traditional per-line sampling, our approach uses a **unified X-axis strategy**:
 
 ```
-Traditional Approach (❌):
+Traditional Approach :
 Line 1: [X1, X3, X7, X12] → Different X points per line
 Line 2: [X2, X4, X8, X15] → Causes alignment issues
 Line 3: [X1, X5, X9, X13] → Inconsistent visualization
 
-Our Approach (✅):
+Our Approach :
 All Lines: [X1, X4, X8, X12] → Consistent X-axis
 Line 1: Sample data at these X points
 Line 2: Sample data at these X points  
@@ -582,10 +582,10 @@ if (samplingStats.processingTime > 100) {
 The Multi-Line Chart sampling system provides intelligent, device-aware data reduction that maintains visual fidelity while ensuring optimal performance. Through unified X-axis sampling, comprehensive configuration options, and robust fallback systems, it handles datasets of any size across all device types.
 
 Key benefits:
-- ✅ Maintains visual accuracy and data relationships
-- ✅ Adapts automatically to device capabilities  
-- ✅ Provides detailed performance monitoring
-- ✅ Offers comprehensive configuration options
-- ✅ Includes robust error handling and fallbacks
+- Maintains visual accuracy and data relationships
+- Adapts automatically to device capabilities  
+- Provides detailed performance monitoring
+- Offers comprehensive configuration options
+- Includes robust error handling and fallbacks
 
 For additional support or advanced configuration needs, refer to the component source code or create an issue in the project repository.
